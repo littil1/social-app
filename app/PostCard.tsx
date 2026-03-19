@@ -32,15 +32,30 @@ export default function PostCard({
         </div>
 
         <div>
-          {post.username ? (
-            <Link
-              href={`/u/${post.username}`}
-              className="block text-sm text-gray-700 hover:underline"
-            >
-              @{post.username}
-            </Link>
-          ) : (
-            <p className="text-sm text-gray-500">@unknown</p>
+          <div className="flex items-center gap-2">
+            {post.username ? (
+              <Link
+                href={`/u/${post.username}`}
+                className="block text-sm text-gray-700 hover:underline"
+              >
+                @{post.username}
+              </Link>
+            ) : (
+              <p className="text-sm text-gray-500">@unknown</p>
+            )}
+
+            {post.implementedIdeaCount > 0 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                Contributor
+              </span>
+            )}
+          </div>
+
+          {post.implementedIdeaCount > 0 && (
+            <p className="text-xs text-gray-500">
+              {post.implementedIdeaCount} implemented{" "}
+              {post.implementedIdeaCount === 1 ? "idea" : "ideas"}
+            </p>
           )}
         </div>
       </div>

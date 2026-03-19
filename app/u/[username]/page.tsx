@@ -4,6 +4,9 @@ import NavBar from "@/app/navbar";
 import FollowButton from "@/app/FollowButton";
 import PostCard from "@/app/PostCard";
 import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
+import {
+  getImplementedIdeaCountByUserId,
+} from "@/lib/feedback-data";
 import { getPostsBundle, sortTrendingToday } from "@/lib/social-data";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +65,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     profile.id
   );
 
+  const implementedIdeaCount = await getImplementedIdeaCountByUserId(
+    supabase,
+    profile.id
+  );
+
   const totalLikesToday = posts.reduce((sum, post) => sum + post.likeCountToday, 0);
   const isOwnProfile = user?.id === profile.id;
 
@@ -87,10 +95,26 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
 
               <div>
-                <h1 className="text-2xl font-bold">@{profile.username}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold">@{profile.username}</h1>
+
+                  {implementedIdeaCount > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
+                      Contributor
+                    </span>
+                  )}
+                </div>
+
                 <p className="mt-1 text-sm text-gray-500">
                   Joined {new Date(profile.created_at).toLocaleDateString()}
                 </p>
+
+                {implementedIdeaCount > 0 && (
+                  <p className="mt-1 text-sm text-amber-700">
+                    {implementedIdeaCount} implemented{" "}
+                    {implementedIdeaCount === 1 ? "idea" : "ideas"}
+                  </p>
+                )}
               </div>
             </div>
 

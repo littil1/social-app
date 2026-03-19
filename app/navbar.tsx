@@ -39,6 +39,9 @@ export default async function NavBar() {
             <Link href="/explore" className="hover:underline">
               Explore
             </Link>
+            <Link href="/feedback" className="hover:underline">
+              Verbesserungswünsche
+            </Link>
 
             {user && (
               <Link href="/following" className="hover:underline">

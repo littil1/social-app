@@ -28,6 +28,12 @@ type CommentRow = {
   created_at: string;
 };
 
+type FeatureRequestRow = {
+  id: number;
+  user_id: string;
+  status: "open" | "implemented";
+};
+
 export type EnrichedComment = {
   id: number;
   post_id: number;
@@ -51,6 +57,7 @@ export type EnrichedPost = {
   likeCountToday: number;
   likeCountWeek: number;
   likedByViewer: boolean;
+  implementedIdeaCount: number;
 };
 
 function getStartOfToday() {
@@ -125,10 +132,17 @@ export async function getPostsBundle(
     .order("created_at", { ascending: true });
   if (commentsError) throw new Error(commentsError.message);
 
+  const { data: featureRequests, error: featureRequestsError } = await supabase
+    .from("feature_requests")
+    .select("id, user_id, status")
+    .eq("status", "implemented");
+  if (featureRequestsError) throw new Error(featureRequestsError.message);
+
   const typedPosts = (posts ?? []) as PostRow[];
   const typedProfiles = (profiles ?? []) as ProfileRow[];
   const typedLikes = (likes ?? []) as LikeRow[];
   const typedComments = (comments ?? []) as CommentRow[];
+  const typedFeatureRequests = (featureRequests ?? []) as FeatureRequestRow[];
 
   const startOfToday = getStartOfToday();
   const startOfWeek = getStartOfWeek();
@@ -136,6 +150,15 @@ export async function getPostsBundle(
   const profileMap = new Map<string, ProfileRow>(
     typedProfiles.map((profile) => [profile.id, profile])
   );
+
+  const implementedIdeaCountByUser = new Map<string, number>();
+
+  for (const request of typedFeatureRequests) {
+    implementedIdeaCountByUser.set(
+      request.user_id,
+      (implementedIdeaCountByUser.get(request.user_id) ?? 0) + 1
+    );
+  }
 
   const commentsByPost = new Map<number, EnrichedComment[]>();
 
@@ -183,6 +206,7 @@ export async function getPostsBundle(
       likeCountToday,
       likeCountWeek,
       likedByViewer,
+      implementedIdeaCount: implementedIdeaCountByUser.get(post.user_id) ?? 0,
     };
   });
 }
