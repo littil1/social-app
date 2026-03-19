@@ -3,6 +3,7 @@ import PostCard from "./PostCard";
 import { addPost } from "./actions/social";
 import { createClient } from "@/lib/supabase-server";
 import { getPostsBundle, sortTrendingToday } from "@/lib/social-data";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function Home() {
       <main className="mx-auto max-w-2xl p-6">
         <h1 className="mb-6 text-3xl font-bold">Home</h1>
 
-        {user && (
+        {user ? (
           <div className="mb-6 rounded-xl bg-white p-4 shadow">
             <form action={addPost} className="flex gap-2">
               <input type="hidden" name="path" value="/" />
@@ -67,6 +68,18 @@ export default async function Home() {
                 Post
               </button>
             </form>
+          </div>
+        ) : (
+          <div className="mb-6 rounded-xl bg-white p-4 shadow">
+            <p className="mb-3 text-gray-700">
+              You need an account to post, like, comment, and follow users.
+            </p>
+            <Link
+              href="/login"
+              className="inline-block rounded-lg bg-black px-4 py-2 text-white"
+            >
+              Go to Login / Signup
+            </Link>
           </div>
         )}
 

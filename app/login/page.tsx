@@ -1,114 +1,141 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase-browser";
+import Link from "next/link";
+import { useActionState } from "react";
+import { loginAction, signupAction, type AuthState } from "./actions";
+
+const initialState: AuthState = {
+  error: null,
+  success: null,
+};
 
 export default function LoginPage() {
-  const supabase = createClient();
+  const [loginState, loginFormAction, loginPending] = useActionState(
+    loginAction,
+    initialState
+  );
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [message, setMessage] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setMessage("");
-
-    if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (error) {
-        setMessage(error.message);
-      } else {
-        setMessage("Account created. Check your email if confirmation is enabled.");
-      }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setMessage(error.message);
-      } else {
-        setMessage("Logged in successfully.");
-      }
-    }
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    setMessage("Logged out.");
-  }
+  const [signupState, signupFormAction, signupPending] = useActionState(
+    signupAction,
+    initialState
+  );
 
   return (
-    <main className="min-h-screen bg-gray-100 p-6">
-      <div className="mx-auto max-w-md rounded-xl bg-white p-6 shadow">
-        <h1 className="mb-4 text-2xl font-bold">Login</h1>
+    <main className="mx-auto max-w-md p-6">
+      <Link
+        href="/"
+        className="mb-4 inline-block text-sm text-gray-500 hover:underline"
+      >
+        ← Back
+      </Link>
 
-        <div className="mb-4 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setMode("login")}
-            className={`rounded-lg px-4 py-2 ${
-              mode === "login" ? "bg-black text-white" : "bg-gray-200"
-            }`}
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("signup")}
-            className={`rounded-lg px-4 py-2 ${
-              mode === "signup" ? "bg-black text-white" : "bg-gray-200"
-            }`}
-          >
-            Sign up
-          </button>
+      <h1 className="mb-6 text-3xl font-bold">Login / Signup</h1>
+
+      <div className="space-y-6">
+        <div className="rounded-xl bg-white p-6 shadow">
+          <h2 className="mb-4 text-xl font-semibold">Login</h2>
+
+          <form action={loginFormAction} className="space-y-4">
+            <div>
+              <label
+                htmlFor="login-email"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Email
+              </label>
+              <input
+                id="login-email"
+                name="email"
+                type="email"
+                required
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="login-password"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Password
+              </label>
+              <input
+                id="login-password"
+                name="password"
+                type="password"
+                required
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
+              />
+            </div>
+
+            {loginState.error && (
+              <p className="text-sm text-red-600">{loginState.error}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loginPending}
+              className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+            >
+              {loginPending ? "Logging in..." : "Login"}
+            </button>
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2"
-            required
-          />
+        <div className="rounded-xl bg-white p-6 shadow">
+          <h2 className="mb-4 text-xl font-semibold">Create account</h2>
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-4 py-2"
-            required
-          />
+          <form action={signupFormAction} className="space-y-4">
+            <div>
+              <label
+                htmlFor="signup-email"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Email
+              </label>
+              <input
+                id="signup-email"
+                name="email"
+                type="email"
+                required
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-black px-4 py-2 text-white"
-          >
-            {mode === "login" ? "Login" : "Create account"}
-          </button>
-        </form>
+            <div>
+              <label
+                htmlFor="signup-password"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                Password
+              </label>
+              <input
+                id="signup-password"
+                name="password"
+                type="password"
+                required
+                minLength={6}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
+              />
+            </div>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="mt-4 w-full rounded-lg border border-gray-300 px-4 py-2"
-        >
-          Logout
-        </button>
+            {signupState.error && (
+              <p className="text-sm text-red-600">{signupState.error}</p>
+            )}
 
-        {message && (
-          <p className="mt-4 text-sm text-gray-600">{message}</p>
-        )}
+            {signupState.success && (
+              <p className="text-sm text-green-600">{signupState.success}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={signupPending}
+              className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+            >
+              {signupPending ? "Creating account..." : "Sign up"}
+            </button>
+          </form>
+        </div>
       </div>
     </main>
   );
