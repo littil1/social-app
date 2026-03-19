@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase-server";
 import NavBar from "@/app/navbar";
 import FollowButton from "@/app/FollowButton";
 import PostCard from "@/app/PostCard";
+import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
 import { getPostsBundle, sortTrendingToday } from "@/lib/social-data";
 
 export const dynamic = "force-dynamic";
@@ -50,28 +51,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     })
   );
 
-  const { count: followersCount } = await supabase
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("following_id", profile.id);
+  const { followersCount, followingCount } = await getFollowCounts(
+    supabase,
+    profile.id
+  );
 
-  const { count: followingCount } = await supabase
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("follower_id", profile.id);
-
-  let isFollowing = false;
-
-  if (user && user.id !== profile.id) {
-    const { data } = await supabase
-      .from("follows")
-      .select("id")
-      .eq("follower_id", user.id)
-      .eq("following_id", profile.id)
-      .maybeSingle();
-
-    isFollowing = !!data;
-  }
+  const isFollowing = await isFollowingUser(
+    supabase,
+    user?.id ?? null,
+    profile.id
+  );
 
   const totalLikesToday = posts.reduce((sum, post) => sum + post.likeCountToday, 0);
   const isOwnProfile = user?.id === profile.id;
@@ -130,8 +119,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
           <div className="flex flex-wrap gap-6 text-sm text-gray-600">
             <span>{posts.length} Posts</span>
-            <span>{followersCount ?? 0} Followers</span>
-            <span>{followingCount ?? 0} Following</span>
+
+            <Link
+              href={`/u/${profile.username}/followers`}
+              className="hover:underline"
+            >
+              {followersCount} Followers
+            </Link>
+
+            <Link
+              href={`/u/${profile.username}/following`}
+              className="hover:underline"
+            >
+              {followingCount} Following
+            </Link>
+
             <span>{totalLikesToday} Likes today</span>
           </div>
         </div>

@@ -40,6 +40,12 @@ export default async function NavBar() {
               Explore
             </Link>
 
+            {user && (
+              <Link href="/following" className="hover:underline">
+                Following
+              </Link>
+            )}
+
             {profile?.username && (
               <Link href={`/u/${profile.username}`} className="hover:underline">
                 Profile
