@@ -7,6 +7,7 @@ import { getImplementedIdeaCountByUserId } from "@/lib/feedback-data";
 import type { FeedPost } from "@/types/feed";
 import type { Database } from "@/types/database";
 import UserProfileContent from "@/app/components/feed/UserProfileContent";
+import ProfileBadgesSection from "@/app/components/profile/ProfileBadgesSection";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,10 @@ type PostRow = {
 
 type LikeRow = {
   post_id: number | null;
+};
+
+type CommentRow = {
+  post_id: number;
 };
 
 type HallOfFameRow =
@@ -67,7 +72,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, username, bio, avatar_url, created_at")
+    .select("id, username, bio, avatar_url, created_at, badges")
     .eq("username", usernameFromUrl)
     .maybeSingle();
 
@@ -118,12 +123,34 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     );
   }
 
+  const commentCountMap = new Map<number, number>();
+
+  if (postIds.length > 0) {
+    const { data: commentsData, error: commentsError } = await supabase
+      .from("comments")
+      .select("post_id")
+      .in("post_id", postIds);
+
+    if (commentsError) {
+      throw new Error(commentsError.message);
+    }
+
+    for (const comment of (commentsData ?? []) as CommentRow[]) {
+      if (typeof comment.post_id !== "number") continue;
+
+      commentCountMap.set(
+        comment.post_id,
+        (commentCountMap.get(comment.post_id) ?? 0) + 1
+      );
+    }
+  }
+
   const posts: FeedPost[] = typedPosts.map((post) => ({
     id: post.id,
     content: post.content ?? "",
     created_at: post.created_at,
     likes_count: post.likes_count ?? 0,
-    comments_count: post.comments_count ?? 0,
+    comments_count: commentCountMap.get(post.id) ?? 0,
     viewer_has_liked: likedPostIds.has(post.id),
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
   }));
@@ -162,6 +189,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   );
 
   const isOwnProfile = user?.id === profile.id;
+  const profileBadges = Array.isArray(profile.badges)
+    ? profile.badges.filter((value): value is string => typeof value === "string")
+    : [];
 
   return (
     <>
@@ -240,24 +270,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
 
-          {uniqueBadgeCategories.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {uniqueBadgeCategories.map((category) => (
-                <span
-                  key={category}
-                  className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700"
-                >
-                  {getBadgeLabel(category)}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <p className="whitespace-pre-wrap break-words text-gray-700">
-            {profile.bio ?? "No bio yet."}
-          </p>
+        <ProfileBadgesSection
+          targetUserId={profile.id}
+          initialBadges={profileBadges}
+          viewerIsAdmin={viewerIsAdmin}
+        />
         </div>
-
+        
         <UserProfileContent
           initialPosts={posts}
           followersCount={followersCount}

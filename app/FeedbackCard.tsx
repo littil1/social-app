@@ -62,11 +62,11 @@ export default function FeedbackCard({
       </div>
 
       <h3 className="mb-2 break-words text-lg font-semibold text-gray-900">
-          {item.title}
-        </h3>
-        <p className="mb-3 whitespace-pre-wrap break-words text-gray-800">
-          {item.description}
-        </p>
+        {item.title}
+      </h3>
+      <p className="mb-3 whitespace-pre-wrap break-words text-gray-800">
+        {item.description}
+      </p>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">

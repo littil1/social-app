@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedPost } from "@/types/feed";
@@ -127,9 +128,12 @@ function PostCardComponent({
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-gray-700">
+              <Link
+                href={`/u/${post.author_username}`}
+                className="block truncate text-sm font-semibold text-gray-700 hover:underline"
+              >
                 @{post.author_username}
-              </p>
+              </Link>
               <p className="mt-1 text-xs text-gray-400">
                 {formatDate(post.created_at)}
               </p>

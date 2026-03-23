@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import type { FeedPost } from "@/types/feed";
 import CreatePostForm from "@/app/components/feed/CreatePostForm";
 import PostCard from "@/app/components/feed/PostCard";
@@ -119,21 +118,7 @@ export default function HomeFeed({
 
   return (
     <div className="space-y-6">
-      {isLoggedIn ? (
-        <CreatePostForm onPostCreated={handlePostCreated} />
-      ) : (
-        <div className="rounded-xl bg-white p-4 shadow">
-          <p className="mb-3 text-gray-700">
-            You need an account to post, like, comment, and follow users.
-          </p>
-          <Link
-            href="/login"
-            className="inline-block rounded-lg bg-black px-4 py-2 text-white"
-          >
-            Go to Login / Signup
-          </Link>
-        </div>
-      )}
+      {isLoggedIn && <CreatePostForm onPostCreated={handlePostCreated} />}
 
       <div className="space-y-4">
         {posts.map((post) => (

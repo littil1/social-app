@@ -6,6 +6,10 @@ export const FEED_PAGE_SIZE = 10;
 
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 type LikeRow = Database["public"]["Tables"]["likes"]["Row"];
+type CommentRow = Pick<
+  Database["public"]["Tables"]["comments"]["Row"],
+  "post_id"
+>;
 
 export async function getFeedPage(
   offset = 0,
@@ -73,12 +77,31 @@ export async function getFeedPage(
     );
   }
 
+  const { data: commentsData, error: commentsError } = await supabase
+    .from("comments")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  if (commentsError) {
+    throw new Error(commentsError.message);
+  }
+
+  const commentCountMap = new Map<number, number>();
+
+  for (const comment of (commentsData ?? []) as CommentRow[]) {
+    if (typeof comment.post_id !== "number") continue;
+    commentCountMap.set(
+      comment.post_id,
+      (commentCountMap.get(comment.post_id) ?? 0) + 1
+    );
+  }
+
   return posts.map((post) => ({
     id: post.id,
     content: post.content ?? "",
     created_at: post.created_at,
     likes_count: post.likes_count ?? 0,
-    comments_count: post.comments_count ?? 0,
+    comments_count: commentCountMap.get(post.id) ?? 0,
     viewer_has_liked: likedPostIds.has(post.id),
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
   }));

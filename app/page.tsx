@@ -37,7 +37,7 @@ export default async function Home() {
           </div>
         )}
 
-        <WeeklyTopPostHighlight />
+
 
         <HomeFeed
           initialPosts={initialPosts}
