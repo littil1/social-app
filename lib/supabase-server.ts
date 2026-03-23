@@ -18,9 +18,9 @@ export async function createClient() {
             cookieStore.set({ name, value, ...options });
           } catch {}
         },
-        remove(name: string, options: any) {
+        remove(name: string) {
           try {
-            cookieStore.set({ name, value: "", ...options });
+            cookieStore.delete(name);
           } catch {}
         },
       },

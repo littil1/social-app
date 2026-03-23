@@ -11,6 +11,34 @@ function revalidateMany(paths: Array<string | null | undefined>) {
   }
 }
 
+async function isCurrentUserAdmin(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return !!data?.is_admin;
+}
+
+async function getFeatureRequestAuthorUsername(supabase: any, requestId: number) {
+  const { data: request } = await supabase
+    .from("feature_requests")
+    .select("user_id")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (!request?.user_id) return null;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", request.user_id)
+    .maybeSingle();
+
+  return profile?.username ?? null;
+}
+
 export async function addFeatureRequest(formData: FormData) {
   const supabase = await createClient();
 
@@ -42,9 +70,17 @@ export async function deleteFeatureRequest(formData: FormData) {
 
   if (!requestId) return;
 
+  const authorUsername = await getFeatureRequestAuthorUsername(supabase, requestId);
+
   await supabase.from("feature_requests").delete().eq("id", requestId);
 
-  revalidateMany(["/feedback"]);
+  revalidateMany([
+    "/",
+    "/explore",
+    "/following",
+    "/feedback",
+    authorUsername ? `/u/${authorUsername}` : null,
+  ]);
 }
 
 export async function toggleFeatureRequestLike(formData: FormData) {
@@ -116,4 +152,39 @@ export async function deleteFeatureRequestComment(formData: FormData) {
   await supabase.from("feature_request_comments").delete().eq("id", commentId);
 
   revalidateMany(["/feedback"]);
+}
+
+export async function updateFeatureRequestStatus(formData: FormData) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const requestId = Number(formData.get("request_id"));
+  const status = String(formData.get("status") ?? "");
+
+  if (!user || !requestId) return;
+  if (status !== "open" && status !== "implemented") return;
+
+  const isAdmin = await isCurrentUserAdmin(supabase, user.id);
+  if (!isAdmin) return;
+
+  const authorUsername = await getFeatureRequestAuthorUsername(supabase, requestId);
+
+  await supabase
+    .from("feature_requests")
+    .update({
+      status,
+      implemented_at: status === "implemented" ? new Date().toISOString() : null,
+    })
+    .eq("id", requestId);
+
+  revalidateMany([
+    "/",
+    "/explore",
+    "/following",
+    "/feedback",
+    authorUsername ? `/u/${authorUsername}` : null,
+  ]);
 }

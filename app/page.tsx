@@ -1,9 +1,9 @@
 import NavBar from "./navbar";
-import PostCard from "./PostCard";
-import { addPost } from "./actions/social";
-import { createClient } from "@/lib/supabase-server";
-import { getPostsBundle, sortTrendingToday } from "@/lib/social-data";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase-server";
+import HomeFeed from "@/app/components/feed/HomeFeed";
+import WeeklyTopPostHighlight from "@/app/components/feed/WeeklyTopPostHighlight";
+import { FEED_PAGE_SIZE, getFeedPage } from "@/lib/feed";
 
 export const dynamic = "force-dynamic";
 
@@ -14,27 +14,7 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let viewerProfile:
-    | {
-        username: string | null;
-      }
-    | null = null;
-
-  if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    viewerProfile = data;
-  }
-
-  const posts = sortTrendingToday(
-    await getPostsBundle(supabase, {
-      viewerId: user?.id ?? null,
-    })
-  );
+  const initialPosts = await getFeedPage(0, FEED_PAGE_SIZE);
 
   return (
     <>
@@ -43,33 +23,7 @@ export default async function Home() {
       <main className="mx-auto max-w-2xl p-6">
         <h1 className="mb-6 text-3xl font-bold">Home</h1>
 
-        {user ? (
-          <div className="mb-6 rounded-xl bg-white p-4 shadow">
-            <form action={addPost} className="flex gap-2">
-              <input type="hidden" name="path" value="/" />
-              <input
-                type="hidden"
-                name="viewer_username"
-                value={viewerProfile?.username ?? ""}
-              />
-
-              <input
-                type="text"
-                name="content"
-                placeholder="Write something..."
-                required
-                minLength={2}
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 outline-none"
-              />
-              <button
-                type="submit"
-                className="rounded-lg bg-black px-4 py-2 text-white"
-              >
-                Post
-              </button>
-            </form>
-          </div>
-        ) : (
+        {!user && (
           <div className="mb-6 rounded-xl bg-white p-4 shadow">
             <p className="mb-3 text-gray-700">
               You need an account to post, like, comment, and follow users.
@@ -83,22 +37,13 @@ export default async function Home() {
           </div>
         )}
 
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              currentUserId={user?.id ?? null}
-              path="/"
-            />
-          ))}
+        <WeeklyTopPostHighlight />
 
-          {posts.length === 0 && (
-            <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-              No posts yet.
-            </div>
-          )}
-        </div>
+        <HomeFeed
+          initialPosts={initialPosts}
+          pageSize={FEED_PAGE_SIZE}
+          isLoggedIn={!!user}
+        />
       </main>
     </>
   );

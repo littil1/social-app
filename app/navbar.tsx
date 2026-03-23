@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
-import { logout } from "./actions/social";
+import UserMenu from "@/app/components/UserMenu";
 
 export default async function NavBar() {
   const supabase = await createClient();
@@ -12,12 +12,13 @@ export default async function NavBar() {
   let profile: {
     username: string | null;
     avatar_url: string | null;
+    is_admin: boolean;
   } | null = null;
 
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("username, avatar_url")
+      .select("username, avatar_url, is_admin")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -32,68 +33,36 @@ export default async function NavBar() {
             Social App
           </Link>
 
-          <nav className="flex items-center gap-4 text-sm text-gray-600">
-            <Link href="/" className="hover:underline">
-              Home
-            </Link>
-            <Link href="/explore" className="hover:underline">
-              Explore
-            </Link>
-            <Link href="/feedback" className="hover:underline">
-              Verbesserungswünsche
-            </Link>
+<nav className="flex items-center gap-4 text-sm text-gray-600">
+  <Link href="/" className="hover:underline">
+    Home
+  </Link>
+  <Link href="/explore" className="hover:underline">
+    Explore
+  </Link>
+  <Link href="/leaderboard" className="hover:underline">
+    Hall of Fame
+  </Link>
+  <Link href="/feedback" className="hover:underline">
+    Verbesserungswünsche
+  </Link>
 
-            {user && (
-              <Link href="/following" className="hover:underline">
-                Following
-              </Link>
-            )}
+  {user && (
+    <Link href="/following" className="hover:underline">
+      Following
+    </Link>
+  )}
+</nav>
 
-            {profile?.username && (
-              <Link href={`/u/${profile.username}`} className="hover:underline">
-                Profile
-              </Link>
-            )}
-
-            {user && (
-              <Link href="/settings/profile" className="hover:underline">
-                Settings
-              </Link>
-            )}
-          </nav>
         </div>
 
         <div className="flex items-center gap-3">
           {user ? (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-                  {profile?.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={profile.avatar_url}
-                      alt="Your avatar"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    (profile?.username ?? user.email ?? "u").charAt(0).toUpperCase()
-                  )}
-                </div>
-
-                <div className="hidden text-sm text-gray-600 sm:block">
-                  @{profile?.username ?? "user"}
-                </div>
-              </div>
-
-              <form action={logout}>
-                <button
-                  type="submit"
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700"
-                >
-                  Logout
-                </button>
-              </form>
-            </>
+            <UserMenu
+              username={profile?.username ?? "user"}
+              avatarUrl={profile?.avatar_url ?? null}
+              isAdmin={profile?.is_admin ?? false}
+            />
           ) : (
             <Link
               href="/login"

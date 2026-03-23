@@ -9,10 +9,12 @@ export default function FeedbackCommentsSection({
   requestId,
   comments,
   currentUserId,
+  currentUserIsAdmin,
 }: {
   requestId: number;
   comments: FeedbackComment[];
   currentUserId: string | null;
+  currentUserIsAdmin: boolean;
 }) {
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -50,14 +52,14 @@ export default function FeedbackCommentsSection({
                 )}
               </div>
 
-              {comment.isOwnComment && currentUserId === comment.user_id && (
+              {(comment.isOwnComment || currentUserIsAdmin) && (
                 <form action={deleteFeatureRequestComment}>
                   <input type="hidden" name="comment_id" value={comment.id} />
                   <button
                     type="submit"
                     className="text-xs text-red-600 hover:underline"
                   >
-                    Delete
+                    {comment.isOwnComment ? "Delete" : "Admin delete"}
                   </button>
                 </form>
               )}

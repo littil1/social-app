@@ -19,13 +19,14 @@ export default async function FeedbackPage() {
   let viewerProfile:
     | {
         username: string | null;
+        is_admin: boolean;
       }
     | null = null;
 
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("username")
+      .select("username, is_admin")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -110,6 +111,7 @@ export default async function FeedbackPage() {
                   key={item.id}
                   item={item}
                   currentUserId={user?.id ?? null}
+                  currentUserIsAdmin={viewerProfile?.is_admin ?? false}
                 />
               ))}
 
@@ -129,6 +131,7 @@ export default async function FeedbackPage() {
                   key={item.id}
                   item={item}
                   currentUserId={user?.id ?? null}
+                  currentUserIsAdmin={viewerProfile?.is_admin ?? false}
                 />
               ))}
 

@@ -3,17 +3,21 @@ import FeedbackCommentsSection from "./FeedbackCommentsSection";
 import {
   deleteFeatureRequest,
   toggleFeatureRequestLike,
+  updateFeatureRequestStatus,
 } from "./actions/feedback";
 import type { FeedbackItem } from "@/lib/feedback-data";
 
 export default function FeedbackCard({
   item,
   currentUserId,
+  currentUserIsAdmin,
 }: {
   item: FeedbackItem;
   currentUserId: string | null;
+  currentUserIsAdmin: boolean;
 }) {
   const isOwnRequest = currentUserId === item.user_id;
+  const canDelete = isOwnRequest || currentUserIsAdmin;
 
   return (
     <div className="rounded-xl bg-white p-4 shadow">
@@ -57,8 +61,12 @@ export default function FeedbackCard({
         </div>
       </div>
 
-      <h3 className="mb-2 text-lg font-semibold text-gray-900">{item.title}</h3>
-      <p className="mb-3 whitespace-pre-wrap text-gray-800">{item.description}</p>
+      <h3 className="mb-2 break-words text-lg font-semibold text-gray-900">
+          {item.title}
+        </h3>
+        <p className="mb-3 whitespace-pre-wrap break-words text-gray-800">
+          {item.description}
+        </p>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
@@ -88,23 +96,54 @@ export default function FeedbackCard({
           )}
         </div>
 
-        {isOwnRequest && (
-          <form action={deleteFeatureRequest}>
-            <input type="hidden" name="request_id" value={item.id} />
-            <button
-              type="submit"
-              className="rounded-lg border border-red-300 px-3 py-1 text-sm text-red-600"
-            >
-              Delete
-            </button>
-          </form>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {currentUserIsAdmin && (
+            <>
+              {item.status !== "implemented" ? (
+                <form action={updateFeatureRequestStatus}>
+                  <input type="hidden" name="request_id" value={item.id} />
+                  <input type="hidden" name="status" value="implemented" />
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-green-300 px-3 py-1 text-sm text-green-700"
+                  >
+                    Mark implemented
+                  </button>
+                </form>
+              ) : (
+                <form action={updateFeatureRequestStatus}>
+                  <input type="hidden" name="request_id" value={item.id} />
+                  <input type="hidden" name="status" value="open" />
+                  <button
+                    type="submit"
+                    className="rounded-lg border border-yellow-300 px-3 py-1 text-sm text-yellow-700"
+                  >
+                    Reopen
+                  </button>
+                </form>
+              )}
+            </>
+          )}
+
+          {canDelete && (
+            <form action={deleteFeatureRequest}>
+              <input type="hidden" name="request_id" value={item.id} />
+              <button
+                type="submit"
+                className="rounded-lg border border-red-300 px-3 py-1 text-sm text-red-600"
+              >
+                {isOwnRequest ? "Delete" : "Admin delete"}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       <FeedbackCommentsSection
         requestId={item.id}
         comments={item.comments}
         currentUserId={currentUserId}
+        currentUserIsAdmin={currentUserIsAdmin}
       />
     </div>
   );
