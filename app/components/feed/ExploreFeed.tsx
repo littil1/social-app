@@ -102,6 +102,10 @@ export default function ExploreFeed({
     );
   }
 
+  function handlePostDeleted(postId: number) {
+    setPosts((prev) => prev.filter((post) => post.id !== postId));
+  }
+
   return (
     <div className="space-y-4">
       {posts.map((post) => (
@@ -110,6 +114,7 @@ export default function ExploreFeed({
           post={post}
           onLikeUpdated={handleLikeUpdated}
           onCommentCreated={handleCommentCreated}
+          onPostDeleted={handlePostDeleted}
         />
       ))}
 
