@@ -33,14 +33,38 @@ export default async function FollowingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let navUser: {
+    username: string;
+    avatar_url: string | null;
+    is_admin: boolean;
+  } | null = null;
+
+  if (user) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("username, avatar_url, is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    if (profile?.username) {
+      navUser = {
+        username: profile.username,
+        avatar_url: profile.avatar_url ?? null,
+        is_admin: profile.is_admin ?? false,
+      };
+    }
+  }
+
   if (!user) {
     return (
       <>
-        <NavBar />
+        <NavBar user={navUser} />
 
         <main className="mx-auto max-w-2xl p-6">
-          <h1 className="mb-6 text-3xl font-bold">Following</h1>
-
           <div className="rounded-xl bg-white p-6 shadow">
             <p className="mb-4 text-gray-700">
               Log in to see posts from people you follow.
@@ -77,11 +101,9 @@ export default async function FollowingPage() {
   if (followingIds.length === 0) {
     return (
       <>
-        <NavBar />
+        <NavBar user={navUser} />
 
         <main className="mx-auto max-w-2xl p-6">
-          <h1 className="mb-6 text-3xl font-bold">Following</h1>
-
           <div className="rounded-xl bg-white p-6 shadow">
             <p className="text-gray-700">
               You are not following anyone yet. Visit profiles and click follow.
@@ -160,10 +182,9 @@ export default async function FollowingPage() {
 
   return (
     <>
-      <NavBar />
+      <NavBar user={navUser} />
 
       <main className="mx-auto max-w-2xl p-6">
-        <h1 className="mb-6 text-3xl font-bold">Following</h1>
         <FollowingFeed initialPosts={feedPosts} />
       </main>
     </>

@@ -1,17 +1,32 @@
 import Link from "next/link";
 import NavBar from "@/app/navbar";
 import { createClient } from "@/lib/supabase-server";
-import type { Database } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
-type DailyWinnerRow =
-  Database["public"]["Tables"]["daily_post_winners"]["Row"];
+type PostRow = {
+  id: number;
+  content: string | null;
+  created_at: string;
+  likes_count: number | null;
+  comments_count: number | null;
+  user_id: string | null;
+};
 
-type DailyWinnersGroup = {
-  dayKey: string;
-  dayLabel: string;
-  winners: DailyWinnerRow[];
+type ProfileRow = {
+  id: string;
+  username: string | null;
+};
+
+type RankedPost = {
+  id: number;
+  post_content: string;
+  post_created_at: string;
+  likes_count: number;
+  comments_count: number;
+  relevance_score: number;
+  author_id: string | null;
+  author_username: string | null;
 };
 
 function formatDate(dateString: string) {
@@ -22,6 +37,22 @@ function formatDate(dateString: string) {
     month: "2-digit",
     year: "numeric",
   }).format(date);
+}
+
+function getZurichDayKey(date: Date | string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Zurich",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(date));
+}
+
+function getRelevanceScore(post: PostRow) {
+  const likes = post.likes_count ?? 0;
+  const comments = post.comments_count ?? 0;
+
+  return likes + comments * 2;
 }
 
 function getPodiumCardClass(position: number) {
@@ -57,51 +88,121 @@ function getPodiumLabel(position: number) {
 export default async function LeaderboardPage() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("daily_post_winners")
-    .select("*")
-    .order("winner_date", { ascending: false })
-    .order("rank_position", { ascending: true });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (error) {
-    throw new Error(error.message);
+  let navUser: {
+    username: string;
+    avatar_url: string | null;
+    is_admin: boolean;
+  } | null = null;
+
+  if (user) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("username, avatar_url, is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    if (profile?.username) {
+      navUser = {
+        username: profile.username,
+        avatar_url: profile.avatar_url ?? null,
+        is_admin: profile.is_admin ?? false,
+      };
+    }
   }
 
-  const items = (data ?? []) as DailyWinnerRow[];
+  const { data: postsData, error: postsError } = await supabase
+    .from("posts")
+    .select("id, content, created_at, likes_count, comments_count, user_id")
+    .order("created_at", { ascending: false })
+    .limit(500);
 
-  const groupedMap = new Map<string, DailyWinnerRow[]>();
-
-  for (const item of items) {
-    const existing = groupedMap.get(item.winner_date) ?? [];
-    existing.push(item);
-    groupedMap.set(item.winner_date, existing);
+  if (postsError) {
+    throw new Error(postsError.message);
   }
 
-  const dailyResults: DailyWinnersGroup[] = Array.from(groupedMap.entries())
-    .sort((a, b) => b[0].localeCompare(a[0]))
-    .map(([dayKey, winners]) => ({
-      dayKey,
-      dayLabel: formatDate(`${dayKey}T00:00:00`),
-      winners: [...winners].sort(
-        (a, b) => a.rank_position - b.rank_position
-      ),
-    }))
-    .filter((day) => day.winners.length > 0);
+  const allPosts = (postsData ?? []) as PostRow[];
+  const todayKey = getZurichDayKey(new Date());
 
-  const latestDay = dailyResults[0] ?? null;
-  const latestPodium = latestDay ? latestDay.winners : [];
-  const pastDailyWinners = dailyResults.slice(1, 15);
+  const todaysPosts = allPosts.filter(
+    (post) => getZurichDayKey(post.created_at) === todayKey
+  );
+
+  const authorIds = Array.from(
+    new Set(
+      todaysPosts
+        .map((post) => post.user_id)
+        .filter((id): id is string => typeof id === "string")
+    )
+  );
+
+  let profilesById = new Map<string, ProfileRow>();
+
+  if (authorIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", authorIds);
+
+    if (profilesError) {
+      throw new Error(profilesError.message);
+    }
+
+    profilesById = new Map(
+      ((profilesData ?? []) as ProfileRow[]).map((profile) => [profile.id, profile])
+    );
+  }
+
+  const rankedPosts: RankedPost[] = todaysPosts
+    .map((post) => {
+      const authorProfile = post.user_id ? profilesById.get(post.user_id) : null;
+
+      return {
+        id: post.id,
+        post_content: post.content ?? "",
+        post_created_at: post.created_at,
+        likes_count: post.likes_count ?? 0,
+        comments_count: post.comments_count ?? 0,
+        relevance_score: getRelevanceScore(post),
+        author_id: post.user_id,
+        author_username: authorProfile?.username ?? null,
+      };
+    })
+    .sort((a, b) => {
+      if (b.relevance_score !== a.relevance_score) {
+        return b.relevance_score - a.relevance_score;
+      }
+
+      if (b.likes_count !== a.likes_count) {
+        return b.likes_count - a.likes_count;
+      }
+
+      if (b.comments_count !== a.comments_count) {
+        return b.comments_count - a.comments_count;
+      }
+
+      return new Date(a.post_created_at).getTime() - new Date(b.post_created_at).getTime();
+    });
+
+  const podium = rankedPosts.slice(0, 3);
+  const remainingTopPosts = rankedPosts.slice(3, 15);
 
   return (
     <>
-      <NavBar />
+      <NavBar user={navUser} />
 
       <main className="mx-auto max-w-6xl p-6">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Hall of Fame</h1>
-            <p className="mt-2 text-sm text-gray-500">
-              Die besten Posts des Tages mit Gold, Silber und Bronze.
+            <p className="text-sm text-gray-500">
+              Live-Ranking für heute, {formatDate(`${todayKey}T00:00:00`)}
             </p>
           </div>
 
@@ -113,25 +214,23 @@ export default async function LeaderboardPage() {
           </Link>
         </div>
 
-        {dailyResults.length === 0 ? (
+        {rankedPosts.length === 0 ? (
           <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-            Noch keine Tagesbesten vorhanden.
+            Heute gibt es noch keine Posts im Leaderboard.
           </div>
         ) : (
           <>
             <section className="mb-10">
               <div className="mb-4">
-                <h2 className="text-2xl font-bold">Tagessieger</h2>
+                <h2 className="text-2xl font-bold">Live-Podium</h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  Podest für {latestDay?.dayLabel}
+                  Aktueller Stand des heutigen Tages.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3 md:items-end">
                 {[2, 1, 3].map((position) => {
-                  const post = latestPodium.find(
-                    (item) => item.rank_position === position
-                  );
+                  const post = podium[position - 1] ?? null;
 
                   return (
                     <article
@@ -156,7 +255,7 @@ export default async function LeaderboardPage() {
                       {post ? (
                         <>
                           <p className="mb-3 whitespace-pre-wrap break-words text-gray-900">
-                            {post.post_content ?? ""}
+                            {post.post_content}
                           </p>
 
                           <div className="mb-3 space-y-1 text-sm text-gray-600">
@@ -186,11 +285,9 @@ export default async function LeaderboardPage() {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                            <span>{post.likes_count ?? 0} Likes</span>
-                            <span>{post.comments_count ?? 0} Kommentare</span>
-                            <span>
-                              Relevanz {Number(post.relevance_score).toFixed(1)}
-                            </span>
+                            <span>{post.likes_count} Likes</span>
+                            <span>{post.comments_count} Kommentare</span>
+                            <span>Relevanz {post.relevance_score.toFixed(1)}</span>
                           </div>
                         </>
                       ) : (
@@ -204,74 +301,68 @@ export default async function LeaderboardPage() {
               </div>
             </section>
 
-            <section>
-              <div className="mb-4">
-                <h2 className="text-xl font-bold">Vergangene Tagesbeste</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Die Sieger der letzten Tage.
-                </p>
-              </div>
+            {remainingTopPosts.length > 0 && (
+              <section>
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold">Weitere Top-Posts heute</h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Die nächsten Plätze im heutigen Live-Ranking.
+                  </p>
+                </div>
 
-              <div className="space-y-4">
-                {pastDailyWinners.map((day) => {
-                  const winner = day.winners.find(
-                    (item) => item.rank_position === 1
-                  );
+                <div className="space-y-4">
+                  {remainingTopPosts.map((post, index) => {
+                    const position = index + 4;
 
-                  return (
-                    <article
-                      key={day.dayKey}
-                      className="rounded-xl bg-white p-5 shadow"
-                    >
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            🏆 Tagessieger vom {day.dayLabel}
-                          </p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Gold-Post des Tages
-                          </p>
+                    return (
+                      <article
+                        key={post.id}
+                        className="rounded-xl bg-white p-5 shadow"
+                      >
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">
+                              Platz {position}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500">
+                              Live im heutigen Leaderboard
+                            </p>
+                          </div>
+
+                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                            Relevanz {post.relevance_score.toFixed(1)}
+                          </span>
                         </div>
 
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-900">
-                          Tagesgewinner
-                        </span>
-                      </div>
+                        <p className="mb-3 whitespace-pre-wrap break-words text-gray-900">
+                          {post.post_content}
+                        </p>
 
-                      <p className="mb-3 whitespace-pre-wrap break-words text-gray-900">
-                        {winner?.post_content ?? ""}
-                      </p>
-
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                        <span>
-                          Autor:{" "}
-                          {winner?.author_username ? (
-                            <Link
-                              href={`/u/${encodeURIComponent(
-                                winner.author_username
-                              )}`}
-                              className="hover:underline"
-                            >
-                              @{winner.author_username}
-                            </Link>
-                          ) : (
-                            "Unbekannt"
-                          )}
-                        </span>
-                        <span>{winner?.likes_count ?? 0} Likes</span>
-                        <span>{winner?.comments_count ?? 0} Kommentare</span>
-                        <span>
-                          Relevanz{" "}
-                          {winner
-                            ? Number(winner.relevance_score).toFixed(1)
-                            : "0.0"}
-                        </span>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
+                          <span>
+                            Autor:{" "}
+                            {post.author_username ? (
+                              <Link
+                                href={`/u/${encodeURIComponent(
+                                  post.author_username
+                                )}`}
+                                className="hover:underline"
+                              >
+                                @{post.author_username}
+                              </Link>
+                            ) : (
+                              "Unbekannt"
+                            )}
+                          </span>
+                          <span>{post.likes_count} Likes</span>
+                          <span>{post.comments_count} Kommentare</span>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
           </>
         )}
       </main>
