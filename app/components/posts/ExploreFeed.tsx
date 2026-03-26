@@ -1,21 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FeedPost } from "@/types/feed";
-import CreatePostForm from "@/app/components/feed/CreatePostForm";
-import PostCard from "@/app/components/feed/PostCard";
+import PostCard from "@/app/components/posts/PostCard";
 
-type HomeFeedProps = {
+type ExploreFeedProps = {
   initialPosts: FeedPost[];
   pageSize: number;
-  isLoggedIn: boolean;
 };
 
-export default function HomeFeed({
+export default function ExploreFeed({
   initialPosts,
   pageSize,
-  isLoggedIn,
-}: HomeFeedProps) {
+}: ExploreFeedProps) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -23,29 +20,30 @@ export default function HomeFeed({
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const seenIds = useMemo(() => new Set(posts.map((post) => post.id)), [posts]);
-
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
 
     setLoadingMore(true);
 
     try {
-      const res = await fetch(`/api/feed?offset=${offset}&limit=${pageSize}`, {
-        method: "GET",
-        cache: "no-store",
-      });
+      const res = await fetch(
+        `/api/explore?offset=${offset}&limit=${pageSize}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
 
       if (!res.ok) {
-        throw new Error("Feed konnte nicht geladen werden.");
+        throw new Error("Explore konnte nicht geladen werden.");
       }
 
       const data: FeedPost[] = await res.json();
 
       setPosts((prev) => {
         const existingIds = new Set(prev.map((post) => post.id));
-        const next = data.filter((post) => !existingIds.has(post.id));
-        return [...prev, ...next];
+        const nextPosts = data.filter((post) => !existingIds.has(post.id));
+        return [...prev, ...nextPosts];
       });
 
       setOffset((prev) => prev + data.length);
@@ -78,14 +76,6 @@ export default function HomeFeed({
     return () => observer.disconnect();
   }, [loadMore]);
 
-  function handlePostCreated(newPost: FeedPost) {
-    setPosts((prev) => {
-      if (seenIds.has(newPost.id)) return prev;
-      return [newPost, ...prev];
-    });
-    setOffset((prev) => prev + 1);
-  }
-
   function handleLikeUpdated(postId: number, liked: boolean) {
     setPosts((prev) =>
       prev.map((post) => {
@@ -117,26 +107,22 @@ export default function HomeFeed({
   }
 
   return (
-    <div className="space-y-6">
-      {isLoggedIn && <CreatePostForm onPostCreated={handlePostCreated} />}
+    <div className="space-y-4">
+      {posts.map((post) => (
+        <PostCard
+          key={post.id}
+          post={post}
+          onLikeUpdated={handleLikeUpdated}
+          onCommentCreated={handleCommentCreated}
+          onPostDeleted={handlePostDeleted}
+        />
+      ))}
 
-      <div className="space-y-4">
-        {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            onLikeUpdated={handleLikeUpdated}
-            onCommentCreated={handleCommentCreated}
-            onPostDeleted={handlePostDeleted}
-          />
-        ))}
-
-        {posts.length === 0 && (
-          <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-            No posts yet.
-          </div>
-        )}
-      </div>
+      {posts.length === 0 && (
+        <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
+          No trending posts yet.
+        </div>
+      )}
 
       <div ref={sentinelRef} className="h-10" />
 

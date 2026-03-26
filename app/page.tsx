@@ -1,7 +1,7 @@
 import Link from "next/link";
 import NavBar from "./navbar";
 import { createClient } from "@/lib/supabase-server";
-import HomeFeed from "@/app/components/feed/HomeFeed";
+import HomeFeed from "@/app/components/posts/HomeFeed";
 import { FEED_PAGE_SIZE, getFeedPage } from "@/lib/feed";
 
 export const dynamic = "force-dynamic";

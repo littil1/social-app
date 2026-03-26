@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { FeedPost } from "@/types/feed";
-import PostCard from "@/app/components/feed/PostCard";
+import PostCard from "@/app/components/posts/PostCard";
 
 type Props = {
   initialPosts: FeedPost[];

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedPost } from "@/types/feed";
-import CommentsSection from "@/app/components/feed/CommentsSection";
+import CommentsSection from "@/app/components/posts/CommentsSection";
 
 type PostCardProps = {
   post: FeedPost;

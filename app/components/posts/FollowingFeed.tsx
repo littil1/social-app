@@ -2,15 +2,13 @@
 
 import { useState } from "react";
 import type { FeedPost } from "@/types/feed";
-import PostCard from "@/app/components/feed/PostCard";
+import PostCard from "@/app/components/posts/PostCard";
 
-type UserProfileFeedProps = {
+type FollowingFeedProps = {
   initialPosts: FeedPost[];
 };
 
-export default function UserProfileFeed({
-  initialPosts,
-}: UserProfileFeedProps) {
+export default function FollowingFeed({ initialPosts }: FollowingFeedProps) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
 
   function handleLikeUpdated(postId: number, liked: boolean) {
@@ -52,14 +50,9 @@ export default function UserProfileFeed({
           onLikeUpdated={handleLikeUpdated}
           onCommentCreated={handleCommentCreated}
           onPostDeleted={handlePostDeleted}
+          showAuthor
         />
       ))}
-
-      {posts.length === 0 && (
-        <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-          No posts yet.
-        </div>
-      )}
     </div>
   );
 }

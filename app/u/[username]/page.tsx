@@ -6,7 +6,7 @@ import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
 import { getImplementedIdeaCountByUserId } from "@/lib/feedback-data";
 import type { FeedPost } from "@/types/feed";
 import type { Database } from "@/types/database";
-import UserProfileContent from "@/app/components/feed/UserProfileContent";
+import UserProfileContent from "@/app/components/profile/UserProfileContent";
 import ProfileBadgesSection from "@/app/components/profile/ProfileBadgesSection";
 
 export const dynamic = "force-dynamic";
@@ -276,7 +276,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           viewerIsAdmin={viewerIsAdmin}
         />
         </div>
-        
+
         <UserProfileContent
           initialPosts={posts}
           followersCount={followersCount}

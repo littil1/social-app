@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import UserMenu from "@/app/components/UserMenu";
+import UserMenu from "@/app/components/layout/UserMenu";
 
 type NavBarProps = {
   user: {
