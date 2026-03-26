@@ -16,15 +16,25 @@ export default async function ProfileSettingsPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("username, bio, avatar_url")
+    .select("username, bio, avatar_url, is_admin")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
+  const navUser = {
+    username: profile?.username ?? "user",
+    avatar_url: profile?.avatar_url ?? null,
+    is_admin: profile?.is_admin ?? false,
+  };
+
   return (
     <>
-      <NavBar />
+      <NavBar user={navUser} />
 
       <main className="mx-auto max-w-xl p-6">
         <h1 className="mb-6 text-3xl font-bold">Profile Settings</h1>
