@@ -5,14 +5,14 @@ import { usePathname } from "next/navigation";
 import UserMenu from "@/app/components/layout/UserMenu";
 
 type NavBarProps = {
-  user: {
+  user?: {
     username: string;
     avatar_url: string | null;
     is_admin: boolean;
   } | null;
 };
 
-export default function NavBar({ user }: NavBarProps) {
+export default function NavBar({ user = null }: NavBarProps) {
   const pathname = usePathname();
 
   function getLinkClass(path: string) {
