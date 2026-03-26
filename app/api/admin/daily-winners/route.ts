@@ -21,40 +21,60 @@ type RankedPost = PostRow & {
   author_username: string | null;
 };
 
-function getRelevanceScore(post: Pick<PostRow, "likes_count" | "comments_count">) {
+function getRelevanceScore(
+  post: Pick<PostRow, "likes_count" | "comments_count">
+) {
   return (post.likes_count ?? 0) * 0.5 + (post.comments_count ?? 0);
 }
 
-function getDateRangeFromInput(input: string | null) {
-  const now = new Date();
+function getZurichDayKey(date: Date) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Zurich",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
 
-  if (!input) {
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-
-    return {
-      winnerDate: start.toISOString().slice(0, 10),
-      startIso: start.toISOString(),
-      endIso: end.toISOString(),
-    };
-  }
-
-  const start = new Date(`${input}T00:00:00.000Z`);
-
-  if (Number.isNaN(start.getTime())) {
-    return null;
-  }
-
+function getUtcRangeForZurichDay(dayKey: string) {
+  const start = new Date(`${dayKey}T00:00:00+01:00`);
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 1);
 
   return {
-    winnerDate: input,
     startIso: start.toISOString(),
     endIso: end.toISOString(),
+  };
+}
+
+function getWinnerDateAndRange(input: string | null) {
+  if (input) {
+    const isValid = /^\d{4}-\d{2}-\d{2}$/.test(input);
+
+    if (!isValid) {
+      return null;
+    }
+
+    const { startIso, endIso } = getUtcRangeForZurichDay(input);
+
+    return {
+      winnerDate: input,
+      startIso,
+      endIso,
+    };
+  }
+
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const winnerDate = getZurichDayKey(yesterday);
+  const { startIso, endIso } = getUtcRangeForZurichDay(winnerDate);
+
+  return {
+    winnerDate,
+    startIso,
+    endIso,
   };
 }
 
@@ -103,7 +123,7 @@ export async function POST(request: NextRequest) {
     }
 
     const requestedDate = request.nextUrl.searchParams.get("date");
-    const dateRange = getDateRangeFromInput(requestedDate);
+    const dateRange = getWinnerDateAndRange(requestedDate);
 
     if (!dateRange) {
       return new NextResponse("Ungültiges Datum. Erwartet: YYYY-MM-DD", {
@@ -126,7 +146,10 @@ export async function POST(request: NextRequest) {
     const posts = (postsData ?? []) as PostRow[];
 
     if (posts.length === 0) {
-      await supabase.from("daily_post_winners").delete().eq("winner_date", winnerDate);
+      await supabase
+        .from("daily_post_winners")
+        .delete()
+        .eq("winner_date", winnerDate);
 
       return NextResponse.json({
         winnerDate,
@@ -169,7 +192,10 @@ export async function POST(request: NextRequest) {
       }))
     ).slice(0, 3);
 
-    await supabase.from("daily_post_winners").delete().eq("winner_date", winnerDate);
+    await supabase
+      .from("daily_post_winners")
+      .delete()
+      .eq("winner_date", winnerDate);
 
     if (rankedPosts.length > 0) {
       const payload = rankedPosts.map((post, index) => ({
@@ -208,7 +234,9 @@ export async function POST(request: NextRequest) {
       if (!profile) continue;
 
       const currentBadges = Array.isArray(profile.badges)
-        ? profile.badges.filter((value): value is string => typeof value === "string")
+        ? profile.badges.filter(
+            (value): value is string => typeof value === "string"
+          )
         : [];
 
       if (currentBadges.includes("daily_winner")) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import NavBar from "@/app/navbar";
 import { createClient } from "@/lib/supabase-server";
+import FreezeDailyWinnersForm from "@/app/components/leaderboard/FreezeDailyWinnersForm";
 
 export const dynamic = "force-dynamic";
 
@@ -214,6 +215,11 @@ export default async function LeaderboardPage() {
           </Link>
         </div>
 
+{navUser?.is_admin && (
+  <div className="mb-8">
+    <FreezeDailyWinnersForm />
+  </div>
+)}
         {rankedPosts.length === 0 ? (
           <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
             Heute gibt es noch keine Posts im Leaderboard.
@@ -285,7 +291,7 @@ export default async function LeaderboardPage() {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                            <span>{post.likes_count} Likes</span>
+                            <span>{post.likes_count} Hat mir geholfen</span>
                             <span>{post.comments_count} Kommentare</span>
                             <span>Relevanz {post.relevance_score.toFixed(1)}</span>
                           </div>
@@ -354,7 +360,7 @@ export default async function LeaderboardPage() {
                               "Unbekannt"
                             )}
                           </span>
-                          <span>{post.likes_count} Likes</span>
+                          <span>{post.likes_count} Hat mir geholfen</span>
                           <span>{post.comments_count} Kommentare</span>
                         </div>
                       </article>

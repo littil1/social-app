@@ -228,7 +228,7 @@ export default async function HallOfFamePage() {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                            <span>{post.likes_count ?? 0} Likes</span>
+                            <span>{post.likes_count ?? 0} Hat mir geholfen</span>
                             <span>{post.comments_count ?? 0} Kommentare</span>
                             <span>
                               Relevanz {Number(post.relevance_score).toFixed(1)}
@@ -300,7 +300,7 @@ export default async function HallOfFamePage() {
                             "Unbekannt"
                           )}
                         </span>
-                        <span>{winner?.likes_count ?? 0} Likes</span>
+                        <span>{winner?.likes_count ?? 0} Hat mir geholfen</span>
                         <span>{winner?.comments_count ?? 0} Kommentare</span>
                         <span>
                           Relevanz{" "}

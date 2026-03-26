@@ -19,6 +19,7 @@ export default async function FeedbackPage() {
   let viewerProfile:
     | {
         username: string | null;
+        avatar_url: string | null;
         is_admin: boolean;
       }
     | null = null;
@@ -26,7 +27,7 @@ export default async function FeedbackPage() {
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("username, is_admin")
+      .select("username, avatar_url, is_admin")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -40,7 +41,17 @@ export default async function FeedbackPage() {
 
   return (
     <>
-      <NavBar />
+      <NavBar
+        user={
+          user
+            ? {
+                username: viewerProfile?.username ?? "user",
+                avatar_url: viewerProfile?.avatar_url ?? null,
+                is_admin: viewerProfile?.is_admin ?? false,
+              }
+            : null
+        }
+      />
 
       <main className="mx-auto max-w-6xl p-6">
         <div className="mb-6">
