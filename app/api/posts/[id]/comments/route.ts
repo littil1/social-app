@@ -11,8 +11,18 @@ type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type HallOfFameRow =
   Database["public"]["Tables"]["weekly_post_hall_of_fame"]["Row"];
-
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
+type CommentLikeRow = Database["public"]["Tables"]["comment_likes"]["Row"];
+
+type CommentListRow = Pick<
+  CommentRow,
+  "id" | "content" | "created_at" | "user_id" | "parent_id"
+>;
+
+type FeedCommentWithLikes = FeedComment & {
+  likes_count: number;
+  viewer_has_liked: boolean;
+};
 
 export async function GET(_: NextRequest, context: RouteContext) {
   try {
@@ -47,7 +57,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
 
     const { data, error } = await supabase
       .from("comments")
-      .select("id, content, created_at, user_id")
+      .select("id, content, created_at, user_id, parent_id")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
 
@@ -55,10 +65,8 @@ export async function GET(_: NextRequest, context: RouteContext) {
       return new NextResponse(error.message, { status: 500 });
     }
 
-    const commentRows = (data ?? []) as Pick<
-      CommentRow,
-      "id" | "content" | "created_at" | "user_id"
-    >[];
+    const commentRows = (data ?? []) as CommentListRow[];
+    const commentIds = commentRows.map((comment) => comment.id);
 
     const authorIds = Array.from(
       new Set(
@@ -69,7 +77,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
     );
 
     let profilesById = new Map<string, ProfileRow>();
-    let hallOfFameStatsByAuthorId = new Map<
+    const hallOfFameStatsByAuthorId = new Map<
       string,
       {
         count: number;
@@ -122,7 +130,41 @@ export async function GET(_: NextRequest, context: RouteContext) {
       }
     }
 
-    const comments: FeedComment[] = commentRows.map((comment) => {
+    const likesCountByCommentId = new Map<number, number>();
+    let viewerLikedCommentIds = new Set<number>();
+
+    if (commentIds.length > 0) {
+      const { data: commentLikesData, error: commentLikesError } = await supabase
+        .from("comment_likes")
+        .select("comment_id, user_id")
+        .in("comment_id", commentIds);
+
+      if (commentLikesError) {
+        return new NextResponse(commentLikesError.message, { status: 500 });
+      }
+
+      const commentLikes = (commentLikesData ?? []) as Pick<
+        CommentLikeRow,
+        "comment_id" | "user_id"
+      >[];
+
+      for (const like of commentLikes) {
+        likesCountByCommentId.set(
+          like.comment_id,
+          (likesCountByCommentId.get(like.comment_id) ?? 0) + 1
+        );
+      }
+
+      if (user) {
+        viewerLikedCommentIds = new Set(
+          commentLikes
+            .filter((like) => like.user_id === user.id)
+            .map((like) => like.comment_id)
+        );
+      }
+    }
+
+    const comments: FeedCommentWithLikes[] = commentRows.map((comment) => {
       const profile =
         comment.user_id ? profilesById.get(comment.user_id) ?? null : null;
       const hallOfFameStats =
@@ -134,11 +176,14 @@ export async function GET(_: NextRequest, context: RouteContext) {
         id: comment.id,
         content: comment.content,
         created_at: comment.created_at,
+        parent_id: comment.parent_id ?? null,
         can_delete: !!user && (comment.user_id === user.id || viewerIsAdmin),
         author_username: profile?.username ?? null,
         author_avatar_url: profile?.avatar_url ?? null,
         author_hall_of_fame_count: hallOfFameStats?.count ?? 0,
         author_hall_of_fame_categories: hallOfFameStats?.categories ?? [],
+        likes_count: likesCountByCommentId.get(comment.id) ?? 0,
+        viewer_has_liked: viewerLikedCommentIds.has(comment.id),
       };
     });
 
@@ -172,9 +217,51 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const body = await request.json();
     const content = String(body?.content ?? "").trim();
+    const rawParentId = body?.parentId;
+
+    let parentId: number | null = null;
+
+    if (
+      rawParentId !== undefined &&
+      rawParentId !== null &&
+      rawParentId !== ""
+    ) {
+      const parsedParentId = Number(rawParentId);
+
+      if (!Number.isFinite(parsedParentId)) {
+        return new NextResponse("Ungültige Parent-Kommentar-ID.", {
+          status: 400,
+        });
+      }
+
+      parentId = parsedParentId;
+    }
 
     if (!content) {
       return new NextResponse("Kommentar-Inhalt fehlt.", { status: 400 });
+    }
+
+    if (content.length > 300) {
+      return new NextResponse("Kommentar ist zu lang.", { status: 400 });
+    }
+
+    if (parentId !== null) {
+      const { data: parentComment, error: parentError } = await supabase
+        .from("comments")
+        .select("id, post_id")
+        .eq("id", parentId)
+        .maybeSingle();
+
+      if (parentError) {
+        return new NextResponse(parentError.message, { status: 500 });
+      }
+
+      if (!parentComment || parentComment.post_id !== postId) {
+        return new NextResponse(
+          "Antwort kann nur auf einen Kommentar dieses Posts erstellt werden.",
+          { status: 400 }
+        );
+      }
     }
 
     const { data: insertedComment, error: insertError } = await supabase
@@ -183,8 +270,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         post_id: postId,
         user_id: user.id,
         content,
+        parent_id: parentId,
       })
-      .select("id, content, created_at, user_id")
+      .select("id, content, created_at, user_id, parent_id")
       .single();
 
     if (insertError || !insertedComment) {
@@ -252,15 +340,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
       new Set(hallOfFameEntries.map((entry) => entry.category))
     );
 
-    const response: FeedComment = {
+    const response: FeedCommentWithLikes = {
       id: insertedComment.id,
       content: insertedComment.content,
       created_at: insertedComment.created_at,
+      parent_id: insertedComment.parent_id ?? null,
       can_delete: true,
       author_username: profile?.username ?? null,
       author_avatar_url: profile?.avatar_url ?? null,
       author_hall_of_fame_count: hallOfFameEntries.length,
       author_hall_of_fame_categories: authorHallOfFameCategories,
+      likes_count: 0,
+      viewer_has_liked: false,
     };
 
     return NextResponse.json(response);

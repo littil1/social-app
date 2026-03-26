@@ -9,6 +9,33 @@ type RouteContext = {
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 
+type CommentTreeRow = Pick<CommentRow, "id" | "post_id" | "user_id" | "parent_id">;
+
+function collectCommentIdsToDelete(
+  rootCommentId: number,
+  comments: CommentTreeRow[]
+): Set<number> {
+  const idsToDelete = new Set<number>([rootCommentId]);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+
+    for (const comment of comments) {
+      if (
+        comment.parent_id !== null &&
+        idsToDelete.has(comment.parent_id) &&
+        !idsToDelete.has(comment.id)
+      ) {
+        idsToDelete.add(comment.id);
+        changed = true;
+      }
+    }
+  }
+
+  return idsToDelete;
+}
+
 export async function DELETE(_: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
@@ -28,8 +55,6 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       return new NextResponse("Nicht eingeloggt.", { status: 401 });
     }
 
-    let viewerIsAdmin = false;
-
     const { data: viewerProfile, error: viewerProfileError } = await supabase
       .from("profiles")
       .select("is_admin")
@@ -40,11 +65,11 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       return new NextResponse(viewerProfileError.message, { status: 500 });
     }
 
-    viewerIsAdmin = viewerProfile?.is_admin ?? false;
+    const viewerIsAdmin = viewerProfile?.is_admin ?? false;
 
     const { data: commentData, error: commentError } = await supabase
       .from("comments")
-      .select("*")
+      .select("id, post_id, user_id, parent_id")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -56,11 +81,24 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       return new NextResponse("Kommentar nicht gefunden.", { status: 404 });
     }
 
-    const comment = commentData as CommentRow;
+    const comment = commentData as CommentTreeRow;
 
     if (!viewerIsAdmin && comment.user_id !== user.id) {
       return new NextResponse("Keine Berechtigung.", { status: 403 });
     }
+
+    const { data: postCommentsData, error: postCommentsError } = await supabase
+      .from("comments")
+      .select("id, post_id, user_id, parent_id")
+      .eq("post_id", comment.post_id);
+
+    if (postCommentsError) {
+      return new NextResponse(postCommentsError.message, { status: 500 });
+    }
+
+    const postComments = (postCommentsData ?? []) as CommentTreeRow[];
+    const idsToDelete = collectCommentIdsToDelete(commentId, postComments);
+    const deletedCount = idsToDelete.size;
 
     const { error: deleteError } = await supabase
       .from("comments")
@@ -88,7 +126,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       const { error: updateError } = await supabase
         .from("posts")
         .update({
-          comments_count: Math.max(0, currentCount - 1),
+          comments_count: Math.max(0, currentCount - deletedCount),
         })
         .eq("id", post.id);
 

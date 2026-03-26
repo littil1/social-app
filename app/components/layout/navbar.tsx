@@ -45,6 +45,12 @@ export default function NavBar({ user = null }: NavBarProps) {
               Explore
             </Link>
 
+            {user && (
+              <Link href="/following" className={getLinkClass("/following")}>
+                Following
+              </Link>
+            )}
+
             <Link href="/leaderboard" className={getLinkClass("/leaderboard")}>
               Leaderboard
             </Link>
@@ -56,12 +62,6 @@ export default function NavBar({ user = null }: NavBarProps) {
             <Link href="/feedback" className={getLinkClass("/feedback")}>
               Verbesserungswünsche
             </Link>
-
-            {user && (
-              <Link href="/following" className={getLinkClass("/following")}>
-                Following
-              </Link>
-            )}
           </nav>
         </div>
 

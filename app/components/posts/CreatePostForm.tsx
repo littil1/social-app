@@ -46,26 +46,35 @@ export default function CreatePostForm({
   }
 
   return (
-    <form className="rounded-xl bg-white p-4 shadow" onSubmit={handleSubmit}>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Write something..."
-          required
-          minLength={2}
-          maxLength={500}
-          disabled={loading}
-          className="flex-1 rounded-lg border border-gray-300 px-4 py-2 outline-none"
-        />
-        <button
-          type="submit"
-          disabled={loading || !content.trim()}
-          className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
-        >
-          {loading ? "Posting..." : "Post"}
-        </button>
+    <form
+      className="rounded-xl bg-white p-4 shadow"
+      onSubmit={handleSubmit}
+    >
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Write something..."
+            required
+            minLength={2}
+            maxLength={500}
+            disabled={loading}
+            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 outline-none"
+          />
+          <button
+            type="submit"
+            disabled={loading || !content.trim()}
+            className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
+          >
+            {loading ? "Posting..." : "Post"}
+          </button>
+        </div>
+
+        <span className="text-right text-xs text-gray-400">
+          {500 - content.length} characters remaining
+        </span>
       </div>
     </form>
   );

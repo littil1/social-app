@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
-import NavBar from "@/app/navbar";
-import FollowButton from "@/app/FollowButton";
+import NavBar from "@/app/components/layout/navbar";
+import FollowButton from "@/app/components/profile/FollowButton";
 import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
 import { getImplementedIdeaCountByUserId } from "@/lib/feedback-data";
 import type { FeedPost } from "@/types/feed";

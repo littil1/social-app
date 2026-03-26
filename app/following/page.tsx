@@ -1,5 +1,5 @@
 import Link from "next/link";
-import NavBar from "@/app/navbar";
+import NavBar from "@/app/components/layout/navbar";
 import FollowingFeed from "@/app/components/posts/FollowingFeed";
 import { createClient } from "@/lib/supabase-server";
 import { getFollowingIds } from "@/lib/follow-data";

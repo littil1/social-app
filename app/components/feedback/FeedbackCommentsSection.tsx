@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   addFeatureRequestComment,
   deleteFeatureRequestComment,
-} from "./actions/feedback";
+} from "@/app/actions/feedback";
 import type { FeedbackComment } from "@/lib/feedback-data";
 
 export default function FeedbackCommentsSection({

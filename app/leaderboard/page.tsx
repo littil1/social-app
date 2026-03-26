@@ -1,5 +1,5 @@
 import Link from "next/link";
-import NavBar from "@/app/navbar";
+import NavBar from "@/app/components/layout/navbar";
 import { createClient } from "@/lib/supabase-server";
 import FreezeDailyWinnersForm from "@/app/components/leaderboard/FreezeDailyWinnersForm";
 

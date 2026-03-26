@@ -14,6 +14,9 @@ export type FeedComment = {
   id: number;
   content: string;
   created_at: string;
+  parent_id: number | null;
+  likes_count: number;
+  viewer_has_liked: boolean;
   can_delete: boolean;
   author_username?: string | null;
   author_avatar_url?: string | null;

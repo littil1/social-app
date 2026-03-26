@@ -1,4 +1,4 @@
-import { toggleFollow } from "./actions/social";
+import { toggleFollow } from "../../actions/social";
 
 export default function FollowButton({
   isFollowing,

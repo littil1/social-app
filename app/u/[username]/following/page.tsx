@@ -1,5 +1,5 @@
-import NavBar from "@/app/navbar";
-import UserListItem from "@/app/UserListItem";
+import NavBar from "@/app/components/layout/navbar";
+import UserListItem from "@/app/components/profile/UserListItem";
 import { createClient } from "@/lib/supabase-server";
 import { getFollowingList } from "@/lib/follow-data";
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
-import NavBar from "@/app/navbar";
+import NavBar from "@/app/components/layout/navbar";
 import ProfileForm from "./profile-form";
 
 export const dynamic = "force-dynamic";

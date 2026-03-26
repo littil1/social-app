@@ -1,4 +1,4 @@
-import NavBar from "../navbar";
+import NavBar from "../components/layout/navbar";
 import ExploreFeed from "@/app/components/posts/ExploreFeed";
 import { EXPLORE_PAGE_SIZE, getTrendingFeedPage } from "@/lib/explore-feed";
 import { createClient } from "@/lib/supabase-server";

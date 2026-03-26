@@ -1,10 +1,10 @@
 import Link from "next/link";
-import FeedbackCommentsSection from "./FeedbackCommentsSection";
+import FeedbackCommentsSection from "@/app/components/feedback/FeedbackCommentsSection";
 import {
   deleteFeatureRequest,
   toggleFeatureRequestLike,
   updateFeatureRequestStatus,
-} from "./actions/feedback";
+} from "@/app/actions/feedback";
 import type { FeedbackItem } from "@/lib/feedback-data";
 
 export default function FeedbackCard({

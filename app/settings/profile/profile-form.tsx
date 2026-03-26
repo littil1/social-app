@@ -1,7 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { updateProfile, type UpdateProfileState } from "./actions";
+import { useActionState, useEffect, useRef, useState } from "react";
+import {
+  updateProfile,
+  type UpdateProfileState,
+} from "@/app/settings/profile/actions";
 
 const initialState: UpdateProfileState = {
   error: null,
@@ -29,8 +32,8 @@ function validateUsername(value: string | undefined) {
 function validateBio(value: string | undefined) {
   const safeValue = value ?? "";
 
-  if (safeValue.length > 160) {
-    return "Bio must be at most 160 characters.";
+  if (safeValue.length > 200) {
+    return "Bio must be at most 200 characters.";
   }
 
   return null;
@@ -45,11 +48,15 @@ export default function ProfileForm({
   initialBio: string;
   initialAvatarUrl: string;
 }) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const avatarMenuRef = useRef<HTMLDivElement | null>(null);
+
   const [username, setUsername] = useState(initialUsername ?? "");
   const [bio, setBio] = useState(initialBio ?? "");
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState(initialAvatarUrl ?? "");
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
     updateProfile,
@@ -68,29 +75,115 @@ export default function ProfileForm({
     return () => URL.revokeObjectURL(objectUrl);
   }, [avatarFile, removeAvatar, initialAvatarUrl]);
 
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (
+        avatarMenuRef.current &&
+        !avatarMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowAvatarMenu(false);
+      }
+    }
+
+    if (showAvatarMenu) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [showAvatarMenu]);
+
   const usernameError = validateUsername(username);
   const bioError = validateBio(bio);
   const clientError = usernameError || bioError;
 
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setAvatarFile(file);
+
+    if (file) {
+      setRemoveAvatar(false);
+    }
+
+    setShowAvatarMenu(false);
+  }
+
+  function handleChangePicture() {
+    fileInputRef.current?.click();
+    setShowAvatarMenu(false);
+  }
+
+  function handleRemovePicture() {
+    setRemoveAvatar(true);
+    setAvatarFile(null);
+    setPreviewUrl("");
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    setShowAvatarMenu(false);
+  }
+
   return (
     <form action={formAction} className="space-y-5">
-      <div className="flex items-center gap-4">
-        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-xl font-semibold text-gray-600">
-          {previewUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={previewUrl}
-              alt="Avatar preview"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            username.trim().charAt(0).toUpperCase() || "U"
+      <div className="flex flex-col items-start gap-3">
+        <div ref={avatarMenuRef} className="relative">
+          <button
+            type="button"
+            onClick={() => setShowAvatarMenu((prev) => !prev)}
+            className="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-xl font-semibold text-gray-600 focus:outline-none focus:ring-2 focus:ring-black"
+            aria-label="Open profile picture options"
+          >
+            {previewUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={previewUrl}
+                alt="Avatar preview"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              username.trim().charAt(0).toUpperCase() || "U"
+            )}
+
+            <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
+              Edit
+            </span>
+          </button>
+
+          {showAvatarMenu && (
+            <div className="absolute left-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+              <button
+                type="button"
+                onClick={handleChangePicture}
+                className="block w-full px-4 py-3 text-left text-sm text-gray-800 hover:bg-gray-50"
+              >
+                Change picture
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRemovePicture}
+                className="block w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-gray-50"
+              >
+                Remove picture
+              </button>
+            </div>
           )}
         </div>
 
-        <div className="text-sm text-gray-500">
-          Current avatar preview
-        </div>
+        <input
+          ref={fileInputRef}
+          id="avatar"
+          name="avatar"
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarChange}
+          className="hidden"
+        />
+
+        <p className="text-sm text-gray-500">Max size: 4 MB</p>
       </div>
 
       <div>
@@ -132,56 +225,15 @@ export default function ProfileForm({
           rows={4}
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-          maxLength={160}
+          maxLength={200}
           className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
           placeholder="Tell people a bit about yourself..."
         />
 
-        <p className="mt-2 text-sm text-gray-500">{bio.length}/160</p>
+        <p className="mt-2 text-sm text-gray-500">{bio.length}/200</p>
       </div>
 
-      <div>
-        <label
-          htmlFor="avatar"
-          className="mb-2 block text-sm font-medium text-gray-700"
-        >
-          Upload avatar
-        </label>
-
-        <input
-          id="avatar"
-          name="avatar"
-          type="file"
-          accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null;
-            setAvatarFile(file);
-            if (file) setRemoveAvatar(false);
-          }}
-          className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
-        />
-
-        <p className="mt-2 text-sm text-gray-500">
-          Max size: 2 MB
-        </p>
-      </div>
-
-      <label className="flex items-center gap-2 text-sm text-gray-700">
-        <input
-          type="checkbox"
-          name="remove_avatar"
-          checked={removeAvatar}
-          onChange={(e) => {
-            setRemoveAvatar(e.target.checked);
-            if (e.target.checked) {
-              setAvatarFile(null);
-            }
-          }}
-        />
-        Remove current avatar
-      </label>
-
-      {clientError && <p className="text-sm text-red-600">{clientError}</p>}
+       {clientError && <p className="text-sm text-red-600">{clientError}</p>}
 
       {!clientError && state.error && (
         <p className="text-sm text-red-600">{state.error}</p>
