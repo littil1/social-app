@@ -141,18 +141,6 @@ export default async function HallOfFamePage() {
 
       <main className="mx-auto max-w-6xl p-6">
         <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-gray-500">
-              Eingefrorene Tagesgewinner vergangener Tage
-            </p>
-          </div>
-
-          <Link
-            href="/leaderboard"
-            className="rounded-lg border px-4 py-2 text-sm text-gray-700"
-          >
-            Zum Leaderboard
-          </Link>
         </div>
 
         {dailyResults.length === 0 ? (

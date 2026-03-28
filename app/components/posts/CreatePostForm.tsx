@@ -1,23 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FeedPost } from "@/types/feed";
 
 type CreatePostFormProps = {
   onPostCreated: (post: FeedPost) => void;
 };
 
+// =====================================================
+// Component
+// =====================================================
+
 export default function CreatePostForm({
   onPostCreated,
 }: CreatePostFormProps) {
+  // =====================================================
+  // State
+  // =====================================================
+
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // =====================================================
+  // Refs
+  // =====================================================
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // =====================================================
+  // Derived Values
+  // =====================================================
+
+  const trimmed = content.trim();
+  const remainingCharacters = 500 - content.length;
+  const canSubmit = !loading && trimmed.length >= 2;
+
+  // =====================================================
+  // Effects
+  // =====================================================
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    const nextHeight = Math.min(textarea.scrollHeight, 160);
+    textarea.style.height = `${nextHeight}px`;
+  }, [content]);
+
+  // =====================================================
+  // Actions
+  // =====================================================
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const trimmed = content.trim();
-    if (!trimmed || loading) return;
+    if (!canSubmit) return;
 
     setLoading(true);
 
@@ -45,37 +83,72 @@ export default function CreatePostForm({
     }
   }
 
+  // =====================================================
+  // Render
+  // =====================================================
+
   return (
-    <form
-      className="rounded-xl bg-white p-4 shadow"
-      onSubmit={handleSubmit}
-    >
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-2">
-          <input
-            type="text"
+    <form onSubmit={handleSubmit} className="w-full px-4 py-4 sm:px-5 sm:py-4">
+      {/* Input Row */}
+      <div className="flex items-center gap-3">
+        <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gray-100 text-base text-gray-600 sm:flex">
+          ✍️
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <label htmlFor="create-post-content" className="sr-only">
+            Post-Inhalt
+          </label>
+
+          <textarea
+            id="create-post-content"
+            ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Write something..."
+            placeholder="Teile eine Erkenntnis, die andere heute weiterbringt..."
             required
             minLength={2}
             maxLength={500}
             disabled={loading}
-            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 outline-none"
+            rows={1}
+            wrap="soft"
+            className="min-h-[48px] w-full resize-none overflow-hidden rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-[15px] leading-6 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:bg-white"
+            style={{
+              maxHeight: "160px",
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              whiteSpace: "pre-wrap",
+              overflowWrap: "break-word",
+            }}
           />
-          <button
-            type="submit"
-            disabled={loading || !content.trim()}
-            className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
-          >
-            {loading ? "Posting..." : "Post"}
-          </button>
         </div>
-
-        <span className="text-right text-xs text-gray-400">
-          {500 - content.length} characters remaining
-        </span>
       </div>
+
+      {/* Footer */}
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span
+          className={`text-xs ${
+            remainingCharacters < 60 ? "text-red-500" : "text-gray-400"
+          }`}
+        >
+          {remainingCharacters} Zeichen übrig
+        </span>
+
+        <button
+          type="submit"
+          disabled={!canSubmit}
+          className="rounded-xl bg-black px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? "Posting..." : "Posten"}
+        </button>
+      </div>
+
+      {/* Local Styles */}
+      <style jsx>{`
+        textarea::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </form>
   );
 }

@@ -11,19 +11,95 @@ type HomeFeedProps = {
   isLoggedIn: boolean;
 };
 
+type RankedTopPost = FeedPost & {
+  dailyRank: 1 | 2 | 3;
+};
+
+// =====================================================
+// Helpers
+// =====================================================
+
+function getZurichDayKey(date: Date | string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Zurich",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(date));
+}
+
+function isTodayInZurich(dateString: string) {
+  return getZurichDayKey(dateString) === getZurichDayKey(new Date());
+}
+
+function getDailyTopPosts(posts: FeedPost[]): RankedTopPost[] {
+  const todaysPosts = posts.filter((post) => isTodayInZurich(post.created_at));
+
+  const ranked = [...todaysPosts]
+    .sort((a, b) => {
+      if (b.likes_count !== a.likes_count) {
+        return b.likes_count - a.likes_count;
+      }
+
+      if (b.comments_count !== a.comments_count) {
+        return b.comments_count - a.comments_count;
+      }
+
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    })
+    .slice(0, 3);
+
+  return ranked.map((post, index) => ({
+    ...post,
+    dailyRank: (index + 1) as 1 | 2 | 3,
+  }));
+}
+
+// =====================================================
+// Component
+// =====================================================
+
 export default function HomeFeed({
   initialPosts,
   pageSize,
   isLoggedIn,
 }: HomeFeedProps) {
+  // =====================================================
+  // State
+  // =====================================================
+
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length === pageSize);
 
+  // =====================================================
+  // Refs
+  // =====================================================
+
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  // =====================================================
+  // Derived Values
+  // =====================================================
+
   const seenIds = useMemo(() => new Set(posts.map((post) => post.id)), [posts]);
+
+  const topPosts = useMemo(() => getDailyTopPosts(posts), [posts]);
+
+  const topPostIds = useMemo(
+    () => new Set(topPosts.map((post) => post.id)),
+    [topPosts]
+  );
+
+  const regularPosts = useMemo(
+    () => posts.filter((post) => !topPostIds.has(post.id)),
+    [posts, topPostIds]
+  );
+
+  // =====================================================
+  // Data Loading
+  // =====================================================
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -57,6 +133,10 @@ export default function HomeFeed({
     }
   }, [hasMore, loadingMore, offset, pageSize]);
 
+  // =====================================================
+  // Effects
+  // =====================================================
+
   useEffect(() => {
     const element = sentinelRef.current;
     if (!element) return;
@@ -77,6 +157,10 @@ export default function HomeFeed({
 
     return () => observer.disconnect();
   }, [loadMore]);
+
+  // =====================================================
+  // Actions
+  // =====================================================
 
   function handlePostCreated(newPost: FeedPost) {
     setPosts((prev) => {
@@ -116,15 +200,31 @@ export default function HomeFeed({
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   }
 
-  return (
-    <div className="space-y-6">
-      {isLoggedIn && <CreatePostForm onPostCreated={handlePostCreated} />}
+  // =====================================================
+  // Render
+  // =====================================================
 
+  return (
+    <div className="space-y-4 pb-40">
+      {/* Posts */}
       <div className="space-y-4">
-        {posts.map((post) => (
+        {topPosts.map((post) => (
+          <PostCard
+            key={`top-${post.id}`}
+            post={post}
+            dailyRank={post.dailyRank}
+            detailHref={`/posts/${post.id}`}
+            onLikeUpdated={handleLikeUpdated}
+            onCommentCreated={handleCommentCreated}
+            onPostDeleted={handlePostDeleted}
+          />
+        ))}
+
+        {regularPosts.map((post) => (
           <PostCard
             key={post.id}
             post={post}
+            detailHref={`/posts/${post.id}`}
             onLikeUpdated={handleLikeUpdated}
             onCommentCreated={handleCommentCreated}
             onPostDeleted={handlePostDeleted}
@@ -138,8 +238,10 @@ export default function HomeFeed({
         )}
       </div>
 
+      {/* Infinite Scroll Sentinel */}
       <div ref={sentinelRef} className="h-10" />
 
+      {/* Feed Status */}
       {loadingMore && (
         <p className="pb-8 text-center text-sm text-gray-500">
           Lade mehr Posts ...
@@ -150,6 +252,17 @@ export default function HomeFeed({
         <p className="pb-8 text-center text-sm text-gray-500">
           Keine weiteren Posts.
         </p>
+      )}
+
+      {/* Floating Create Post Form */}
+      {isLoggedIn && (
+        <div className="pointer-events-none fixed bottom-4 left-1/2 z-30 w-full max-w-[860px] -translate-x-1/2 px-4">
+          <div className="pointer-events-auto">
+            <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur">
+              <CreatePostForm onPostCreated={handlePostCreated} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

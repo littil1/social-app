@@ -1,9 +1,12 @@
 import Link from "next/link";
+import Script from "next/script";
 import NavBar from "@/app/components/layout/navbar";
 import { createClient } from "@/lib/supabase-server";
+import LeaderboardPodiumCard from "@/app/components/leaderboard/LeaderboardPodiumCard";
 import FreezeDailyWinnersForm from "@/app/components/leaderboard/FreezeDailyWinnersForm";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type PostRow = {
   id: number;
@@ -19,6 +22,15 @@ type ProfileRow = {
   username: string | null;
 };
 
+type LikeRow = {
+  post_id: number | null;
+  user_id: string;
+};
+
+type CommentRow = {
+  post_id: number | null;
+};
+
 type RankedPost = {
   id: number;
   post_content: string;
@@ -28,7 +40,12 @@ type RankedPost = {
   relevance_score: number;
   author_id: string | null;
   author_username: string | null;
+  viewer_has_liked: boolean;
 };
+
+// =====================================================
+// Helpers
+// =====================================================
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -37,6 +54,18 @@ function formatDate(dateString: string) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+  }).format(date);
+}
+
+function formatDateTime(dateString: string) {
+  const date = new Date(dateString);
+
+  return new Intl.DateTimeFormat("de-CH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 }
 
@@ -49,44 +78,23 @@ function getZurichDayKey(date: Date | string) {
   }).format(new Date(date));
 }
 
-function getRelevanceScore(post: PostRow) {
-  const likes = post.likes_count ?? 0;
-  const comments = post.comments_count ?? 0;
-
-  return likes + comments * 2;
+function getRelevanceScore(likesCount: number, commentsCount: number) {
+  return likesCount + commentsCount * 2;
 }
 
-function getPodiumCardClass(position: number) {
-  if (position === 1) {
-    return "border-yellow-300 bg-yellow-50";
-  }
-
-  if (position === 2) {
-    return "border-gray-300 bg-gray-50";
-  }
-
-  return "border-orange-300 bg-orange-50";
+function getPodiumPositions() {
+  return [2, 1, 3] as const;
 }
 
-function getPodiumHeightClass(position: number) {
-  if (position === 1) return "min-h-[320px]";
-  if (position === 2) return "min-h-[260px]";
-  return "min-h-[220px]";
-}
-
-function getPodiumEmoji(position: number) {
-  if (position === 1) return "🥇";
-  if (position === 2) return "🥈";
-  return "🥉";
-}
-
-function getPodiumLabel(position: number) {
-  if (position === 1) return "Gold";
-  if (position === 2) return "Silber";
-  return "Bronze";
-}
+// =====================================================
+// Page
+// =====================================================
 
 export default async function LeaderboardPage() {
+  // =====================================================
+  // Auth / Nav User
+  // =====================================================
+
   const supabase = await createClient();
 
   const {
@@ -119,6 +127,10 @@ export default async function LeaderboardPage() {
     }
   }
 
+  // =====================================================
+  // Load Posts
+  // =====================================================
+
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
     .select("id, content, created_at, likes_count, comments_count, user_id")
@@ -135,6 +147,12 @@ export default async function LeaderboardPage() {
   const todaysPosts = allPosts.filter(
     (post) => getZurichDayKey(post.created_at) === todayKey
   );
+
+  const postIds = todaysPosts.map((post) => post.id);
+
+  // =====================================================
+  // Load Authors
+  // =====================================================
 
   const authorIds = Array.from(
     new Set(
@@ -157,23 +175,83 @@ export default async function LeaderboardPage() {
     }
 
     profilesById = new Map(
-      ((profilesData ?? []) as ProfileRow[]).map((profile) => [profile.id, profile])
+      ((profilesData ?? []) as ProfileRow[]).map((profile) => [
+        profile.id,
+        profile,
+      ])
     );
   }
+
+  // =====================================================
+  // Load Live Likes / Comments Counts
+  // =====================================================
+
+  const likeCountByPostId = new Map<number, number>();
+  const commentCountByPostId = new Map<number, number>();
+  const viewerLikedPostIds = new Set<number>();
+
+  if (postIds.length > 0) {
+    const { data: likesData, error: likesError } = await supabase
+      .from("likes")
+      .select("post_id, user_id")
+      .in("post_id", postIds);
+
+    if (likesError) {
+      throw new Error(likesError.message);
+    }
+
+    for (const like of (likesData ?? []) as LikeRow[]) {
+      if (typeof like.post_id !== "number") continue;
+
+      likeCountByPostId.set(
+        like.post_id,
+        (likeCountByPostId.get(like.post_id) ?? 0) + 1
+      );
+
+      if (user && like.user_id === user.id) {
+        viewerLikedPostIds.add(like.post_id);
+      }
+    }
+
+    const { data: commentsData, error: commentsError } = await supabase
+      .from("comments")
+      .select("post_id")
+      .in("post_id", postIds);
+
+    if (commentsError) {
+      throw new Error(commentsError.message);
+    }
+
+    for (const comment of (commentsData ?? []) as CommentRow[]) {
+      if (typeof comment.post_id !== "number") continue;
+
+      commentCountByPostId.set(
+        comment.post_id,
+        (commentCountByPostId.get(comment.post_id) ?? 0) + 1
+      );
+    }
+  }
+
+  // =====================================================
+  // Ranking
+  // =====================================================
 
   const rankedPosts: RankedPost[] = todaysPosts
     .map((post) => {
       const authorProfile = post.user_id ? profilesById.get(post.user_id) : null;
+      const likesCount = likeCountByPostId.get(post.id) ?? 0;
+      const commentsCount = commentCountByPostId.get(post.id) ?? 0;
 
       return {
         id: post.id,
         post_content: post.content ?? "",
         post_created_at: post.created_at,
-        likes_count: post.likes_count ?? 0,
-        comments_count: post.comments_count ?? 0,
-        relevance_score: getRelevanceScore(post),
+        likes_count: likesCount,
+        comments_count: commentsCount,
+        relevance_score: getRelevanceScore(likesCount, commentsCount),
         author_id: post.user_id,
         author_username: authorProfile?.username ?? null,
+        viewer_has_liked: viewerLikedPostIds.has(post.id),
       };
     })
     .sort((a, b) => {
@@ -189,124 +267,87 @@ export default async function LeaderboardPage() {
         return b.comments_count - a.comments_count;
       }
 
-      return new Date(a.post_created_at).getTime() - new Date(b.post_created_at).getTime();
+      return (
+        new Date(a.post_created_at).getTime() -
+        new Date(b.post_created_at).getTime()
+      );
     });
 
-  const podium = rankedPosts.slice(0, 3);
-  const remainingTopPosts = rankedPosts.slice(3, 15);
+  const topTenPosts = rankedPosts.slice(0, 10);
+  const podium = topTenPosts.slice(0, 3);
+  const remainingTopPosts = topTenPosts.slice(3);
+
+  // =====================================================
+  // Render
+  // =====================================================
 
   return (
     <>
+      {/* Auto Refresh */}
+      <Script id="leaderboard-auto-refresh" strategy="afterInteractive">
+        {`
+          window.setInterval(() => {
+            window.location.reload();
+          }, 15000);
+        `}
+      </Script>
+
       <NavBar user={navUser} />
 
       <main className="mx-auto max-w-6xl p-6">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-gray-500">
-              Live-Ranking für heute, {formatDate(`${todayKey}T00:00:00`)}
-            </p>
-          </div>
+        {/* Header */}
 
-          <Link
-            href="/"
-            className="rounded-lg border px-4 py-2 text-sm text-gray-700"
-          >
-            Back to Home
-          </Link>
-        </div>
 
-{navUser?.is_admin && (
-  <div className="mb-8">
-    <FreezeDailyWinnersForm />
-  </div>
-)}
+        {/* Admin Actions */}
+        {navUser?.is_admin && (
+          <details className="mb-8 rounded-2xl border border-gray-200 bg-white shadow-sm group">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-900">
+              <span>Admin Panel</span>
+              <span className="text-lg text-gray-500 transition group-open:rotate-45">
+                +
+              </span>
+            </summary>
+
+            <div className="border-t border-gray-100 px-5 py-4">
+              <FreezeDailyWinnersForm />
+            </div>
+          </details>
+        )}
+
+        {/* Empty State */}
         {rankedPosts.length === 0 ? (
           <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
             Heute gibt es noch keine Posts im Leaderboard.
           </div>
         ) : (
           <>
+            {/* Podium */}
             <section className="mb-10">
               <div className="mb-4">
                 <h2 className="text-2xl font-bold">Live-Podium</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Aktueller Stand des heutigen Tages.
-                </p>
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Live-Ranking für heute, {formatDate(`${todayKey}T00:00:00`)}
+                  </p>
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3 md:items-end">
-                {[2, 1, 3].map((position) => {
+                {getPodiumPositions().map((position) => {
                   const post = podium[position - 1] ?? null;
 
                   return (
-                    <article
+                    <LeaderboardPodiumCard
                       key={position}
-                      className={`rounded-2xl border p-5 shadow ${getPodiumCardClass(
-                        position
-                      )} ${getPodiumHeightClass(position)}`}
-                    >
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-2xl">{getPodiumEmoji(position)}</p>
-                          <p className="mt-2 text-lg font-bold">
-                            {getPodiumLabel(position)}
-                          </p>
-                        </div>
-
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-                          Platz {position}
-                        </span>
-                      </div>
-
-                      {post ? (
-                        <>
-                          <p className="mb-3 whitespace-pre-wrap break-words text-gray-900">
-                            {post.post_content}
-                          </p>
-
-                          <div className="mb-3 space-y-1 text-sm text-gray-600">
-                            <p>
-                              <span className="font-medium text-gray-800">
-                                Autor:
-                              </span>{" "}
-                              {post.author_username ? (
-                                <Link
-                                  href={`/u/${encodeURIComponent(
-                                    post.author_username
-                                  )}`}
-                                  className="hover:underline"
-                                >
-                                  @{post.author_username}
-                                </Link>
-                              ) : (
-                                "Unbekannt"
-                              )}
-                            </p>
-                            <p>
-                              <span className="font-medium text-gray-800">
-                                Erstellt:
-                              </span>{" "}
-                              {formatDate(post.post_created_at)}
-                            </p>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                            <span>{post.likes_count} Hat mir geholfen</span>
-                            <span>{post.comments_count} Kommentare</span>
-                            <span>Relevanz {post.relevance_score.toFixed(1)}</span>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Für diesen Platz gibt es noch keinen Post.
-                        </p>
-                      )}
-                    </article>
+                      position={position}
+                      post={post}
+                    />
                   );
                 })}
               </div>
             </section>
 
+            {/* Remaining Top Posts */}
             {remainingTopPosts.length > 0 && (
               <section>
                 <div className="mb-4">
@@ -323,9 +364,9 @@ export default async function LeaderboardPage() {
                     return (
                       <article
                         key={post.id}
-                        className="rounded-xl bg-white p-5 shadow"
+                        className="rounded-2xl border border-gray-100 bg-white p-5 shadow"
                       >
-                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <p className="text-sm font-semibold text-gray-900">
                               Platz {position}
@@ -335,18 +376,20 @@ export default async function LeaderboardPage() {
                             </p>
                           </div>
 
-                          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
-                            Relevanz {post.relevance_score.toFixed(1)}
+                          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
+                            ⚡ {post.relevance_score}
                           </span>
                         </div>
 
-                        <p className="mb-3 whitespace-pre-wrap break-words text-gray-900">
+                        <p className="mb-4 whitespace-pre-wrap break-words text-[16px] leading-7 text-gray-900">
                           {post.post_content}
                         </p>
 
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                          <span>
-                            Autor:{" "}
+                        <div className="mb-4 space-y-1 text-sm text-gray-600">
+                          <p>
+                            <span className="font-medium text-gray-800">
+                              Autor:
+                            </span>{" "}
                             {post.author_username ? (
                               <Link
                                 href={`/u/${encodeURIComponent(
@@ -359,9 +402,24 @@ export default async function LeaderboardPage() {
                             ) : (
                               "Unbekannt"
                             )}
-                          </span>
-                          <span>{post.likes_count} Hat mir geholfen</span>
-                          <span>{post.comments_count} Kommentare</span>
+                          </p>
+                          <p>
+                            <span className="font-medium text-gray-800">
+                              Erstellt:
+                            </span>{" "}
+                            {formatDateTime(post.post_created_at)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3">
+                          <div className="flex flex-wrap items-center gap-2 text-sm">
+                            <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
+                              💡 {post.likes_count}
+                            </span>
+                            <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
+                              💬 {post.comments_count}
+                            </span>
+                          </div>
                         </div>
                       </article>
                     );
