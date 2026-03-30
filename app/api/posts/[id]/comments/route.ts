@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
-import type { FeedComment } from "@/types/feed";
+import type { FeedComment, ReactionCounts, ReactionType } from "@/types/feed";
+
+// =====================================================
+// Types
+// =====================================================
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -12,17 +16,39 @@ type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type HallOfFameRow =
   Database["public"]["Tables"]["weekly_post_hall_of_fame"]["Row"];
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
-type CommentLikeRow = Database["public"]["Tables"]["comment_likes"]["Row"];
+type CommentReactionRow =
+  Database["public"]["Tables"]["comment_reactions"]["Row"];
 
 type CommentListRow = Pick<
   CommentRow,
   "id" | "content" | "created_at" | "user_id" | "parent_id"
 >;
 
-type FeedCommentWithLikes = FeedComment & {
-  likes_count: number;
-  viewer_has_liked: boolean;
-};
+type CommentReactionListRow = Pick<
+  CommentReactionRow,
+  "comment_id" | "user_id" | "reaction"
+>;
+
+// =====================================================
+// Helpers
+// =====================================================
+
+function createEmptyReactionCounts(): ReactionCounts {
+  return {
+    like: 0,
+    funny: 0,
+    wow: 0,
+    fire: 0,
+  };
+}
+
+function getReactionsCount(counts: ReactionCounts) {
+  return counts.like + counts.funny + counts.wow + counts.fire;
+}
+
+// =====================================================
+// GET
+// =====================================================
 
 export async function GET(_: NextRequest, context: RouteContext) {
   try {
@@ -130,60 +156,62 @@ export async function GET(_: NextRequest, context: RouteContext) {
       }
     }
 
-    const likesCountByCommentId = new Map<number, number>();
-    let viewerLikedCommentIds = new Set<number>();
+    const reactionCountsByCommentId = new Map<number, ReactionCounts>();
+    const viewerReactionByCommentId = new Map<number, ReactionType>();
 
     if (commentIds.length > 0) {
-      const { data: commentLikesData, error: commentLikesError } = await supabase
-        .from("comment_likes")
-        .select("comment_id, user_id")
-        .in("comment_id", commentIds);
+      const { data: commentReactionsData, error: commentReactionsError } =
+        await supabase
+          .from("comment_reactions")
+          .select("comment_id, user_id, reaction")
+          .in("comment_id", commentIds);
 
-      if (commentLikesError) {
-        return new NextResponse(commentLikesError.message, { status: 500 });
+      if (commentReactionsError) {
+        return new NextResponse(commentReactionsError.message, { status: 500 });
       }
 
-      const commentLikes = (commentLikesData ?? []) as Pick<
-        CommentLikeRow,
-        "comment_id" | "user_id"
-      >[];
+      const commentReactions = (commentReactionsData ?? []) as CommentReactionListRow[];
 
-      for (const like of commentLikes) {
-        likesCountByCommentId.set(
-          like.comment_id,
-          (likesCountByCommentId.get(like.comment_id) ?? 0) + 1
-        );
-      }
+      for (const reaction of commentReactions) {
+        const counts =
+          reactionCountsByCommentId.get(reaction.comment_id) ??
+          createEmptyReactionCounts();
 
-      if (user) {
-        viewerLikedCommentIds = new Set(
-          commentLikes
-            .filter((like) => like.user_id === user.id)
-            .map((like) => like.comment_id)
-        );
+        counts[reaction.reaction as ReactionType] += 1;
+        reactionCountsByCommentId.set(reaction.comment_id, counts);
+
+        if (user && reaction.user_id === user.id) {
+          viewerReactionByCommentId.set(
+            reaction.comment_id,
+            reaction.reaction as ReactionType
+          );
+        }
       }
     }
 
-    const comments: FeedCommentWithLikes[] = commentRows.map((comment) => {
+    const comments: FeedComment[] = commentRows.map((comment) => {
       const profile =
         comment.user_id ? profilesById.get(comment.user_id) ?? null : null;
       const hallOfFameStats =
         comment.user_id
           ? hallOfFameStatsByAuthorId.get(comment.user_id) ?? null
           : null;
+      const reactionCounts =
+        reactionCountsByCommentId.get(comment.id) ?? createEmptyReactionCounts();
 
       return {
         id: comment.id,
         content: comment.content,
         created_at: comment.created_at,
         parent_id: comment.parent_id ?? null,
+        reactions_count: getReactionsCount(reactionCounts),
+        reaction_counts: reactionCounts,
+        viewer_reaction: viewerReactionByCommentId.get(comment.id) ?? null,
         can_delete: !!user && (comment.user_id === user.id || viewerIsAdmin),
         author_username: profile?.username ?? null,
         author_avatar_url: profile?.avatar_url ?? null,
         author_hall_of_fame_count: hallOfFameStats?.count ?? 0,
         author_hall_of_fame_categories: hallOfFameStats?.categories ?? [],
-        likes_count: likesCountByCommentId.get(comment.id) ?? 0,
-        viewer_has_liked: viewerLikedCommentIds.has(comment.id),
       };
     });
 
@@ -195,6 +223,10 @@ export async function GET(_: NextRequest, context: RouteContext) {
     });
   }
 }
+
+// =====================================================
+// POST
+// =====================================================
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
@@ -340,18 +372,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
       new Set(hallOfFameEntries.map((entry) => entry.category))
     );
 
-    const response: FeedCommentWithLikes = {
+    const response: FeedComment = {
       id: insertedComment.id,
       content: insertedComment.content,
       created_at: insertedComment.created_at,
       parent_id: insertedComment.parent_id ?? null,
+      reactions_count: 0,
+      reaction_counts: createEmptyReactionCounts(),
+      viewer_reaction: null,
       can_delete: true,
       author_username: profile?.username ?? null,
       author_avatar_url: profile?.avatar_url ?? null,
       author_hall_of_fame_count: hallOfFameEntries.length,
       author_hall_of_fame_categories: authorHallOfFameCategories,
-      likes_count: 0,
-      viewer_has_liked: false,
     };
 
     return NextResponse.json(response);

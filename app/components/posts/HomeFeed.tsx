@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FeedPost } from "@/types/feed";
+import type { FeedPost, PostReactionType } from "@/types/feed";
 import CreatePostForm from "@/app/components/posts/CreatePostForm";
 import PostCard from "@/app/components/posts/PostCard";
 
@@ -37,8 +37,8 @@ function getDailyTopPosts(posts: FeedPost[]): RankedTopPost[] {
 
   const ranked = [...todaysPosts]
     .sort((a, b) => {
-      if (b.likes_count !== a.likes_count) {
-        return b.likes_count - a.likes_count;
+      if (b.reactions_count !== a.reactions_count) {
+        return b.reactions_count - a.reactions_count;
       }
 
       if (b.comments_count !== a.comments_count) {
@@ -53,6 +53,43 @@ function getDailyTopPosts(posts: FeedPost[]): RankedTopPost[] {
     ...post,
     dailyRank: (index + 1) as 1 | 2 | 3,
   }));
+}
+
+function applyReactionUpdate(
+  post: FeedPost,
+  nextReaction: PostReactionType | null
+): FeedPost {
+  const previousReaction = post.viewer_reaction;
+
+  if (previousReaction === nextReaction) {
+    return post;
+  }
+
+  const nextReactionCounts = {
+    ...post.reaction_counts,
+  };
+
+  let nextReactionsCount = post.reactions_count;
+
+  if (previousReaction) {
+    nextReactionCounts[previousReaction] = Math.max(
+      0,
+      nextReactionCounts[previousReaction] - 1
+    );
+    nextReactionsCount = Math.max(0, nextReactionsCount - 1);
+  }
+
+  if (nextReaction) {
+    nextReactionCounts[nextReaction] += 1;
+    nextReactionsCount += 1;
+  }
+
+  return {
+    ...post,
+    viewer_reaction: nextReaction,
+    reaction_counts: nextReactionCounts,
+    reactions_count: nextReactionsCount,
+  };
 }
 
 // =====================================================
@@ -170,19 +207,14 @@ export default function HomeFeed({
     setOffset((prev) => prev + 1);
   }
 
-  function handleLikeUpdated(postId: number, liked: boolean) {
+  function handleReactionUpdated(
+    postId: number,
+    nextReaction: PostReactionType | null
+  ) {
     setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id !== postId) return post;
-
-        return {
-          ...post,
-          viewer_has_liked: liked,
-          likes_count: liked
-            ? post.likes_count + 1
-            : Math.max(0, post.likes_count - 1),
-        };
-      })
+      prev.map((post) =>
+        post.id === postId ? applyReactionUpdate(post, nextReaction) : post
+      )
     );
   }
 
@@ -206,7 +238,6 @@ export default function HomeFeed({
 
   return (
     <div className="space-y-4 pb-40">
-      {/* Posts */}
       <div className="space-y-4">
         {topPosts.map((post) => (
           <PostCard
@@ -214,21 +245,31 @@ export default function HomeFeed({
             post={post}
             dailyRank={post.dailyRank}
             detailHref={`/posts/${post.id}`}
-            onLikeUpdated={handleLikeUpdated}
+            onReactionUpdated={handleReactionUpdated}
             onCommentCreated={handleCommentCreated}
             onPostDeleted={handlePostDeleted}
           />
         ))}
 
-        {regularPosts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            detailHref={`/posts/${post.id}`}
-            onLikeUpdated={handleLikeUpdated}
-            onCommentCreated={handleCommentCreated}
-            onPostDeleted={handlePostDeleted}
-          />
+        {regularPosts.map((post, index) => (
+          <div key={post.id} className="space-y-4">
+            <PostCard
+              post={post}
+              detailHref={`/posts/${post.id}`}
+              onReactionUpdated={handleReactionUpdated}
+              onCommentCreated={handleCommentCreated}
+              onPostDeleted={handlePostDeleted}
+            />
+
+            {index === 99 && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow">
+                <p className="text-base font-semibold text-gray-900">Pause?</p>
+                <p className="mt-2 text-sm text-gray-500">
+                  Du hast bereits 100 weitere Posts gesehen.
+                </p>
+              </div>
+            )}
+          </div>
         ))}
 
         {posts.length === 0 && (
@@ -238,10 +279,8 @@ export default function HomeFeed({
         )}
       </div>
 
-      {/* Infinite Scroll Sentinel */}
       <div ref={sentinelRef} className="h-10" />
 
-      {/* Feed Status */}
       {loadingMore && (
         <p className="pb-8 text-center text-sm text-gray-500">
           Lade mehr Posts ...
@@ -254,7 +293,6 @@ export default function HomeFeed({
         </p>
       )}
 
-      {/* Floating Create Post Form */}
       {isLoggedIn && (
         <div className="pointer-events-none fixed bottom-4 left-1/2 z-30 w-full max-w-[860px] -translate-x-1/2 px-4">
           <div className="pointer-events-auto">

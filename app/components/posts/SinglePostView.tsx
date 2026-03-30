@@ -3,11 +3,52 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PostCard from "@/app/components/posts/PostCard";
-import type { FeedPost } from "@/types/feed";
+import type { FeedPost, ReactionType } from "@/types/feed";
 
 type SinglePostViewProps = {
   initialPost: FeedPost;
 };
+
+// =====================================================
+// Helpers
+// =====================================================
+
+function applyReactionUpdate(
+  post: FeedPost,
+  nextReaction: ReactionType | null
+): FeedPost {
+  const previousReaction = post.viewer_reaction;
+
+  if (previousReaction === nextReaction) {
+    return post;
+  }
+
+  const nextReactionCounts = {
+    ...post.reaction_counts,
+  };
+
+  let nextReactionsCount = post.reactions_count;
+
+  if (previousReaction) {
+    nextReactionCounts[previousReaction] = Math.max(
+      0,
+      nextReactionCounts[previousReaction] - 1
+    );
+    nextReactionsCount = Math.max(0, nextReactionsCount - 1);
+  }
+
+  if (nextReaction) {
+    nextReactionCounts[nextReaction] += 1;
+    nextReactionsCount += 1;
+  }
+
+  return {
+    ...post,
+    viewer_reaction: nextReaction,
+    reaction_counts: nextReactionCounts,
+    reactions_count: nextReactionsCount,
+  };
+}
 
 // =====================================================
 // Component
@@ -28,17 +69,13 @@ export default function SinglePostView({
   // Actions
   // =====================================================
 
-  function handleLikeUpdated(postId: number, liked: boolean) {
+  function handleReactionUpdated(
+    postId: number,
+    nextReaction: ReactionType | null
+  ) {
     setPost((prev) => {
       if (prev.id !== postId) return prev;
-
-      return {
-        ...prev,
-        viewer_has_liked: liked,
-        likes_count: liked
-          ? prev.likes_count + 1
-          : Math.max(0, prev.likes_count - 1),
-      };
+      return applyReactionUpdate(prev, nextReaction);
     });
   }
 
@@ -66,11 +103,10 @@ export default function SinglePostView({
   return (
     <PostCard
       post={post}
-      showAuthor
-      detailHref={`/posts/${post.id}`}
-      onLikeUpdated={handleLikeUpdated}
+      onReactionUpdated={handleReactionUpdated}
       onCommentCreated={handleCommentCreated}
       onPostDeleted={handlePostDeleted}
+      showAuthor
     />
   );
 }

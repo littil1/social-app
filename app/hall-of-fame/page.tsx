@@ -1,7 +1,8 @@
-import Link from "next/link";
 import NavBar from "@/app/components/layout/navbar";
 import { createClient } from "@/lib/supabase-server";
+import HallOfFameFrozenPostCard from "@/app/components/hall-of-fame/HallOfFameFrozenPostCard";
 import type { Database } from "@/types/database";
+import type { ReactionCounts } from "@/types/feed";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,19 @@ type DailyWinnerRow =
 type DailyWinnersGroup = {
   dayKey: string;
   dayLabel: string;
-  winners: DailyWinnerRow[];
+  winners: FrozenWinnerPost[];
+};
+
+type FrozenWinnerPost = {
+  id: number;
+  post_content: string;
+  post_created_at: string;
+  comments_count: number;
+  relevance_score: number;
+  author_username: string | null;
+  reactions_count: number;
+  reaction_counts: ReactionCounts;
+  rank_position: 1 | 2 | 3;
 };
 
 function formatDate(dateString: string) {
@@ -33,34 +46,17 @@ function getZurichDayKey(date: Date | string) {
   }).format(new Date(date));
 }
 
-function getPodiumCardClass(position: number) {
-  if (position === 1) {
-    return "border-yellow-300 bg-yellow-50";
-  }
-
-  if (position === 2) {
-    return "border-gray-300 bg-gray-50";
-  }
-
-  return "border-orange-300 bg-orange-50";
+function createFrozenReactionCounts(item: DailyWinnerRow): ReactionCounts {
+  return {
+    like: item.likes_count ?? 0,
+    funny: 0,
+    wow: 0,
+    fire: 0,
+  };
 }
 
-function getPodiumHeightClass(position: number) {
-  if (position === 1) return "min-h-[320px]";
-  if (position === 2) return "min-h-[260px]";
-  return "min-h-[220px]";
-}
-
-function getPodiumEmoji(position: number) {
-  if (position === 1) return "🥇";
-  if (position === 2) return "🥈";
-  return "🥉";
-}
-
-function getPodiumLabel(position: number) {
-  if (position === 1) return "Gold";
-  if (position === 2) return "Silber";
-  return "Bronze";
+function getPodiumPositions() {
+  return [2, 1, 3] as const;
 }
 
 export default async function HallOfFamePage() {
@@ -108,11 +104,30 @@ export default async function HallOfFamePage() {
 
   const todayKey = getZurichDayKey(new Date());
 
-  const items = ((data ?? []) as DailyWinnerRow[]).filter(
-    (item) => item.winner_date !== todayKey
-  );
+  const items = ((data ?? []) as DailyWinnerRow[])
+    .filter((item) => item.winner_date !== todayKey)
+    .map((item) => {
+      const reactionCounts = createFrozenReactionCounts(item);
 
-  const groupedMap = new Map<string, DailyWinnerRow[]>();
+      return {
+        id: item.post_id,
+        post_content: item.post_content ?? "",
+        post_created_at: item.post_created_at,
+        comments_count: item.comments_count ?? 0,
+        relevance_score: Number(item.relevance_score ?? 0),
+        author_username: item.author_username ?? null,
+        reactions_count:
+          reactionCounts.like +
+          reactionCounts.funny +
+          reactionCounts.wow +
+          reactionCounts.fire,
+        reaction_counts: reactionCounts,
+        rank_position: item.rank_position as 1 | 2 | 3,
+        winner_date: item.winner_date,
+      };
+    });
+
+  const groupedMap = new Map<string, FrozenWinnerPost[]>();
 
   for (const item of items) {
     const existing = groupedMap.get(item.winner_date) ?? [];
@@ -125,9 +140,7 @@ export default async function HallOfFamePage() {
     .map(([dayKey, winners]) => ({
       dayKey,
       dayLabel: formatDate(`${dayKey}T00:00:00`),
-      winners: [...winners].sort(
-        (a, b) => a.rank_position - b.rank_position
-      ),
+      winners: [...winners].sort((a, b) => a.rank_position - b.rank_position),
     }))
     .filter((day) => day.winners.length > 0);
 
@@ -140,9 +153,6 @@ export default async function HallOfFamePage() {
       <NavBar user={navUser} />
 
       <main className="mx-auto max-w-6xl p-6">
-        <div className="mb-8 flex items-center justify-between gap-4">
-        </div>
-
         {dailyResults.length === 0 ? (
           <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
             Noch keine vergangenen Hall-of-Fame-Einträge vorhanden.
@@ -151,84 +161,26 @@ export default async function HallOfFamePage() {
           <>
             <section className="mb-10">
               <div className="mb-4">
-                <h2 className="text-2xl font-bold">Letzter abgeschlossener Tag</h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Podest für {latestPastDay?.dayLabel}
+                <h2 className="text-2xl font-bold">Hall of Fame</h2>
+                <p className="text-sm text-gray-500">
+                  Eingefrorenes Podium des letzten abgeschlossenen Tages,
+                  Reactions sind nur sichtbar, Comments bleiben aktiv.
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3 md:items-end">
-                {[2, 1, 3].map((position) => {
-                  const post = latestPastPodium.find(
-                    (item) => item.rank_position === position
-                  );
+                {getPodiumPositions().map((position) => {
+                  const post =
+                    latestPastPodium.find(
+                      (item) => item.rank_position === position
+                    ) ?? null;
 
                   return (
-                    <article
+                    <HallOfFameFrozenPostCard
                       key={position}
-                      className={`rounded-2xl border p-5 shadow ${getPodiumCardClass(
-                        position
-                      )} ${getPodiumHeightClass(position)}`}
-                    >
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-2xl">{getPodiumEmoji(position)}</p>
-                          <p className="mt-2 text-lg font-bold">
-                            {getPodiumLabel(position)}
-                          </p>
-                        </div>
-
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-700">
-                          Platz {position}
-                        </span>
-                      </div>
-
-                      {post ? (
-                        <>
-                          <p className="mb-3 whitespace-pre-wrap break-words text-gray-900">
-                            {post.post_content ?? ""}
-                          </p>
-
-                          <div className="mb-3 space-y-1 text-sm text-gray-600">
-                            <p>
-                              <span className="font-medium text-gray-800">
-                                Autor:
-                              </span>{" "}
-                              {post.author_username ? (
-                                <Link
-                                  href={`/u/${encodeURIComponent(
-                                    post.author_username
-                                  )}`}
-                                  className="hover:underline"
-                                >
-                                  @{post.author_username}
-                                </Link>
-                              ) : (
-                                "Unbekannt"
-                              )}
-                            </p>
-                            <p>
-                              <span className="font-medium text-gray-800">
-                                Erstellt:
-                              </span>{" "}
-                              {formatDate(post.post_created_at)}
-                            </p>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                            <span>{post.likes_count ?? 0} Hat mir geholfen</span>
-                            <span>{post.comments_count ?? 0} Kommentare</span>
-                            <span>
-                              Relevanz {Number(post.relevance_score).toFixed(1)}
-                            </span>
-                          </div>
-                        </>
-                      ) : (
-                        <p className="text-sm text-gray-500">
-                          Für diesen Platz gibt es keinen gespeicherten Post.
-                        </p>
-                      )}
-                    </article>
+                      position={position}
+                      post={post}
+                    />
                   );
                 })}
               </div>
@@ -244,60 +196,25 @@ export default async function HallOfFamePage() {
 
               <div className="space-y-4">
                 {olderPastDays.map((day) => {
-                  const winner = day.winners.find(
-                    (item) => item.rank_position === 1
-                  );
+                  const winner =
+                    day.winners.find((item) => item.rank_position === 1) ?? null;
 
                   return (
-                    <article
-                      key={day.dayKey}
-                      className="rounded-xl bg-white p-5 shadow"
-                    >
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">
-                            🏆 Tagessieger vom {day.dayLabel}
-                          </p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Eingefrorener Gold-Post des Tages
-                          </p>
-                        </div>
-
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-900">
-                          Hall of Fame
-                        </span>
+                    <div key={day.dayKey}>
+                      <div className="mb-2">
+                        <p className="text-sm font-semibold text-gray-900">
+                          🏆 Tagessieger vom {day.dayLabel}
+                        </p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Eingefrorener Gold-Post des Tages
+                        </p>
                       </div>
 
-                      <p className="mb-3 whitespace-pre-wrap break-words text-gray-900">
-                        {winner?.post_content ?? ""}
-                      </p>
-
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                        <span>
-                          Autor:{" "}
-                          {winner?.author_username ? (
-                            <Link
-                              href={`/u/${encodeURIComponent(
-                                winner.author_username
-                              )}`}
-                              className="hover:underline"
-                            >
-                              @{winner.author_username}
-                            </Link>
-                          ) : (
-                            "Unbekannt"
-                          )}
-                        </span>
-                        <span>{winner?.likes_count ?? 0} Hat mir geholfen</span>
-                        <span>{winner?.comments_count ?? 0} Kommentare</span>
-                        <span>
-                          Relevanz{" "}
-                          {winner
-                            ? Number(winner.relevance_score).toFixed(1)
-                            : "0.0"}
-                        </span>
-                      </div>
-                    </article>
+                      <HallOfFameFrozenPostCard
+                        post={winner}
+                        archiveLabel="Gold"
+                      />
+                    </div>
                   );
                 })}
               </div>

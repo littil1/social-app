@@ -1,0 +1,1 @@
+-- initial schema already applied on remote

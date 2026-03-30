@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import type { FeedPost } from "@/types/feed";
+import { useCallback, useMemo, useState } from "react";
+import type { FeedPost, ReactionType } from "@/types/feed";
 import PostCard from "@/app/components/posts/PostCard";
 
 type Props = {
@@ -21,39 +21,75 @@ export default function UserProfileContent({
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
 
   const totalLikes = useMemo(
-    () => posts.reduce((sum, post) => sum + post.likes_count, 0),
+    () => posts.reduce((sum, post) => sum + post.reaction_counts.like, 0),
     [posts]
   );
 
-  function handleLikeUpdated(postId: number, liked: boolean) {
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id !== postId) return post;
+  const handleReactionUpdated = useCallback(
+    (postId: number, nextReaction: ReactionType | null) => {
+      setPosts((prev) =>
+        prev.map((post) => {
+          if (post.id !== postId) return post;
 
-        return {
-          ...post,
-          viewer_has_liked: liked,
-          likes_count: liked
-            ? post.likes_count + 1
-            : Math.max(0, post.likes_count - 1),
-        };
-      })
-    );
-  }
+          const previousReaction = post.viewer_reaction;
 
-  function handleCommentCreated(postId: number) {
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
-          ? { ...post, comments_count: post.comments_count + 1 }
-          : post
-      )
-    );
-  }
+          const nextReactionCounts = {
+            like: post.reaction_counts.like,
+            funny: post.reaction_counts.funny,
+            wow: post.reaction_counts.wow,
+            fire: post.reaction_counts.fire,
+          };
 
-  function handlePostDeleted(postId: number) {
+          if (previousReaction) {
+            nextReactionCounts[previousReaction] = Math.max(
+              0,
+              nextReactionCounts[previousReaction] - 1
+            );
+          }
+
+          if (nextReaction) {
+            nextReactionCounts[nextReaction] =
+              nextReactionCounts[nextReaction] + 1;
+          }
+
+          return {
+            ...post,
+            viewer_reaction: nextReaction,
+            reactions_count:
+              nextReactionCounts.like +
+              nextReactionCounts.funny +
+              nextReactionCounts.wow +
+              nextReactionCounts.fire,
+            reaction_counts: nextReactionCounts,
+          };
+        })
+      );
+    },
+    []
+  );
+
+  const handleCommentsCountChange = useCallback(
+    (postId: number, count: number) => {
+      setPosts((prev) => {
+        let changed = false;
+
+        const nextPosts = prev.map((post) => {
+          if (post.id !== postId) return post;
+          if (post.comments_count === count) return post;
+
+          changed = true;
+          return { ...post, comments_count: count };
+        });
+
+        return changed ? nextPosts : prev;
+      });
+    },
+    []
+  );
+
+  const handlePostDeleted = useCallback((postId: number) => {
     setPosts((prev) => prev.filter((post) => post.id !== postId));
-  }
+  }, []);
 
   return (
     <>
@@ -76,8 +112,8 @@ export default function UserProfileContent({
           <PostCard
             key={post.id}
             post={post}
-            onLikeUpdated={handleLikeUpdated}
-            onCommentCreated={handleCommentCreated}
+            onReactionUpdated={handleReactionUpdated}
+            onCommentsCountChange={handleCommentsCountChange}
             onPostDeleted={handlePostDeleted}
           />
         ))}

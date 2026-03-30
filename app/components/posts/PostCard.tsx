@@ -3,18 +3,34 @@
 import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { FeedPost } from "@/types/feed";
+import type { FeedPost, ReactionType } from "@/types/feed";
 import CommentsSection from "@/app/components/posts/CommentsSection";
 
 type PostCardProps = {
   post: FeedPost;
-  onLikeUpdated: (postId: number, liked: boolean) => void;
-  onCommentCreated: (postId: number) => void;
+  onReactionUpdated: (
+    postId: number,
+    nextReaction: ReactionType | null
+  ) => void;
+  onCommentCreated?: (postId: number) => void;
+  onCommentsCountChange?: (postId: number, count: number) => void;
   onPostDeleted: (postId: number) => void;
   showAuthor?: boolean;
   dailyRank?: 1 | 2 | 3;
   detailHref?: string;
 };
+
+const REACTIONS: Array<{
+  value: ReactionType;
+  emoji: string;
+  label: string;
+  countKey: keyof NonNullable<FeedPost["reaction_counts"]>;
+}> = [
+  { value: "like", emoji: "❤️", label: "Gefällt mir", countKey: "like" },
+  { value: "funny", emoji: "😂", label: "Lustig", countKey: "funny" },
+  { value: "wow", emoji: "😮", label: "Wow", countKey: "wow" },
+  { value: "fire", emoji: "🔥", label: "Stark", countKey: "fire" },
+];
 
 // =====================================================
 // Helpers
@@ -79,8 +95,9 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
 
 function PostCardComponent({
   post,
-  onLikeUpdated,
+  onReactionUpdated,
   onCommentCreated,
+  onCommentsCountChange,
   onPostDeleted,
   showAuthor = false,
   dailyRank,
@@ -90,7 +107,7 @@ function PostCardComponent({
   // State
   // =====================================================
 
-  const [likeLoading, setLikeLoading] = useState(false);
+  const [reactionLoading, setReactionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(
@@ -99,6 +116,13 @@ function PostCardComponent({
 
   const router = useRouter();
   const rankStyles = getRankStyles(dailyRank);
+
+  const reactionCounts = {
+    like: post.reaction_counts?.like ?? 0,
+    funny: post.reaction_counts?.funny ?? 0,
+    wow: post.reaction_counts?.wow ?? 0,
+    fire: post.reaction_counts?.fire ?? 0,
+  };
 
   // =====================================================
   // Effects
@@ -112,27 +136,40 @@ function PostCardComponent({
   // Actions
   // =====================================================
 
-  async function handleToggleLike() {
-    if (likeLoading) return;
+  async function handleReactionClick(reaction: ReactionType) {
+    if (reactionLoading) return;
 
-    const nextLiked = !post.viewer_has_liked;
-    onLikeUpdated(post.id, nextLiked);
-    setLikeLoading(true);
+    const previousReaction = post.viewer_reaction;
+    const nextReaction = previousReaction === reaction ? null : reaction;
+
+    onReactionUpdated(post.id, nextReaction);
+    setReactionLoading(true);
 
     try {
       const res = await fetch(`/api/posts/${post.id}/like`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reaction: nextReaction }),
       });
 
       if (!res.ok) {
-        throw new Error("Useful konnte nicht gespeichert werden.");
+        throw new Error("Reaction konnte nicht gespeichert werden.");
       }
+
+      const data = (await res.json()) as {
+        success: boolean;
+        reaction: ReactionType | null;
+      };
+
+      onReactionUpdated(post.id, data.reaction);
     } catch (error) {
       console.error(error);
-      onLikeUpdated(post.id, !nextLiked);
-      alert("Useful konnte nicht gespeichert werden.");
+      onReactionUpdated(post.id, previousReaction);
+      alert("Reaction konnte nicht gespeichert werden.");
     } finally {
-      setLikeLoading(false);
+      setReactionLoading(false);
     }
   }
 
@@ -165,16 +202,12 @@ function PostCardComponent({
   }
 
   function handleCommentCreatedLocal() {
-    setLocalCommentsCount((prev) => prev + 1);
-    onCommentCreated(post.id);
+    onCommentCreated?.(post.id);
   }
 
   function handleCommentsLoaded(count: number) {
     setLocalCommentsCount(count);
-  }
-
-  function handleCommentDeleted() {
-    setLocalCommentsCount((prev) => Math.max(0, prev - 1));
+    onCommentsCountChange?.(post.id, count);
   }
 
   // =====================================================
@@ -192,7 +225,6 @@ function PostCardComponent({
         />
       )}
 
-      {/* Header */}
       <div className="mb-5 flex items-start justify-between gap-3">
         <div className="min-w-0">
           {showAuthor && post.author_username ? (
@@ -223,27 +255,32 @@ function PostCardComponent({
               </div>
             </div>
           ) : (
-            <>
-              <p className="text-sm font-semibold text-gray-700">
-                Anonymous Post #{post.id}
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                {formatDate(post.created_at)}
-              </p>
-            </>
+            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
           )}
         </div>
 
-        {dailyRank && (
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${rankStyles.badgeClass}`}
-          >
-            {rankStyles.badgeText}
-          </span>
-        )}
+        <div className="flex shrink-0 items-start gap-2">
+          {dailyRank && (
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${rankStyles.badgeClass}`}
+            >
+              {rankStyles.badgeText}
+            </span>
+          )}
+
+          {post.can_delete && (
+            <button
+              type="button"
+              onClick={handleDeletePost}
+              disabled={deleteLoading}
+              className="rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+            >
+              {deleteLoading ? "Deleting..." : "Delete"}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Content */}
       <div className="mb-6">
         {detailHref ? (
           <Link
@@ -261,61 +298,48 @@ function PostCardComponent({
         )}
       </div>
 
-      {/* Action Bar */}
       <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50/80 p-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
-              💡 {post.likes_count}
-            </span>
-            <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
-              💬 {localCommentsCount}
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {REACTIONS.map((reaction) => {
+            const isActive = post.viewer_reaction === reaction.value;
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleToggleLike}
-              disabled={likeLoading}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
-                post.viewer_has_liked
-                  ? "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                  : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              {post.viewer_has_liked ? "💡 Useful" : "Mark useful"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowComments((prev) => !prev)}
-              className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-            >
-              {showComments ? "Hide comments" : "Show comments"}
-            </button>
-            
-            {post.can_delete && (
+            return (
               <button
+                key={reaction.value}
                 type="button"
-                onClick={handleDeletePost}
-                disabled={deleteLoading}
-                className="rounded-xl border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                onClick={() => handleReactionClick(reaction.value)}
+                disabled={reactionLoading}
+                className={`rounded-full px-3 py-1.5 transition disabled:opacity-50 ${
+                  isActive
+                    ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                    : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+                }`}
+                aria-pressed={isActive}
+                title={reaction.label}
               >
-                {deleteLoading ? "Deleting..." : "Delete"}
+                <span className="mr-1">{reaction.emoji}</span>
+                {reactionCounts[reaction.countKey]}
               </button>
-            )}
-          </div>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setShowComments((prev) => !prev)}
+            className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
+          >
+            <span className="mr-1">💬</span>
+            {localCommentsCount}{" "}
+            {showComments ? "Hide comments" : "Show comments"}
+          </button>
         </div>
       </div>
 
-      {/* Comments */}
       {showComments && (
         <CommentsSection
           postId={post.id}
           onCommentCreated={handleCommentCreatedLocal}
           onCommentsLoaded={handleCommentsLoaded}
-          onCommentDeleted={handleCommentDeleted}
         />
       )}
     </article>

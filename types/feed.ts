@@ -1,10 +1,20 @@
+export type ReactionType = "like" | "funny" | "wow" | "fire";
+
+export type ReactionCounts = {
+  like: number;
+  funny: number;
+  wow: number;
+  fire: number;
+};
+
 export type FeedPost = {
   id: number;
   content: string;
   created_at: string;
-  likes_count: number;
+  reactions_count: number;
+  reaction_counts: ReactionCounts;
+  viewer_reaction: ReactionType | null;
   comments_count: number;
-  viewer_has_liked: boolean;
   can_delete: boolean;
   author_username?: string | null;
   author_avatar_url?: string | null;
@@ -15,8 +25,9 @@ export type FeedComment = {
   content: string;
   created_at: string;
   parent_id: number | null;
-  likes_count: number;
-  viewer_has_liked: boolean;
+  reactions_count: number;
+  reaction_counts: ReactionCounts;
+  viewer_reaction: ReactionType | null;
   can_delete: boolean;
   author_username?: string | null;
   author_avatar_url?: string | null;

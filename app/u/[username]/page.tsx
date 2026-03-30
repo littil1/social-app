@@ -4,7 +4,7 @@ import NavBar from "@/app/components/layout/navbar";
 import FollowButton from "@/app/components/profile/FollowButton";
 import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
 import { getImplementedIdeaCountByUserId } from "@/lib/feedback-data";
-import type { FeedPost } from "@/types/feed";
+import type { FeedPost, ReactionType } from "@/types/feed";
 import type { Database } from "@/types/database";
 import UserProfileContent from "@/app/components/profile/UserProfileContent";
 import ProfileBadgesSection from "@/app/components/profile/ProfileBadgesSection";
@@ -22,12 +22,7 @@ type PostRow = {
   content: string | null;
   created_at: string;
   user_id: string | null;
-  likes_count: number;
   comments_count: number;
-};
-
-type LikeRow = {
-  post_id: number | null;
 };
 
 type CommentRow = {
@@ -51,31 +46,31 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-let navUser: {
-  username: string;
-  avatar_url: string | null;
-  is_admin: boolean;
-} | null = null;
+  let navUser: {
+    username: string;
+    avatar_url: string | null;
+    is_admin: boolean;
+  } | null = null;
 
-if (user) {
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("username, avatar_url, is_admin")
-    .eq("id", user.id)
-    .maybeSingle();
+  if (user) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("username, avatar_url, is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (profileError) {
-    throw new Error(profileError.message);
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
+    if (profile?.username) {
+      navUser = {
+        username: profile.username,
+        avatar_url: profile.avatar_url ?? null,
+        is_admin: profile.is_admin ?? false,
+      };
+    }
   }
-
-  if (profile?.username) {
-    navUser = {
-      username: profile.username,
-      avatar_url: profile.avatar_url ?? null,
-      is_admin: profile.is_admin ?? false,
-    };
-  }
-}
 
   let viewerIsAdmin = false;
 
@@ -118,7 +113,7 @@ if (user) {
 
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
-    .select("id, content, created_at, user_id, likes_count, comments_count")
+    .select("id, content, created_at, user_id, comments_count")
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
 
@@ -128,26 +123,6 @@ if (user) {
 
   const typedPosts = (postsData ?? []) as PostRow[];
   const postIds = typedPosts.map((post) => post.id);
-
-  let likedPostIds = new Set<number>();
-
-  if (user && postIds.length > 0) {
-    const { data: likesData, error: likesError } = await supabase
-      .from("likes")
-      .select("post_id")
-      .eq("user_id", user.id)
-      .in("post_id", postIds);
-
-    if (likesError) {
-      throw new Error(likesError.message);
-    }
-
-    likedPostIds = new Set(
-      ((likesData ?? []) as LikeRow[])
-        .map((like) => like.post_id)
-        .filter((id): id is number => typeof id === "number")
-    );
-  }
 
   const commentCountMap = new Map<number, number>();
 
@@ -175,10 +150,18 @@ if (user) {
     id: post.id,
     content: post.content ?? "",
     created_at: post.created_at,
-    likes_count: post.likes_count ?? 0,
     comments_count: commentCountMap.get(post.id) ?? 0,
-    viewer_has_liked: likedPostIds.has(post.id),
+    reactions_count: 0,
+    reaction_counts: {
+      like: 0,
+      funny: 0,
+      wow: 0,
+      fire: 0,
+    },
+    viewer_reaction: null,
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
+    author_username: profile.username,
+    author_avatar_url: profile.avatar_url ?? null,
   }));
 
   const { followersCount, followingCount } = await getFollowCounts(
@@ -296,11 +279,11 @@ if (user) {
             </div>
           </div>
 
-        <ProfileBadgesSection
-          targetUserId={profile.id}
-          initialBadges={profileBadges}
-          viewerIsAdmin={viewerIsAdmin}
-        />
+          <ProfileBadgesSection
+            targetUserId={profile.id}
+            initialBadges={profileBadges}
+            viewerIsAdmin={viewerIsAdmin}
+          />
         </div>
 
         <UserProfileContent

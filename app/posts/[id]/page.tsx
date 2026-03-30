@@ -3,10 +3,14 @@ import { notFound } from "next/navigation";
 import NavBar from "@/app/components/layout/navbar";
 import SinglePostView from "@/app/components/posts/SinglePostView";
 import { createClient } from "@/lib/supabase-server";
-import type { FeedPost } from "@/types/feed";
+import type { FeedPost, ReactionCounts, ReactionType } from "@/types/feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+// =====================================================
+// Types
+// =====================================================
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -26,14 +30,32 @@ type ProfileRow = {
   is_admin?: boolean | null;
 };
 
-type LikeRow = {
-  post_id: number | null;
-  user_id: string;
-};
-
 type CommentRow = {
   post_id: number | null;
 };
+
+type PostReactionRow = {
+  post_id: number;
+  user_id: string;
+  reaction: ReactionType;
+};
+
+// =====================================================
+// Helpers
+// =====================================================
+
+function createEmptyReactionCounts(): ReactionCounts {
+  return {
+    like: 0,
+    funny: 0,
+    wow: 0,
+    fire: 0,
+  };
+}
+
+function getReactionsCount(counts: ReactionCounts) {
+  return counts.like + counts.funny + counts.wow + counts.fire;
+}
 
 // =====================================================
 // Page
@@ -134,21 +156,28 @@ export default async function PostDetailPage({ params }: PageProps) {
   }
 
   // =====================================================
-  // Load Live Counts / Viewer Like State
+  // Load Reactions / Comments
   // =====================================================
 
-  const { data: likesData, error: likesError } = await supabase
-    .from("likes")
-    .select("post_id, user_id")
+  const reactionCounts = createEmptyReactionCounts();
+  let viewerReaction: ReactionType | null = null;
+
+  const { data: reactionsData, error: reactionsError } = await supabase
+    .from("post_reactions")
+    .select("post_id, user_id, reaction")
     .eq("post_id", postId);
 
-  if (likesError) {
-    throw new Error(likesError.message);
+  if (reactionsError) {
+    throw new Error(reactionsError.message);
   }
 
-  const likes = (likesData ?? []) as LikeRow[];
-  const likesCount = likes.length;
-  const viewerHasLiked = !!user && likes.some((like) => like.user_id === user.id);
+  for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
+    reactionCounts[reaction.reaction] += 1;
+
+    if (user && reaction.user_id === user.id) {
+      viewerReaction = reaction.reaction;
+    }
+  }
 
   const { data: commentsData, error: commentsError } = await supabase
     .from("comments")
@@ -170,9 +199,10 @@ export default async function PostDetailPage({ params }: PageProps) {
     id: post.id,
     content: post.content ?? "",
     created_at: post.created_at,
-    likes_count: likesCount,
+    reactions_count: getReactionsCount(reactionCounts),
+    reaction_counts: reactionCounts,
+    viewer_reaction: viewerReaction,
     comments_count: commentsCount,
-    viewer_has_liked: viewerHasLiked,
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
     author_username: authorProfile?.username ?? null,
     author_avatar_url: authorProfile?.avatar_url ?? null,
@@ -187,8 +217,6 @@ export default async function PostDetailPage({ params }: PageProps) {
       <NavBar user={navUser} />
 
       <main className="mx-auto max-w-2xl p-6">
-
-        {/* Auth Notice */}
         {!user && (
           <div className="mb-6 rounded-xl bg-white p-4 shadow">
             <p className="mb-3 text-gray-700">
@@ -203,7 +231,6 @@ export default async function PostDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Post */}
         <SinglePostView initialPost={initialPost} />
       </main>
     </>

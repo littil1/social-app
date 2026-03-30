@@ -2,18 +2,60 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import type { FeedComment } from "@/types/feed";
+import type { FeedComment, ReactionType } from "@/types/feed";
+
+// =====================================================
+// Types
+// =====================================================
 
 type CommentsSectionProps = {
   postId: number;
   onCommentCreated: () => void;
   onCommentsLoaded?: (count: number) => void;
-  onCommentDeleted?: () => void;
 };
 
 type CommentNode = FeedComment & {
   children: CommentNode[];
 };
+
+type CommentItemProps = {
+  node: CommentNode;
+  depth: number;
+  deletingCommentId: number | null;
+  reactingCommentId: number | null;
+  replyParentId: number | null;
+  replyContent: string;
+  replySubmitting: boolean;
+  onReplyOpen: (commentId: number) => void;
+  onReplyCancel: () => void;
+  onReplyContentChange: (value: string) => void;
+  onReplySubmit: (parentId: number) => Promise<void>;
+  onDeleteComment: (commentId: number) => Promise<void>;
+  onReactionClick: (
+    commentId: number,
+    reaction: ReactionType
+  ) => Promise<void>;
+};
+
+// =====================================================
+// Constants
+// =====================================================
+
+const REACTIONS: Array<{
+  value: ReactionType;
+  emoji: string;
+  label: string;
+  countKey: keyof FeedComment["reaction_counts"];
+}> = [
+  { value: "like", emoji: "❤️", label: "Gefällt mir", countKey: "like" },
+  { value: "funny", emoji: "😂", label: "Lustig", countKey: "funny" },
+  { value: "wow", emoji: "😮", label: "Wow", countKey: "wow" },
+  { value: "fire", emoji: "🔥", label: "Stark", countKey: "fire" },
+];
+
+// =====================================================
+// Helpers
+// =====================================================
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -91,27 +133,52 @@ function collectCommentIdsToRemove(
   return idsToRemove;
 }
 
-type CommentItemProps = {
-  node: CommentNode;
-  depth: number;
-  deletingCommentId: number | null;
-  likingCommentId: number | null;
-  replyParentId: number | null;
-  replyContent: string;
-  replySubmitting: boolean;
-  onReplyOpen: (commentId: number) => void;
-  onReplyCancel: () => void;
-  onReplyContentChange: (value: string) => void;
-  onReplySubmit: (parentId: number) => Promise<void>;
-  onDeleteComment: (commentId: number) => Promise<void>;
-  onToggleLike: (commentId: number) => Promise<void>;
-};
+function applyReactionUpdate(
+  comment: FeedComment,
+  nextReaction: ReactionType | null
+): FeedComment {
+  const previousReaction = comment.viewer_reaction;
+
+  if (previousReaction === nextReaction) {
+    return comment;
+  }
+
+  const nextReactionCounts = {
+    ...comment.reaction_counts,
+  };
+
+  let nextReactionsCount = comment.reactions_count;
+
+  if (previousReaction) {
+    nextReactionCounts[previousReaction] = Math.max(
+      0,
+      nextReactionCounts[previousReaction] - 1
+    );
+    nextReactionsCount = Math.max(0, nextReactionsCount - 1);
+  }
+
+  if (nextReaction) {
+    nextReactionCounts[nextReaction] += 1;
+    nextReactionsCount += 1;
+  }
+
+  return {
+    ...comment,
+    viewer_reaction: nextReaction,
+    reaction_counts: nextReactionCounts,
+    reactions_count: nextReactionsCount,
+  };
+}
+
+// =====================================================
+// Comment Item
+// =====================================================
 
 function CommentItem({
   node,
   depth,
   deletingCommentId,
-  likingCommentId,
+  reactingCommentId,
   replyParentId,
   replyContent,
   replySubmitting,
@@ -120,10 +187,11 @@ function CommentItem({
   onReplyContentChange,
   onReplySubmit,
   onDeleteComment,
-  onToggleLike,
+  onReactionClick,
 }: CommentItemProps) {
   const maxIndentLevel = 6;
   const effectiveDepth = Math.min(depth, maxIndentLevel);
+  const hallOfFameCategories = node.author_hall_of_fame_categories ?? [];
 
   return (
     <div
@@ -160,7 +228,7 @@ function CommentItem({
                     </Link>
                   ) : (
                     <p className="truncate text-sm font-semibold text-gray-700">
-                      Unbekannt
+                      Unknown user
                     </p>
                   )}
 
@@ -177,9 +245,9 @@ function CommentItem({
               </div>
             </div>
 
-            {(node.author_hall_of_fame_categories?.length ?? 0) > 0 && (
+            {hallOfFameCategories.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-2">
-                {node.author_hall_of_fame_categories!.map((category) => (
+                {hallOfFameCategories.map((category) => (
                   <span
                     key={category}
                     className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700"
@@ -195,23 +263,33 @@ function CommentItem({
             </p>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-gray-500">
-                {node.likes_count} {node.likes_count === 1 ? "Like" : "Likes"}
-              </span>
+              {REACTIONS.map((reaction) => {
+                const isActive = node.viewer_reaction === reaction.value;
 
-              <button
-                type="button"
-                onClick={() => onToggleLike(node.id)}
-                disabled={likingCommentId === node.id}
-                className="rounded-lg border px-3 py-1 text-sm text-gray-700 disabled:opacity-50"
-              >
-                {node.viewer_has_liked ? "♥ Liked" : "♡ Like"}
-              </button>
+                return (
+                  <button
+                    key={reaction.value}
+                    type="button"
+                    onClick={() => onReactionClick(node.id, reaction.value)}
+                    disabled={reactingCommentId === node.id}
+                    className={`rounded-full px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+                      isActive
+                        ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                        : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+                    }`}
+                    aria-pressed={isActive}
+                    title={reaction.label}
+                  >
+                    <span className="mr-1">{reaction.emoji}</span>
+                    {node.reaction_counts[reaction.countKey]}
+                  </button>
+                );
+              })}
 
               <button
                 type="button"
                 onClick={() => onReplyOpen(node.id)}
-                className="rounded-lg border px-3 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                className="rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
               >
                 Reply
               </button>
@@ -221,7 +299,7 @@ function CommentItem({
                   type="button"
                   onClick={() => onDeleteComment(node.id)}
                   disabled={deletingCommentId === node.id}
-                  className="rounded-lg border border-red-300 px-3 py-1 text-sm text-red-600 disabled:opacity-50"
+                  className="rounded-full border border-red-300 bg-white px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                 >
                   {deletingCommentId === node.id ? "Deleting..." : "Delete"}
                 </button>
@@ -284,7 +362,7 @@ function CommentItem({
               node={child}
               depth={depth + 1}
               deletingCommentId={deletingCommentId}
-              likingCommentId={likingCommentId}
+              reactingCommentId={reactingCommentId}
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
@@ -293,7 +371,7 @@ function CommentItem({
               onReplyContentChange={onReplyContentChange}
               onReplySubmit={onReplySubmit}
               onDeleteComment={onDeleteComment}
-              onToggleLike={onToggleLike}
+              onReactionClick={onReactionClick}
             />
           ))}
         </div>
@@ -302,11 +380,14 @@ function CommentItem({
   );
 }
 
+// =====================================================
+// Component
+// =====================================================
+
 export default function CommentsSection({
   postId,
   onCommentCreated,
   onCommentsLoaded,
-  onCommentDeleted,
 }: CommentsSectionProps) {
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -314,15 +395,19 @@ export default function CommentsSection({
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(
     null
   );
-  const [likingCommentId, setLikingCommentId] = useState<number | null>(null);
+  const [reactingCommentId, setReactingCommentId] = useState<number | null>(
+    null
+  );
   const [content, setContent] = useState("");
   const [replyParentId, setReplyParentId] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
 
-  const hasLoadedInitiallyRef = useRef(false);
-
   const commentTree = useMemo(() => buildCommentTree(comments), [comments]);
+
+  // =====================================================
+  // Effects
+  // =====================================================
 
   useEffect(() => {
     let active = true;
@@ -354,7 +439,6 @@ export default function CommentsSection({
       }
     }
 
-    hasLoadedInitiallyRef.current = false;
     loadComments();
 
     return () => {
@@ -365,12 +449,12 @@ export default function CommentsSection({
   useEffect(() => {
     if (loading) return;
 
-    if (!hasLoadedInitiallyRef.current) {
-      hasLoadedInitiallyRef.current = true;
-    }
-
     onCommentsLoaded?.(comments.length);
   }, [comments.length, loading, onCommentsLoaded]);
+
+  // =====================================================
+  // Actions
+  // =====================================================
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -470,8 +554,6 @@ export default function CommentsSection({
         setReplyParentId(null);
         setReplyContent("");
       }
-
-      onCommentDeleted?.();
     } catch (error) {
       console.error(error);
       alert("Kommentar konnte nicht gelöscht werden.");
@@ -480,25 +562,23 @@ export default function CommentsSection({
     }
   }
 
-  async function handleToggleLike(commentId: number) {
-    if (likingCommentId !== null) return;
+  async function handleReactionClick(
+    commentId: number,
+    reaction: ReactionType
+  ) {
+    if (reactingCommentId !== null) return;
 
     const existingComment = comments.find((comment) => comment.id === commentId);
     if (!existingComment) return;
 
-    const nextLiked = !existingComment.viewer_has_liked;
+    const previousReaction = existingComment.viewer_reaction;
+    const nextReaction = previousReaction === reaction ? null : reaction;
 
-    setLikingCommentId(commentId);
+    setReactingCommentId(commentId);
     setComments((prev) =>
       prev.map((comment) =>
         comment.id === commentId
-          ? {
-              ...comment,
-              viewer_has_liked: nextLiked,
-              likes_count: nextLiked
-                ? comment.likes_count + 1
-                : Math.max(0, comment.likes_count - 1),
-            }
+          ? applyReactionUpdate(comment, nextReaction)
           : comment
       )
     );
@@ -506,11 +586,28 @@ export default function CommentsSection({
     try {
       const res = await fetch(`/api/comments/${commentId}/like`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reaction: nextReaction }),
       });
 
       if (!res.ok) {
-        throw new Error("Kommentar-Like konnte nicht gespeichert werden.");
+        throw new Error("Kommentar-Reaction konnte nicht gespeichert werden.");
       }
+
+      const data = (await res.json()) as {
+        success: boolean;
+        reaction: ReactionType | null;
+      };
+
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === commentId
+            ? applyReactionUpdate(comment, data.reaction)
+            : comment
+        )
+      );
     } catch (error) {
       console.error(error);
 
@@ -519,16 +616,17 @@ export default function CommentsSection({
           comment.id === commentId
             ? {
                 ...comment,
-                viewer_has_liked: existingComment.viewer_has_liked,
-                likes_count: existingComment.likes_count,
+                viewer_reaction: existingComment.viewer_reaction,
+                reaction_counts: { ...existingComment.reaction_counts },
+                reactions_count: existingComment.reactions_count,
               }
             : comment
         )
       );
 
-      alert("Kommentar-Like konnte nicht gespeichert werden.");
+      alert("Kommentar-Reaction konnte nicht gespeichert werden.");
     } finally {
-      setLikingCommentId(null);
+      setReactingCommentId(null);
     }
   }
 
@@ -541,6 +639,10 @@ export default function CommentsSection({
     setReplyParentId(null);
     setReplyContent("");
   }
+
+  // =====================================================
+  // Render
+  // =====================================================
 
   return (
     <section className="rounded-xl border bg-gray-50 p-4">
@@ -558,7 +660,7 @@ export default function CommentsSection({
               node={comment}
               depth={0}
               deletingCommentId={deletingCommentId}
-              likingCommentId={likingCommentId}
+              reactingCommentId={reactingCommentId}
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
@@ -567,7 +669,7 @@ export default function CommentsSection({
               onReplyContentChange={setReplyContent}
               onReplySubmit={handleReplySubmit}
               onDeleteComment={handleDeleteComment}
-              onToggleLike={handleToggleLike}
+              onReactionClick={handleReactionClick}
             />
           ))}
         </div>

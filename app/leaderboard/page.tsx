@@ -1,18 +1,20 @@
-import Link from "next/link";
-import Script from "next/script";
 import NavBar from "@/app/components/layout/navbar";
 import { createClient } from "@/lib/supabase-server";
 import LeaderboardPodiumCard from "@/app/components/leaderboard/LeaderboardPodiumCard";
 import FreezeDailyWinnersForm from "@/app/components/leaderboard/FreezeDailyWinnersForm";
+import type { ReactionCounts, ReactionType } from "@/types/feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+// =====================================================
+// Types
+// =====================================================
 
 type PostRow = {
   id: number;
   content: string | null;
   created_at: string;
-  likes_count: number | null;
   comments_count: number | null;
   user_id: string | null;
 };
@@ -22,25 +24,27 @@ type ProfileRow = {
   username: string | null;
 };
 
-type LikeRow = {
-  post_id: number | null;
-  user_id: string;
-};
-
 type CommentRow = {
   post_id: number | null;
+};
+
+type PostReactionRow = {
+  post_id: number;
+  user_id: string;
+  reaction: ReactionType;
 };
 
 type RankedPost = {
   id: number;
   post_content: string;
   post_created_at: string;
-  likes_count: number;
   comments_count: number;
   relevance_score: number;
   author_id: string | null;
   author_username: string | null;
-  viewer_has_liked: boolean;
+  reactions_count: number;
+  reaction_counts: ReactionCounts;
+  viewer_reaction: ReactionType | null;
 };
 
 // =====================================================
@@ -57,18 +61,6 @@ function formatDate(dateString: string) {
   }).format(date);
 }
 
-function formatDateTime(dateString: string) {
-  const date = new Date(dateString);
-
-  return new Intl.DateTimeFormat("de-CH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
-
 function getZurichDayKey(date: Date | string) {
   return new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Zurich",
@@ -78,8 +70,21 @@ function getZurichDayKey(date: Date | string) {
   }).format(new Date(date));
 }
 
-function getRelevanceScore(likesCount: number, commentsCount: number) {
-  return likesCount + commentsCount * 2;
+function createEmptyReactionCounts(): ReactionCounts {
+  return {
+    like: 0,
+    funny: 0,
+    wow: 0,
+    fire: 0,
+  };
+}
+
+function getReactionsCount(counts: ReactionCounts) {
+  return counts.like + counts.funny + counts.wow + counts.fire;
+}
+
+function getRelevanceScore(reactionsCount: number, commentsCount: number) {
+  return reactionsCount + commentsCount * 2;
 }
 
 function getPodiumPositions() {
@@ -91,10 +96,6 @@ function getPodiumPositions() {
 // =====================================================
 
 export default async function LeaderboardPage() {
-  // =====================================================
-  // Auth / Nav User
-  // =====================================================
-
   const supabase = await createClient();
 
   const {
@@ -127,13 +128,9 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // =====================================================
-  // Load Posts
-  // =====================================================
-
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
-    .select("id, content, created_at, likes_count, comments_count, user_id")
+    .select("id, content, created_at, comments_count, user_id")
     .order("created_at", { ascending: false })
     .limit(500);
 
@@ -149,10 +146,6 @@ export default async function LeaderboardPage() {
   );
 
   const postIds = todaysPosts.map((post) => post.id);
-
-  // =====================================================
-  // Load Authors
-  // =====================================================
 
   const authorIds = Array.from(
     new Set(
@@ -182,34 +175,30 @@ export default async function LeaderboardPage() {
     );
   }
 
-  // =====================================================
-  // Load Live Likes / Comments Counts
-  // =====================================================
-
-  const likeCountByPostId = new Map<number, number>();
+  const reactionCountsByPostId = new Map<number, ReactionCounts>();
+  const viewerReactionByPostId = new Map<number, ReactionType>();
   const commentCountByPostId = new Map<number, number>();
-  const viewerLikedPostIds = new Set<number>();
 
   if (postIds.length > 0) {
-    const { data: likesData, error: likesError } = await supabase
-      .from("likes")
-      .select("post_id, user_id")
+    const { data: reactionsData, error: reactionsError } = await supabase
+      .from("post_reactions")
+      .select("post_id, user_id, reaction")
       .in("post_id", postIds);
 
-    if (likesError) {
-      throw new Error(likesError.message);
+    if (reactionsError) {
+      throw new Error(reactionsError.message);
     }
 
-    for (const like of (likesData ?? []) as LikeRow[]) {
-      if (typeof like.post_id !== "number") continue;
+    for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
+      const counts =
+        reactionCountsByPostId.get(reaction.post_id) ??
+        createEmptyReactionCounts();
 
-      likeCountByPostId.set(
-        like.post_id,
-        (likeCountByPostId.get(like.post_id) ?? 0) + 1
-      );
+      counts[reaction.reaction] += 1;
+      reactionCountsByPostId.set(reaction.post_id, counts);
 
-      if (user && like.user_id === user.id) {
-        viewerLikedPostIds.add(like.post_id);
+      if (user && reaction.user_id === user.id) {
+        viewerReactionByPostId.set(reaction.post_id, reaction.reaction);
       }
     }
 
@@ -232,26 +221,25 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // =====================================================
-  // Ranking
-  // =====================================================
-
   const rankedPosts: RankedPost[] = todaysPosts
     .map((post) => {
       const authorProfile = post.user_id ? profilesById.get(post.user_id) : null;
-      const likesCount = likeCountByPostId.get(post.id) ?? 0;
+      const reactionCounts =
+        reactionCountsByPostId.get(post.id) ?? createEmptyReactionCounts();
+      const reactionsCount = getReactionsCount(reactionCounts);
       const commentsCount = commentCountByPostId.get(post.id) ?? 0;
 
       return {
         id: post.id,
         post_content: post.content ?? "",
         post_created_at: post.created_at,
-        likes_count: likesCount,
         comments_count: commentsCount,
-        relevance_score: getRelevanceScore(likesCount, commentsCount),
+        relevance_score: getRelevanceScore(reactionsCount, commentsCount),
         author_id: post.user_id,
         author_username: authorProfile?.username ?? null,
-        viewer_has_liked: viewerLikedPostIds.has(post.id),
+        reactions_count: reactionsCount,
+        reaction_counts: reactionCounts,
+        viewer_reaction: viewerReactionByPostId.get(post.id) ?? null,
       };
     })
     .sort((a, b) => {
@@ -259,8 +247,8 @@ export default async function LeaderboardPage() {
         return b.relevance_score - a.relevance_score;
       }
 
-      if (b.likes_count !== a.likes_count) {
-        return b.likes_count - a.likes_count;
+      if (b.reactions_count !== a.reactions_count) {
+        return b.reactions_count - a.reactions_count;
       }
 
       if (b.comments_count !== a.comments_count) {
@@ -273,32 +261,13 @@ export default async function LeaderboardPage() {
       );
     });
 
-  const topTenPosts = rankedPosts.slice(0, 10);
-  const podium = topTenPosts.slice(0, 3);
-  const remainingTopPosts = topTenPosts.slice(3);
-
-  // =====================================================
-  // Render
-  // =====================================================
+  const podium = rankedPosts.slice(0, 3);
 
   return (
     <>
-      {/* Auto Refresh */}
-      <Script id="leaderboard-auto-refresh" strategy="afterInteractive">
-        {`
-          window.setInterval(() => {
-            window.location.reload();
-          }, 15000);
-        `}
-      </Script>
-
       <NavBar user={navUser} />
 
       <main className="mx-auto max-w-6xl p-6">
-        {/* Header */}
-
-
-        {/* Admin Actions */}
         {navUser?.is_admin && (
           <details className="mb-8 rounded-2xl border border-gray-200 bg-white shadow-sm group">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-900">
@@ -314,120 +283,35 @@ export default async function LeaderboardPage() {
           </details>
         )}
 
-        {/* Empty State */}
         {rankedPosts.length === 0 ? (
           <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
             Heute gibt es noch keine Posts im Leaderboard.
           </div>
         ) : (
-          <>
-            {/* Podium */}
-            <section className="mb-10">
-              <div className="mb-4">
-                <h2 className="text-2xl font-bold">Live-Podium</h2>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Live-Ranking für heute, {formatDate(`${todayKey}T00:00:00`)}
-                  </p>
-                </div>
+          <section className="mb-10">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold">Live-Podium</h2>
+              <div>
+                <p className="text-sm text-gray-500">
+                  Live-Ranking für heute, {formatDate(`${todayKey}T00:00:00`)}
+                </p>
               </div>
+            </div>
 
-              <div className="grid gap-4 md:grid-cols-3 md:items-end">
-                {getPodiumPositions().map((position) => {
-                  const post = podium[position - 1] ?? null;
+            <div className="grid gap-4 md:grid-cols-3 md:items-end">
+              {getPodiumPositions().map((position) => {
+                const post = podium[position - 1] ?? null;
 
-                  return (
-                    <LeaderboardPodiumCard
-                      key={position}
-                      position={position}
-                      post={post}
-                    />
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* Remaining Top Posts */}
-            {remainingTopPosts.length > 0 && (
-              <section>
-                <div className="mb-4">
-                  <h2 className="text-xl font-bold">Weitere Top-Posts heute</h2>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Die nächsten Plätze im heutigen Live-Ranking.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {remainingTopPosts.map((post, index) => {
-                    const position = index + 4;
-
-                    return (
-                      <article
-                        key={post.id}
-                        className="rounded-2xl border border-gray-100 bg-white p-5 shadow"
-                      >
-                        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900">
-                              Platz {position}
-                            </p>
-                            <p className="mt-1 text-xs text-gray-500">
-                              Live im heutigen Leaderboard
-                            </p>
-                          </div>
-
-                          <span className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
-                            ⚡ {post.relevance_score}
-                          </span>
-                        </div>
-
-                        <p className="mb-4 whitespace-pre-wrap break-words text-[16px] leading-7 text-gray-900">
-                          {post.post_content}
-                        </p>
-
-                        <div className="mb-4 space-y-1 text-sm text-gray-600">
-                          <p>
-                            <span className="font-medium text-gray-800">
-                              Autor:
-                            </span>{" "}
-                            {post.author_username ? (
-                              <Link
-                                href={`/u/${encodeURIComponent(
-                                  post.author_username
-                                )}`}
-                                className="hover:underline"
-                              >
-                                @{post.author_username}
-                              </Link>
-                            ) : (
-                              "Unbekannt"
-                            )}
-                          </p>
-                          <p>
-                            <span className="font-medium text-gray-800">
-                              Erstellt:
-                            </span>{" "}
-                            {formatDateTime(post.post_created_at)}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3">
-                          <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
-                              💡 {post.likes_count}
-                            </span>
-                            <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
-                              💬 {post.comments_count}
-                            </span>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
-          </>
+                return (
+                  <LeaderboardPodiumCard
+                    key={position}
+                    position={position}
+                    post={post}
+                  />
+                );
+              })}
+            </div>
+          </section>
         )}
       </main>
     </>

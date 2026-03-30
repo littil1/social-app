@@ -6,13 +6,30 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function POST(_: Request, context: RouteContext) {
+const ALLOWED_REACTIONS = ["like", "funny", "wow", "fire"] as const;
+type ReactionType = (typeof ALLOWED_REACTIONS)[number];
+
+function isReactionType(value: unknown): value is ReactionType {
+  return (
+    typeof value === "string" &&
+    ALLOWED_REACTIONS.includes(value as ReactionType)
+  );
+}
+
+export async function POST(request: Request, context: RouteContext) {
   try {
     const { id } = await context.params;
     const postId = Number(id);
 
     if (!Number.isFinite(postId)) {
       return new NextResponse("Ungültige Post-ID.", { status: 400 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const reaction = body?.reaction;
+
+    if (!isReactionType(reaction)) {
+      return new NextResponse("Ungültige Reaction.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -25,100 +42,111 @@ export async function POST(_: Request, context: RouteContext) {
       return new NextResponse("Nicht eingeloggt.", { status: 401 });
     }
 
-    const { data: existingLike, error: existingLikeError } = await supabase
-      .from("likes")
-      .select("post_id")
-      .eq("post_id", postId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (existingLikeError) {
-      return new NextResponse(existingLikeError.message, { status: 500 });
-    }
-
     const { data: post, error: postError } = await supabase
       .from("posts")
-      .select("likes_count, user_id")
+      .select("id, user_id")
       .eq("id", postId)
-      .single();
+      .maybeSingle();
 
     if (postError) {
       return new NextResponse(postError.message, { status: 500 });
     }
 
+    if (!post) {
+      return new NextResponse("Post nicht gefunden.", { status: 404 });
+    }
+
+    const { data: existingReaction, error: existingReactionError } = await supabase
+      .from("post_reactions")
+      .select("id, reaction")
+      .eq("post_id", postId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (existingReactionError) {
+      return new NextResponse(existingReactionError.message, { status: 500 });
+    }
+
     let authorUsername: string | null = null;
 
-      if (post.user_id) {
-        const { data: authorProfile } = await supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", post.user_id)
-          .maybeSingle();
+    if (post.user_id) {
+      const { data: authorProfile, error: authorProfileError } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", post.user_id)
+        .maybeSingle();
 
-        authorUsername = authorProfile?.username ?? null;
+      if (authorProfileError) {
+        return new NextResponse(authorProfileError.message, { status: 500 });
       }
 
-    const currentCount = post.likes_count ?? 0;
+      authorUsername = authorProfile?.username ?? null;
+    }
 
-    if (existingLike) {
-      const { error: deleteError } = await supabase
-        .from("likes")
-        .delete()
-        .eq("post_id", postId)
-        .eq("user_id", user.id);
+    if (existingReaction) {
+      if (existingReaction.reaction === reaction) {
+        const { error: deleteError } = await supabase
+          .from("post_reactions")
+          .delete()
+          .eq("id", existingReaction.id);
 
-      if (deleteError) {
-        return new NextResponse(deleteError.message, { status: 500 });
+        if (deleteError) {
+          return new NextResponse(deleteError.message, { status: 500 });
+        }
+
+        revalidatePath("/");
+        if (authorUsername) {
+          revalidatePath(`/u/${authorUsername}`);
+        }
+
+        return NextResponse.json({
+          success: true,
+          reaction: null,
+        });
       }
 
       const { error: updateError } = await supabase
-        .from("posts")
-        .update({ likes_count: Math.max(0, currentCount - 1) })
-        .eq("id", postId);
+        .from("post_reactions")
+        .update({ reaction })
+        .eq("id", existingReaction.id);
 
       if (updateError) {
         return new NextResponse(updateError.message, { status: 500 });
       }
 
       revalidatePath("/");
-      revalidatePath("/explore");
-      revalidatePath("/following");
       if (authorUsername) {
         revalidatePath(`/u/${authorUsername}`);
       }
 
-      return NextResponse.json({ liked: false });
+      return NextResponse.json({
+        success: true,
+        reaction,
+      });
     }
 
-    const { error: insertError } = await supabase.from("likes").insert({
+    const { error: insertError } = await supabase.from("post_reactions").insert({
       post_id: postId,
       user_id: user.id,
+      reaction,
     });
 
     if (insertError) {
       return new NextResponse(insertError.message, { status: 500 });
     }
 
-    const { error: updateError } = await supabase
-      .from("posts")
-      .update({ likes_count: currentCount + 1 })
-      .eq("id", postId);
-
-    if (updateError) {
-      return new NextResponse(updateError.message, { status: 500 });
-    }
-
     revalidatePath("/");
-    revalidatePath("/explore");
-    revalidatePath("/following");
     if (authorUsername) {
       revalidatePath(`/u/${authorUsername}`);
     }
 
-    return NextResponse.json({ liked: true });
+    return NextResponse.json({
+      success: true,
+      reaction,
+    });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Like konnte nicht gespeichert werden.", {
+    return new NextResponse("Reaction konnte nicht gespeichert werden.", {
       status: 500,
     });
   }

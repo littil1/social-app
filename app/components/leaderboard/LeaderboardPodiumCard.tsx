@@ -1,23 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CommentsSection from "@/app/components/posts/CommentsSection";
+import type { ReactionCounts, ReactionType } from "@/types/feed";
+
+// =====================================================
+// Types
+// =====================================================
+
+type LeaderboardPost = {
+  id: number;
+  post_content: string;
+  post_created_at: string;
+  comments_count: number;
+  relevance_score: number;
+  author_username: string | null;
+  reactions_count: number;
+  reaction_counts: ReactionCounts;
+  viewer_reaction: ReactionType | null;
+};
 
 type LeaderboardPodiumCardProps = {
   position: 1 | 2 | 3;
-  post: {
-    id: number;
-    post_content: string;
-    post_created_at: string;
-    likes_count: number;
-    comments_count: number;
-    relevance_score: number;
-    author_username: string | null;
-    viewer_has_liked: boolean;
-  } | null;
+  post: LeaderboardPost | null;
 };
+
+// =====================================================
+// Constants
+// =====================================================
+
+const REACTIONS: Array<{
+  value: ReactionType;
+  emoji: string;
+  label: string;
+  countKey: keyof ReactionCounts;
+}> = [
+  { value: "like", emoji: "❤️", label: "Gefällt mir", countKey: "like" },
+  { value: "funny", emoji: "😂", label: "Lustig", countKey: "funny" },
+  { value: "wow", emoji: "😮", label: "Wow", countKey: "wow" },
+  { value: "fire", emoji: "🔥", label: "Stark", countKey: "fire" },
+];
 
 // =====================================================
 // Helpers
@@ -89,6 +113,24 @@ function getPodiumStyles(position: 1 | 2 | 3) {
   };
 }
 
+function applyReactionUpdate(
+  reactionCounts: ReactionCounts,
+  currentReaction: ReactionType | null,
+  nextReaction: ReactionType | null
+) {
+  const nextCounts = { ...reactionCounts };
+
+  if (currentReaction) {
+    nextCounts[currentReaction] = Math.max(0, nextCounts[currentReaction] - 1);
+  }
+
+  if (nextReaction) {
+    nextCounts[nextReaction] += 1;
+  }
+
+  return nextCounts;
+}
+
 // =====================================================
 // Component
 // =====================================================
@@ -97,69 +139,100 @@ export default function LeaderboardPodiumCard({
   position,
   post,
 }: LeaderboardPodiumCardProps) {
-  // =====================================================
-  // State
-  // =====================================================
-
   const [expanded, setExpanded] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [likeLoading, setLikeLoading] = useState(false);
-  const [likesCount, setLikesCount] = useState(post?.likes_count ?? 0);
-  const [commentsCount, setCommentsCount] = useState(post?.comments_count ?? 0);
-  const [viewerHasLiked, setViewerHasLiked] = useState(
-    post?.viewer_has_liked ?? false
+  const [reactionLoading, setReactionLoading] = useState(false);
+  const [localCommentsCount, setLocalCommentsCount] = useState(
+    post?.comments_count ?? 0
+  );
+  const [localReactionCounts, setLocalReactionCounts] = useState<ReactionCounts>(
+    post?.reaction_counts ?? {
+      like: 0,
+      funny: 0,
+      wow: 0,
+      fire: 0,
+    }
+  );
+  const [viewerReaction, setViewerReaction] = useState<ReactionType | null>(
+    post?.viewer_reaction ?? null
   );
 
   const router = useRouter();
   const styles = getPodiumStyles(position);
 
-  // =====================================================
-  // Derived Values
-  // =====================================================
+  useEffect(() => {
+    setLocalCommentsCount(post?.comments_count ?? 0);
+    setLocalReactionCounts(
+      post?.reaction_counts ?? {
+        like: 0,
+        funny: 0,
+        wow: 0,
+        fire: 0,
+      }
+    );
+    setViewerReaction(post?.viewer_reaction ?? null);
+  }, [post]);
 
   const isLongPost = useMemo(() => {
     if (!post) return false;
     return post.post_content.length > styles.previewLength;
   }, [post, styles.previewLength]);
+
   const articleClassName =
     expanded || showComments ? styles.expandedArticleClass : styles.articleClass;
-  // =====================================================
-  // Actions
-  // =====================================================
 
   function openPost() {
     if (!post) return;
     router.push(`/posts/${post.id}`);
   }
 
-  async function handleToggleLike(
-    e: React.MouseEvent<HTMLButtonElement>
+  async function handleReactionClick(
+    e: React.MouseEvent<HTMLButtonElement>,
+    reaction: ReactionType
   ) {
     e.stopPropagation();
 
-    if (!post || likeLoading) return;
+    if (!post || reactionLoading) return;
 
-    const nextLiked = !viewerHasLiked;
+    const previousReaction = viewerReaction;
+    const nextReaction = previousReaction === reaction ? null : reaction;
+    const optimisticCounts = applyReactionUpdate(
+      localReactionCounts,
+      previousReaction,
+      nextReaction
+    );
 
-    setLikeLoading(true);
-    setViewerHasLiked(nextLiked);
-    setLikesCount((prev) => (nextLiked ? prev + 1 : Math.max(0, prev - 1)));
+    setReactionLoading(true);
+    setViewerReaction(nextReaction);
+    setLocalReactionCounts(optimisticCounts);
 
     try {
       const res = await fetch(`/api/posts/${post.id}/like`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reaction }),
       });
 
       if (!res.ok) {
-        throw new Error("Useful konnte nicht gespeichert werden.");
+        throw new Error("Reaction konnte nicht gespeichert werden.");
       }
+
+      const data = (await res.json()) as {
+        success: boolean;
+        reaction: ReactionType | null;
+      };
+
+      setViewerReaction(data.reaction);
+      router.refresh();
     } catch (error) {
       console.error(error);
-      setViewerHasLiked(!nextLiked);
-      setLikesCount((prev) => (!nextLiked ? prev + 1 : Math.max(0, prev - 1)));
-      alert("Useful konnte nicht gespeichert werden.");
+      setViewerReaction(previousReaction);
+      setLocalReactionCounts(post.reaction_counts);
+      alert("Reaction konnte nicht gespeichert werden.");
     } finally {
-      setLikeLoading(false);
+      setReactionLoading(false);
     }
   }
 
@@ -178,25 +251,23 @@ export default function LeaderboardPodiumCard({
   }
 
   function handleCommentCreated() {
-    setCommentsCount((prev) => prev + 1);
+    setLocalCommentsCount((prev) => prev + 1);
     setShowComments(true);
+    router.refresh();
   }
 
   function handleCommentsLoaded(count: number) {
-    setCommentsCount(count);
+    setLocalCommentsCount(count);
   }
 
   function handleCommentDeleted() {
-    setCommentsCount((prev) => Math.max(0, prev - 1));
+    setLocalCommentsCount((prev) => Math.max(0, prev - 1));
+    router.refresh();
   }
 
-  // =====================================================
-  // Render
-  // =====================================================
-
   if (!post) {
-      return (
-        <article onClick={openPost} className={articleClassName}>
+    return (
+      <article onClick={openPost} className={articleClassName}>
         <div
           className={`absolute inset-y-0 left-0 w-1.5 ${styles.accentClass}`}
           aria-hidden="true"
@@ -219,13 +290,12 @@ export default function LeaderboardPodiumCard({
   }
 
   return (
-    <article onClick={openPost} className={styles.articleClass}>
+    <article onClick={openPost} className={articleClassName}>
       <div
         className={`absolute inset-y-0 left-0 w-1.5 ${styles.accentClass}`}
         aria-hidden="true"
       />
 
-      {/* Header */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-2xl">{styles.emoji}</p>
@@ -235,7 +305,6 @@ export default function LeaderboardPodiumCard({
         <span className={styles.badgeClass}>{styles.badgeText}</span>
       </div>
 
-      {/* Content */}
       <div className={`mb-4 ${expanded ? "" : "overflow-hidden"}`}>
         <Link
           href={`/posts/${post.id}`}
@@ -262,7 +331,6 @@ export default function LeaderboardPodiumCard({
         )}
       </div>
 
-      {/* Meta */}
       <div className="mb-4 space-y-1 text-sm text-gray-600">
         <p>
           <span className="font-medium text-gray-800">Autor:</span>{" "}
@@ -284,48 +352,49 @@ export default function LeaderboardPodiumCard({
         </p>
       </div>
 
-      {/* Action Bar */}
       <div
         className="mt-auto rounded-2xl border border-gray-100 bg-gray-50/80 p-3"
         onClick={handleOpenPostClick}
       >
         <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-          <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
-            💡 {likesCount}
-          </span>
-          <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
-            💬 {commentsCount}
-          </span>
-          <span className="rounded-full bg-white px-3 py-1 text-gray-700 ring-1 ring-gray-200">
-            ⚡ {post.relevance_score}
-          </span>
-        </div>
+          {REACTIONS.map((reaction) => {
+            const isActive = viewerReaction === reaction.value;
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={handleToggleLike}
-            disabled={likeLoading}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition disabled:opacity-50 ${
-              viewerHasLiked
-                ? "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100"
-                : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
-            }`}
-          >
-            {viewerHasLiked ? "💡 Useful" : "Mark useful"}
-          </button>
+            return (
+              <button
+                key={reaction.value}
+                type="button"
+                onClick={(e) => handleReactionClick(e, reaction.value)}
+                disabled={reactionLoading}
+                className={`rounded-full px-3 py-1.5 transition disabled:opacity-50 ${
+                  isActive
+                    ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                    : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+                }`}
+                aria-pressed={isActive}
+                title={reaction.label}
+              >
+                <span className="mr-1">{reaction.emoji}</span>
+                {localReactionCounts[reaction.countKey]}
+              </button>
+            );
+          })}
 
           <button
             type="button"
             onClick={handleToggleComments}
-            className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+            className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
           >
-            {showComments ? "Hide comments" : "Show comments"}
+            <span className="mr-1">💬</span>
+            {localCommentsCount} {showComments ? "Hide comments" : "Show comments"}
           </button>
+
+          <span className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200">
+            ⚡ {post.relevance_score}
+          </span>
         </div>
       </div>
 
-      {/* Comments */}
       {showComments && (
         <div className="mt-4" onClick={handleOpenPostClick}>
           <CommentsSection
