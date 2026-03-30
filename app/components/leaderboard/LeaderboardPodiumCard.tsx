@@ -260,11 +260,6 @@ export default function LeaderboardPodiumCard({
     setLocalCommentsCount(count);
   }
 
-  function handleCommentDeleted() {
-    setLocalCommentsCount((prev) => Math.max(0, prev - 1));
-    router.refresh();
-  }
-
   if (!post) {
     return (
       <article onClick={openPost} className={articleClassName}>
@@ -401,7 +396,6 @@ export default function LeaderboardPodiumCard({
             postId={post.id}
             onCommentCreated={handleCommentCreated}
             onCommentsLoaded={handleCommentsLoaded}
-            onCommentDeleted={handleCommentDeleted}
           />
         </div>
       )}
