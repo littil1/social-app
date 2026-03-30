@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FeedPost, PostReactionType } from "@/types/feed";
+import type { FeedPost, ReactionType } from "@/types/feed";
 import CreatePostForm from "@/app/components/posts/CreatePostForm";
 import PostCard from "@/app/components/posts/PostCard";
 
@@ -57,7 +57,7 @@ function getDailyTopPosts(posts: FeedPost[]): RankedTopPost[] {
 
 function applyReactionUpdate(
   post: FeedPost,
-  nextReaction: PostReactionType | null
+  nextReaction: ReactionType | null
 ): FeedPost {
   const previousReaction = post.viewer_reaction;
 
@@ -209,7 +209,7 @@ export default function HomeFeed({
 
   function handleReactionUpdated(
     postId: number,
-    nextReaction: PostReactionType | null
+    nextReaction: ReactionType | null
   ) {
     setPosts((prev) =>
       prev.map((post) =>
