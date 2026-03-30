@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase-server";
 import type {
   FeedPost,
-  FeedPostReactionCounts,
-  PostReactionType,
+  ReactionCounts,
+  ReactionType,
 } from "@/types/feed";
 import type { Database } from "@/types/database";
 
@@ -25,10 +25,10 @@ type FollowRow = Pick<
 type PostReactionRow = {
   post_id: number;
   user_id: string;
-  reaction: PostReactionType;
+  reaction: ReactionType;
 };
 
-function createEmptyReactionCounts(): FeedPostReactionCounts {
+function createEmptyReactionCounts(): ReactionCounts {
   return {
     like: 0,
     funny: 0,
@@ -37,7 +37,7 @@ function createEmptyReactionCounts(): FeedPostReactionCounts {
   };
 }
 
-function getTotalReactions(counts: FeedPostReactionCounts) {
+function getTotalReactions(counts: ReactionCounts) {
   return counts.like + counts.funny + counts.wow + counts.fire;
 }
 
@@ -182,8 +182,8 @@ export async function getFeedPage(
   const reactions = (reactionsData ?? []) as PostReactionRow[];
   const comments = (commentsData ?? []) as CommentRow[];
 
-  const reactionCountsMap = new Map<number, FeedPostReactionCounts>();
-  const viewerReactionMap = new Map<number, PostReactionType>();
+  const reactionCountsMap = new Map<number, ReactionCounts>();
+  const viewerReactionMap = new Map<number, ReactionType>();
   const commentCountMap = new Map<number, number>();
 
   for (const reaction of reactions) {
