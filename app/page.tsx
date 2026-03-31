@@ -1,10 +1,14 @@
-import Link from "next/link";
 import NavBar from "./components/layout/navbar";
 import { createClient } from "@/lib/supabase-server";
 import HomeFeed from "@/app/components/posts/HomeFeed";
 import { FEED_PAGE_SIZE, getFeedPage } from "@/lib/feed";
+import LoginCta from "@/app/components/auth/LoginCta";
 
 export const dynamic = "force-dynamic";
+
+// =====================================================
+// Component
+// =====================================================
 
 export default async function Home() {
   const supabase = await createClient();
@@ -46,20 +50,14 @@ export default async function Home() {
       <NavBar user={navUser} />
 
       <main className="mx-auto max-w-2xl p-6">
-        {!user && (
-          <div className="mb-6 rounded-xl bg-white p-4 shadow">
-            <p className="mb-3 text-gray-700">
-              You need an account to post, like, comment, and follow users.
-            </p>
-            <Link
-              href="/login"
-              className="inline-block rounded-lg bg-black px-4 py-2 text-white"
-            >
-              Go to Login / Signup
-            </Link>
-          </div>
-        )}
+        {/* =====================================================
+            Login CTA (nur wenn nicht eingeloggt)
+        ===================================================== */}
+        {!user && <LoginCta />}
 
+        {/* =====================================================
+            Feed
+        ===================================================== */}
         <HomeFeed
           initialPosts={initialPosts}
           pageSize={FEED_PAGE_SIZE}

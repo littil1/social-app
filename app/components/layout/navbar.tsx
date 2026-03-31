@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import UserMenu from "@/app/components/layout/UserMenu";
+import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
+
+// =====================================================
+// Types
+// =====================================================
 
 type NavBarProps = {
   user?: {
@@ -12,18 +17,21 @@ type NavBarProps = {
   } | null;
 };
 
+// =====================================================
+// Component
+// =====================================================
+
 export default function NavBar({ user = null }: NavBarProps) {
   const pathname = usePathname();
+  const { openLogin } = useAuthModal();
 
   function getLinkClass(path: string) {
     const isActive =
-      path === "/"
-        ? pathname === "/"
-        : pathname.startsWith(path);
+      path === "/" ? pathname === "/" : pathname.startsWith(path);
 
     return `relative px-1 py-0.5 ${
       isActive
-        ? "text-black font-semibold border-b-2 border-black"
+        ? "border-b-2 border-black font-semibold text-black"
         : "text-gray-600 hover:text-black"
     }`;
   }
@@ -33,7 +41,7 @@ export default function NavBar({ user = null }: NavBarProps) {
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="text-lg font-bold">
-            Social App
+            APP
           </Link>
 
           <nav className="flex items-center gap-4 text-sm">
@@ -52,6 +60,10 @@ export default function NavBar({ user = null }: NavBarProps) {
             <Link href="/feedback" className={getLinkClass("/feedback")}>
               Verbesserungswünsche
             </Link>
+
+            <Link href="/how-it-works" className={getLinkClass("/how-it-works")}>
+              So funktioniert APP
+            </Link>
           </nav>
         </div>
 
@@ -63,12 +75,13 @@ export default function NavBar({ user = null }: NavBarProps) {
               isAdmin={user.is_admin}
             />
           ) : (
-            <Link
-              href="/login"
-              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700"
+            <button
+              type="button"
+              onClick={() => openLogin(pathname || "/")}
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-50"
             >
               Login
-            </Link>
+            </button>
           )}
         </div>
       </div>

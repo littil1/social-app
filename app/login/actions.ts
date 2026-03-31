@@ -1,12 +1,19 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase-server";
+
+// =====================================================
+// Types
+// =====================================================
 
 export type AuthState = {
   error: string | null;
   success: string | null;
 };
+
+// =====================================================
+// Actions
+// =====================================================
 
 export async function loginAction(
   _prevState: AuthState,
@@ -19,7 +26,7 @@ export async function loginAction(
 
   if (!email || !password) {
     return {
-      error: "Please enter email and password.",
+      error: "Bitte E-Mail und Passwort eingeben.",
       success: null,
     };
   }
@@ -31,12 +38,15 @@ export async function loginAction(
 
   if (error) {
     return {
-      error: error.message,
+      error: "Anmeldung fehlgeschlagen. Bitte Eingaben prüfen.",
       success: null,
     };
   }
 
-  redirect("/");
+  return {
+    error: null,
+    success: "OK",
+  };
 }
 
 export async function signupAction(
@@ -50,14 +60,14 @@ export async function signupAction(
 
   if (!email || !password) {
     return {
-      error: "Please enter email and password.",
+      error: "Bitte E-Mail und Passwort eingeben.",
       success: null,
     };
   }
 
   if (password.length < 6) {
     return {
-      error: "Password must be at least 6 characters.",
+      error: "Das Passwort muss mindestens 6 Zeichen lang sein.",
       success: null,
     };
   }
@@ -69,19 +79,21 @@ export async function signupAction(
 
   if (error) {
     return {
-      error: error.message,
+      error: "Registrierung fehlgeschlagen. Bitte Eingaben prüfen.",
       success: null,
     };
   }
 
-  // Wenn Email-Confirmation in Supabase AUS ist, gibt es direkt eine Session
   if (data.session) {
-    redirect("/");
+    return {
+      error: null,
+      success: "OK",
+    };
   }
 
-  // Wenn Email-Confirmation AN ist
   return {
     error: null,
-    success: "Account created. Please check your email to confirm your account, then log in.",
+    success:
+      "Account erstellt. Bitte bestätige deine E-Mail und melde dich danach an.",
   };
 }

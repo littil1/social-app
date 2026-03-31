@@ -5,12 +5,49 @@ import { useCallback, useMemo, useState } from "react";
 import type { FeedPost, ReactionType } from "@/types/feed";
 import PostCard from "@/app/components/posts/PostCard";
 
+// =====================================================
+// Types
+// =====================================================
+
 type Props = {
   initialPosts: FeedPost[];
   followersCount: number;
   followingCount: number;
   username: string;
 };
+
+type StatItemProps = {
+  label: string;
+  value: number;
+  href?: string;
+};
+
+// =====================================================
+// Helper Components
+// =====================================================
+
+function StatItem({ label, value, href }: StatItemProps) {
+  const content = (
+    <div className="flex flex-col gap-1 rounded-xl px-2 py-1 transition">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="text-lg font-semibold text-black">{value}</span>
+    </div>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="rounded-xl hover:bg-gray-50">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
+}
+
+// =====================================================
+// Component
+// =====================================================
 
 export default function UserProfileContent({
   initialPosts,
@@ -93,21 +130,30 @@ export default function UserProfileContent({
 
   return (
     <>
-      <div className="flex flex-wrap gap-6 text-sm text-gray-600">
-        <span>{posts.length} Posts</span>
+      {/* =====================================================
+          Stats
+      ===================================================== */}
+      <section className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <StatItem label="Beiträge" value={posts.length} />
+          <StatItem
+            label="Follower"
+            value={followersCount}
+            href={`/u/${username}/followers`}
+          />
+          <StatItem
+            label="Gefolgt"
+            value={followingCount}
+            href={`/u/${username}/following`}
+          />
+          <StatItem label="Likes" value={totalLikes} />
+        </div>
+      </section>
 
-        <Link href={`/u/${username}/followers`} className="hover:underline">
-          {followersCount} Followers
-        </Link>
-
-        <Link href={`/u/${username}/following`} className="hover:underline">
-          {followingCount} Following
-        </Link>
-
-        <span>{totalLikes} Likes</span>
-      </div>
-
-      <div className="mt-6 space-y-4">
+      {/* =====================================================
+          Posts
+      ===================================================== */}
+      <section className="mt-6 space-y-4">
         {posts.map((post) => (
           <PostCard
             key={post.id}
@@ -120,10 +166,10 @@ export default function UserProfileContent({
 
         {posts.length === 0 && (
           <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-            No posts yet.
+            Noch keine Beiträge vorhanden.
           </div>
         )}
-      </div>
+      </section>
     </>
   );
 }

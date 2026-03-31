@@ -22,22 +22,25 @@ type PostRow = {
   content: string | null;
   created_at: string;
   user_id: string | null;
-  comments_count: number;
+  comments_count: number | null;
 };
 
 type CommentRow = {
   post_id: number;
 };
 
+type PostReactionRow = {
+  post_id: number;
+  user_id: string;
+  reaction: ReactionType;
+};
+
 type HallOfFameRow =
   Database["public"]["Tables"]["weekly_post_hall_of_fame"]["Row"];
 
-function getBadgeLabel(category: string) {
-  if (category === "likes") return "Most Liked Post Winner";
-  if (category === "relevance") return "Most Relevant Post Winner";
-  if (category === "comments") return "Most Commented Post Winner";
-  return "Hall of Fame Winner";
-}
+// =====================================================
+// Component
+// =====================================================
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const supabase = await createClient();
@@ -104,12 +107,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
         <main className="mx-auto max-w-2xl p-6">
           <div className="rounded-xl bg-white p-6 shadow">
-            <h1 className="text-2xl font-bold">Profile not found</h1>
+            <h1 className="text-2xl font-bold">Profil nicht gefunden</h1>
           </div>
         </main>
       </>
     );
   }
+
+  // =====================================================
+  // Posts laden
+  // =====================================================
 
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
@@ -123,6 +130,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const typedPosts = (postsData ?? []) as PostRow[];
   const postIds = typedPosts.map((post) => post.id);
+
+  // =====================================================
+  // Kommentare zählen
+  // =====================================================
 
   const commentCountMap = new Map<number, number>();
 
@@ -146,23 +157,88 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     }
   }
 
-  const posts: FeedPost[] = typedPosts.map((post) => ({
-    id: post.id,
-    content: post.content ?? "",
-    created_at: post.created_at,
-    comments_count: commentCountMap.get(post.id) ?? 0,
-    reactions_count: 0,
-    reaction_counts: {
+  // =====================================================
+  // Reactions laden
+  // =====================================================
+
+  const reactionCountMap = new Map<
+    number,
+    {
+      like: number;
+      funny: number;
+      wow: number;
+      fire: number;
+    }
+  >();
+
+  const viewerReactionMap = new Map<number, ReactionType | null>();
+
+  if (postIds.length > 0) {
+    const { data: reactionsData, error: reactionsError } = await supabase
+      .from("post_reactions")
+      .select("post_id, user_id, reaction")
+      .in("post_id", postIds);
+
+    if (reactionsError) {
+      throw new Error(reactionsError.message);
+    }
+
+    for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
+      const current = reactionCountMap.get(reaction.post_id) ?? {
+        like: 0,
+        funny: 0,
+        wow: 0,
+        fire: 0,
+      };
+
+      if (reaction.reaction === "like") current.like += 1;
+      if (reaction.reaction === "funny") current.funny += 1;
+      if (reaction.reaction === "wow") current.wow += 1;
+      if (reaction.reaction === "fire") current.fire += 1;
+
+      reactionCountMap.set(reaction.post_id, current);
+
+      if (user && reaction.user_id === user.id) {
+        viewerReactionMap.set(reaction.post_id, reaction.reaction);
+      }
+    }
+  }
+
+  // =====================================================
+  // Feed Posts mappen
+  // =====================================================
+
+  const posts: FeedPost[] = typedPosts.map((post) => {
+    const reactionCounts = reactionCountMap.get(post.id) ?? {
       like: 0,
       funny: 0,
       wow: 0,
       fire: 0,
-    },
-    viewer_reaction: null,
-    can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
-    author_username: profile.username,
-    author_avatar_url: profile.avatar_url ?? null,
-  }));
+    };
+
+    const reactionsCount =
+      reactionCounts.like +
+      reactionCounts.funny +
+      reactionCounts.wow +
+      reactionCounts.fire;
+
+    return {
+      id: post.id,
+      content: post.content ?? "",
+      created_at: post.created_at,
+      comments_count: commentCountMap.get(post.id) ?? post.comments_count ?? 0,
+      reactions_count: reactionsCount,
+      reaction_counts: reactionCounts,
+      viewer_reaction: viewerReactionMap.get(post.id) ?? null,
+      can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
+      author_username: profile.username,
+      author_avatar_url: profile.avatar_url ?? null,
+    };
+  });
+
+  // =====================================================
+  // Zusatzdaten
+  // =====================================================
 
   const { followersCount, followingCount } = await getFollowCounts(
     supabase,
@@ -192,10 +268,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const hallOfFameEntries = (hallOfFameData ?? []) as HallOfFameRow[];
   const hallOfFameCount = hallOfFameEntries.length;
-
-  const uniqueBadgeCategories = Array.from(
-    new Set(hallOfFameEntries.map((entry) => entry.category))
-  );
 
   const isOwnProfile = user?.id === profile.id;
   const profileBadges = Array.isArray(profile.badges)
@@ -241,20 +313,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  Joined {new Date(profile.created_at).toLocaleDateString()}
+                  Beigetreten am{" "}
+                  {new Date(profile.created_at).toLocaleDateString("de-CH")}
                 </p>
 
                 {implementedIdeaCount > 0 && (
                   <p className="mt-1 text-sm text-amber-700">
-                    {implementedIdeaCount} implemented{" "}
-                    {implementedIdeaCount === 1 ? "idea" : "ideas"}
+                    {implementedIdeaCount} umgesetzte{" "}
+                    {implementedIdeaCount === 1 ? "Idee" : "Ideen"}
                   </p>
                 )}
 
                 {hallOfFameCount > 0 && (
                   <p className="mt-1 text-sm text-indigo-700">
-                    {hallOfFameCount} Hall of Fame{" "}
-                    {hallOfFameCount === 1 ? "entry" : "entries"}
+                    {hallOfFameCount} Hall-of-Fame-
+                    {hallOfFameCount === 1 ? "Eintrag" : "Einträge"}
                   </p>
                 )}
               </div>
@@ -266,7 +339,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   href="/settings/profile"
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700"
                 >
-                  Edit profile
+                  Profil bearbeiten
                 </Link>
               ) : user ? (
                 <FollowButton
