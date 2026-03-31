@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
 // =====================================================
-// Component
+// Inner Component (mit useSearchParams)
 // =====================================================
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { openLogin } = useAuthModal();
@@ -21,4 +21,16 @@ export default function LoginPage() {
   }, [openLogin, router, searchParams]);
 
   return null;
+}
+
+// =====================================================
+// Page Wrapper (mit Suspense)
+// =====================================================
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
 }
