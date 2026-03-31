@@ -55,17 +55,25 @@ export default function LoginModal() {
   }, [isOpen, closeLogin]);
 
   useEffect(() => {
-    if (loginState.success === "OK") {
-      closeLogin();
-      router.refresh();
-    }
+    if (loginState.success !== "OK") return;
+
+    closeLogin();
+    router.refresh();
+
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("auth-login-success"));
+    }, 0);
   }, [loginState.success, closeLogin, router]);
 
   useEffect(() => {
-    if (signupState.success === "OK") {
-      closeLogin();
-      router.refresh();
-    }
+    if (signupState.success !== "OK") return;
+
+    closeLogin();
+    router.refresh();
+
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("auth-login-success"));
+    }, 0);
   }, [signupState.success, closeLogin, router]);
 
   useEffect(() => {

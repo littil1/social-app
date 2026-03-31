@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -61,6 +62,23 @@ export default function AuthModalProvider({
   const closeLogin = useCallback(() => {
     setIsOpen(false);
   }, []);
+
+  // =====================================================
+  // Global Event Listener (wichtig für deine App!)
+  // =====================================================
+
+  useEffect(() => {
+    function handleOpenLoginModal(event: Event) {
+      const customEvent = event as CustomEvent<{ redirectPath?: string }>;
+      openLogin(customEvent.detail?.redirectPath);
+    }
+
+    window.addEventListener("open-login-modal", handleOpenLoginModal);
+
+    return () => {
+      window.removeEventListener("open-login-modal", handleOpenLoginModal);
+    };
+  }, [openLogin]);
 
   const value = useMemo<AuthModalContextValue>(
     () => ({

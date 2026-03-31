@@ -12,6 +12,7 @@ type CommentsSectionProps = {
   postId: number;
   onCommentCreated: () => void;
   onCommentsLoaded?: (count: number) => void;
+  isLoggedIn?: boolean;
 };
 
 type CommentNode = FeedComment & {
@@ -21,11 +22,13 @@ type CommentNode = FeedComment & {
 type CommentItemProps = {
   node: CommentNode;
   depth: number;
+  isLoggedIn: boolean;
   deletingCommentId: number | null;
   reactingCommentId: number | null;
   replyParentId: number | null;
   replyContent: string;
   replySubmitting: boolean;
+  onRequireLogin: () => void;
   onReplyOpen: (commentId: number) => void;
   onReplyCancel: () => void;
   onReplyContentChange: (value: string) => void;
@@ -59,6 +62,7 @@ const REACTIONS: Array<{
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
+
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
     month: "2-digit",
@@ -177,11 +181,13 @@ function applyReactionUpdate(
 function CommentItem({
   node,
   depth,
+  isLoggedIn,
   deletingCommentId,
   reactingCommentId,
   replyParentId,
   replyContent,
   replySubmitting,
+  onRequireLogin,
   onReplyOpen,
   onReplyCancel,
   onReplyContentChange,
@@ -189,22 +195,22 @@ function CommentItem({
   onDeleteComment,
   onReactionClick,
 }: CommentItemProps) {
-  const maxIndentLevel = 6;
+  const maxIndentLevel = 4;
   const effectiveDepth = Math.min(depth, maxIndentLevel);
   const hallOfFameCategories = node.author_hall_of_fame_categories ?? [];
 
   return (
     <div
-      className={effectiveDepth > 0 ? "border-l border-gray-200 pl-4" : ""}
+      className={effectiveDepth > 0 ? "border-l border-gray-200 pl-3 sm:pl-4" : ""}
       style={{
-        marginLeft: effectiveDepth > 0 ? `${effectiveDepth * 12}px` : undefined,
+        marginLeft: effectiveDepth > 0 ? `${effectiveDepth * 10}px` : undefined,
       }}
     >
-      <div className="rounded-lg bg-white p-3">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex items-start gap-3">
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
                 {node.author_avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -228,7 +234,7 @@ function CommentItem({
                     </Link>
                   ) : (
                     <p className="truncate text-sm font-semibold text-gray-700">
-                      Unknown user
+                      Unbekannter Nutzer
                     </p>
                   )}
 
@@ -258,7 +264,7 @@ function CommentItem({
               </div>
             )}
 
-            <p className="whitespace-pre-wrap break-words text-gray-900">
+            <p className="whitespace-pre-wrap break-words text-sm text-gray-900 sm:text-[15px]">
               {node.content}
             </p>
 
@@ -270,7 +276,14 @@ function CommentItem({
                   <button
                     key={reaction.value}
                     type="button"
-                    onClick={() => onReactionClick(node.id, reaction.value)}
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        onRequireLogin();
+                        return;
+                      }
+
+                      void onReactionClick(node.id, reaction.value);
+                    }}
                     disabled={reactingCommentId === node.id}
                     className={`rounded-full px-3 py-1.5 text-sm transition disabled:opacity-50 ${
                       isActive
@@ -288,20 +301,27 @@ function CommentItem({
 
               <button
                 type="button"
-                onClick={() => onReplyOpen(node.id)}
+                onClick={() => {
+                  if (!isLoggedIn) {
+                    onRequireLogin();
+                    return;
+                  }
+
+                  onReplyOpen(node.id);
+                }}
                 className="rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
               >
-                Reply
+                Antworten
               </button>
 
               {node.can_delete && (
                 <button
                   type="button"
-                  onClick={() => onDeleteComment(node.id)}
+                  onClick={() => void onDeleteComment(node.id)}
                   disabled={deletingCommentId === node.id}
                   className="rounded-full border border-red-300 bg-white px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-50"
                 >
-                  {deletingCommentId === node.id ? "Deleting..." : "Delete"}
+                  {deletingCommentId === node.id ? "Lösche..." : "Löschen"}
                 </button>
               )}
             </div>
@@ -314,39 +334,41 @@ function CommentItem({
                 }}
                 className="mt-3 flex flex-col gap-2"
               >
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
                   <input
                     type="text"
                     value={replyContent}
                     onChange={(e) => onReplyContentChange(e.target.value)}
-                    placeholder={`Reply to @${
+                    placeholder={`Antwort an @${
                       node.author_username ?? "user"
-                    }...`}
+                    } ...`}
                     maxLength={200}
                     disabled={replySubmitting}
-                    className="flex-1 rounded-lg border px-4 py-2 outline-none"
+                    className="flex-1 rounded-xl border border-gray-300 px-4 py-2 outline-none"
                   />
 
-                  <button
-                    type="submit"
-                    disabled={replySubmitting || !replyContent.trim()}
-                    className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
-                  >
-                    {replySubmitting ? "Sending..." : "Reply"}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={replySubmitting || !replyContent.trim()}
+                      className="rounded-xl bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+                    >
+                      {replySubmitting ? "Sende..." : "Antworten"}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={onReplyCancel}
-                    disabled={replySubmitting}
-                    className="rounded-lg border px-4 py-2 text-gray-700 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
+                    <button
+                      type="button"
+                      onClick={onReplyCancel}
+                      disabled={replySubmitting}
+                      className="rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-700 disabled:opacity-50"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
                 </div>
 
                 <span className="text-right text-xs text-gray-400">
-                  {200 - replyContent.length} characters remaining
+                  {200 - replyContent.length} Zeichen übrig
                 </span>
               </form>
             )}
@@ -361,11 +383,13 @@ function CommentItem({
               key={child.id}
               node={child}
               depth={depth + 1}
+              isLoggedIn={isLoggedIn}
               deletingCommentId={deletingCommentId}
               reactingCommentId={reactingCommentId}
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
+              onRequireLogin={onRequireLogin}
               onReplyOpen={onReplyOpen}
               onReplyCancel={onReplyCancel}
               onReplyContentChange={onReplyContentChange}
@@ -388,6 +412,7 @@ export default function CommentsSection({
   postId,
   onCommentCreated,
   onCommentsLoaded,
+  isLoggedIn = false,
 }: CommentsSectionProps) {
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -403,13 +428,20 @@ export default function CommentsSection({
   const [replyContent, setReplyContent] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
 
+  const pendingCommentSubmitAfterLoginRef = useRef(false);
+  const pendingReplyAfterLoginRef = useRef<number | null>(null);
+  const pendingReactionAfterLoginRef = useRef<{
+    commentId: number;
+    reaction: ReactionType;
+  } | null>(null);
+
   const commentTree = useMemo(() => buildCommentTree(comments), [comments]);
 
   // =====================================================
   // Effects
   // =====================================================
 
-  useEffect(() => {
+    useEffect(() => {
     let active = true;
 
     async function loadComments() {
@@ -450,14 +482,80 @@ export default function CommentsSection({
     if (loading) return;
 
     onCommentsLoaded?.(comments.length);
-  }, [comments.length, loading, onCommentsLoaded]);
+    // absichtlich ohne onCommentsLoaded, damit kein Render-Loop entsteht
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comments.length, loading]);
 
-  // =====================================================
+  useEffect(() => {
+    function handleAuthLoginSuccess() {
+      if (pendingCommentSubmitAfterLoginRef.current) {
+        pendingCommentSubmitAfterLoginRef.current = false;
+
+        window.setTimeout(() => {
+          const form = document.getElementById(
+            `post-comment-form-${postId}`
+          ) as HTMLFormElement | null;
+
+          form?.requestSubmit();
+        }, 0);
+
+        return;
+      }
+
+      if (pendingReplyAfterLoginRef.current !== null) {
+        const parentId = pendingReplyAfterLoginRef.current;
+        pendingReplyAfterLoginRef.current = null;
+
+        window.setTimeout(() => {
+          void handleReplySubmit(parentId, true);
+        }, 0);
+
+        return;
+      }
+
+      if (pendingReactionAfterLoginRef.current) {
+        const pendingReaction = pendingReactionAfterLoginRef.current;
+        pendingReactionAfterLoginRef.current = null;
+
+        window.setTimeout(() => {
+          void handleReactionClick(
+            pendingReaction.commentId,
+            pendingReaction.reaction,
+            true
+          );
+        }, 0);
+      }
+    }
+
+    window.addEventListener("auth-login-success", handleAuthLoginSuccess);
+
+    return () => {
+      window.removeEventListener("auth-login-success", handleAuthLoginSuccess);
+    };
+  }, [postId, replyContent, reactingCommentId, submitting, replySubmitting]);
+
+    // =====================================================
   // Actions
   // =====================================================
 
+  function requireLogin() {
+    window.dispatchEvent(
+      new CustomEvent("open-login-modal", {
+        detail: {
+          redirectPath: window.location.pathname,
+        },
+      })
+    );
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!isLoggedIn) {
+      pendingCommentSubmitAfterLoginRef.current = true;
+      requireLogin();
+      return;
+    }
 
     const trimmed = content.trim();
     if (!trimmed || submitting) return;
@@ -479,7 +577,7 @@ export default function CommentsSection({
 
       const newComment: FeedComment = await res.json();
 
-      setComments((prev) => [...prev, newComment]);
+      setComments((prev) => [newComment, ...prev]);
       setContent("");
       onCommentCreated();
     } catch (error) {
@@ -490,7 +588,16 @@ export default function CommentsSection({
     }
   }
 
-  async function handleReplySubmit(parentId: number) {
+  async function handleReplySubmit(
+    parentId: number,
+    skipLoginCheck = false
+  ) {
+    if (!skipLoginCheck && !isLoggedIn) {
+      pendingReplyAfterLoginRef.current = parentId;
+      requireLogin();
+      return;
+    }
+
     const trimmed = replyContent.trim();
     if (!trimmed || replySubmitting) return;
 
@@ -564,8 +671,18 @@ export default function CommentsSection({
 
   async function handleReactionClick(
     commentId: number,
-    reaction: ReactionType
+    reaction: ReactionType,
+    skipLoginCheck = false
   ) {
+    if (!skipLoginCheck && !isLoggedIn) {
+      pendingReactionAfterLoginRef.current = {
+        commentId,
+        reaction,
+      };
+      requireLogin();
+      return;
+    }
+
     if (reactingCommentId !== null) return;
 
     const existingComment = comments.find((comment) => comment.id === commentId);
@@ -593,7 +710,7 @@ export default function CommentsSection({
       });
 
       if (!res.ok) {
-        throw new Error("Kommentar-Reaction konnte nicht gespeichert werden.");
+        throw new Error("Kommentar-Reaktion konnte nicht gespeichert werden.");
       }
 
       const data = (await res.json()) as {
@@ -624,7 +741,7 @@ export default function CommentsSection({
         )
       );
 
-      alert("Kommentar-Reaction konnte nicht gespeichert werden.");
+      alert("Kommentar-Reaktion konnte nicht gespeichert werden.");
     } finally {
       setReactingCommentId(null);
     }
@@ -645,25 +762,63 @@ export default function CommentsSection({
   // =====================================================
 
   return (
-    <section className="rounded-xl border bg-gray-50 p-4">
-      <h3 className="mb-4 text-lg font-medium">Comments ({comments.length})</h3>
+    <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="text-base font-medium text-gray-900">
+          Kommentare ({comments.length})
+        </h3>
+      </div>
+
+      <form
+          id={`post-comment-form-${postId}`}
+          onSubmit={handleSubmit}
+          className="mb-4 flex flex-col gap-2"
+        >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+          <input
+            type="text"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Kommentar schreiben ..."
+            maxLength={200}
+            disabled={submitting}
+            className="flex-1 rounded-xl border border-gray-300 px-4 py-2 outline-none"
+          />
+
+          <button
+            type="submit"
+            disabled={submitting || !content.trim()}
+            className="rounded-xl bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+          >
+            {submitting ? "Sende..." : "Kommentieren"}
+          </button>
+        </div>
+
+        <span className="text-right text-xs text-gray-400">
+          {200 - content.length} Zeichen übrig
+        </span>
+      </form>
 
       {loading ? (
-        <p className="mb-4 text-gray-500">Kommentare werden geladen ...</p>
+        <p className="mb-4 text-sm text-gray-500">Kommentare werden geladen ...</p>
       ) : comments.length === 0 ? (
-        <p className="mb-4 text-gray-500">No comments yet.</p>
+        <p className="mb-4 text-sm text-gray-500">
+          Sei der Erste, der kommentiert.
+        </p>
       ) : (
-        <div className="mb-4 space-y-3">
+        <div className="space-y-3">
           {commentTree.map((comment) => (
             <CommentItem
               key={comment.id}
               node={comment}
               depth={0}
+              isLoggedIn={isLoggedIn}
               deletingCommentId={deletingCommentId}
               reactingCommentId={reactingCommentId}
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
+              onRequireLogin={requireLogin}
               onReplyOpen={handleReplyOpen}
               onReplyCancel={handleReplyCancel}
               onReplyContentChange={setReplyContent}
@@ -674,31 +829,6 @@ export default function CommentsSection({
           ))}
         </div>
       )}
-
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Write a comment..."
-            maxLength={200}
-            disabled={submitting}
-            className="flex-1 rounded-lg border px-4 py-2 outline-none"
-          />
-          <button
-            type="submit"
-            disabled={submitting || !content.trim()}
-            className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
-          >
-            {submitting ? "Sending..." : "Comment"}
-          </button>
-        </div>
-
-        <span className="text-right text-xs text-gray-400">
-          {200 - content.length} characters remaining
-        </span>
-      </form>
     </section>
   );
 }

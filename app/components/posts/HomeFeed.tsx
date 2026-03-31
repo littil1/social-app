@@ -228,6 +228,20 @@ export default function HomeFeed({
     );
   }
 
+    function handleCommentsCountChange(postId: number, count: number) {
+    setPosts((prev) =>
+      prev.map((post) => {
+        if (post.id !== postId) return post;
+        if (post.comments_count === count) return post;
+
+        return {
+          ...post,
+          comments_count: count,
+        };
+      })
+    );
+  }
+
   function handlePostDeleted(postId: number) {
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   }
@@ -237,7 +251,7 @@ export default function HomeFeed({
   // =====================================================
 
   return (
-    <div className="space-y-4 pb-40">
+    <div className="space-y-4 pb-32 sm:pb-36">
       <div className="space-y-4">
         {topPosts.map((post) => (
           <PostCard
@@ -247,7 +261,9 @@ export default function HomeFeed({
             detailHref={`/posts/${post.id}`}
             onReactionUpdated={handleReactionUpdated}
             onCommentCreated={handleCommentCreated}
+            onCommentsCountChange={handleCommentsCountChange}
             onPostDeleted={handlePostDeleted}
+            isLoggedIn={isLoggedIn}
           />
         ))}
 
@@ -258,7 +274,9 @@ export default function HomeFeed({
               detailHref={`/posts/${post.id}`}
               onReactionUpdated={handleReactionUpdated}
               onCommentCreated={handleCommentCreated}
+              onCommentsCountChange={handleCommentsCountChange}
               onPostDeleted={handlePostDeleted}
+              isLoggedIn={isLoggedIn}
             />
 
             {index === 99 && (
@@ -274,7 +292,7 @@ export default function HomeFeed({
 
         {posts.length === 0 && (
           <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-            No posts yet.
+            Noch keine Posts vorhanden.
           </div>
         )}
       </div>
@@ -293,15 +311,16 @@ export default function HomeFeed({
         </p>
       )}
 
-      {isLoggedIn && (
-        <div className="pointer-events-none fixed bottom-4 left-1/2 z-30 w-full max-w-[860px] -translate-x-1/2 px-4">
-          <div className="pointer-events-auto">
-            <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur">
-              <CreatePostForm onPostCreated={handlePostCreated} />
-            </div>
+      <div className="pointer-events-none fixed inset-x-0 bottom-3 z-30 px-3 sm:bottom-4">
+        <div className="mx-auto w-full max-w-2xl pointer-events-auto">
+          <div className="rounded-2xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur">
+            <CreatePostForm
+              onPostCreated={handlePostCreated}
+              isLoggedIn={isLoggedIn}
+            />
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

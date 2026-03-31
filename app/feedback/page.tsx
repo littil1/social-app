@@ -1,4 +1,3 @@
-import Link from "next/link";
 import NavBar from "@/app/components/layout/navbar";
 import FeedbackCard from "@/app/components/feedback/FeedbackCard";
 import { addFeatureRequest } from "@/app/actions/feedback";
@@ -54,68 +53,98 @@ export default async function FeedbackPage() {
       />
 
       <main className="mx-auto max-w-6xl p-6">
+        {/* ===================================================== */}
+        {/* Header */}
+        {/* ===================================================== */}
+
         <div className="mb-6">
           <h1 className="mb-2 text-3xl font-bold">Verbesserungswünsche</h1>
           <p className="text-gray-600">
-            Share ideas, vote on what matters most, and discuss what should be
-            built next.
+            Teile konkrete Ideen, stimme für wichtige Verbesserungen ab und
+            diskutiere mit, was als Nächstes gebaut werden soll.
           </p>
         </div>
 
-        {user ? (
-          <div className="mb-8 rounded-xl bg-white p-4 shadow">
+        {/* ===================================================== */}
+        {/* Idea form */}
+        {/* ===================================================== */}
+
+        <div className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          {user ? (
             <form action={addFeatureRequest} className="space-y-3">
               <input
                 type="text"
                 name="title"
-                placeholder="Short title for your idea..."
+                placeholder="Kurzer Titel deiner Idee ..."
                 required
                 minLength={3}
                 maxLength={120}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
+                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 outline-none transition focus:border-gray-400"
               />
 
               <textarea
                 name="description"
-                placeholder="Describe your idea..."
+                placeholder="Beschreibe deine Idee konkret ..."
                 required
                 minLength={3}
                 maxLength={1000}
                 rows={4}
-                className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
+                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 outline-none transition focus:border-gray-400"
               />
 
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-gray-500">
-                  Posting as @{viewerProfile?.username ?? "user"}
+                  Du postest als @{viewerProfile?.username ?? "user"}
                 </p>
 
                 <button
                   type="submit"
-                  className="rounded-lg bg-black px-4 py-2 text-white"
+                  className="rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
                 >
-                  Submit idea
+                  Idee einreichen
                 </button>
               </div>
             </form>
-          </div>
-        ) : (
-          <div className="mb-8 rounded-xl bg-white p-4 shadow">
-            <p className="mb-3 text-gray-700">
-              Log in to submit ideas, like requests, and comment on them.
-            </p>
-            <Link
-              href="/login"
-              className="inline-block rounded-lg bg-black px-4 py-2 text-white"
-            >
-              Go to Login / Signup
-            </Link>
-          </div>
-        )}
+          ) : (
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Kurzer Titel deiner Idee ..."
+                disabled
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-400 outline-none"
+              />
+
+              <textarea
+                placeholder="Beschreibe deine Idee konkret ..."
+                rows={4}
+                disabled
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-gray-400 outline-none"
+              />
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-500">
+                  Zum Einreichen einer Idee öffnet sich beim Absenden der Login.
+                </p>
+
+                <a
+                  href="/login"
+                  className="inline-flex items-center justify-center rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+                >
+                  Idee einreichen
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===================================================== */}
+        {/* Feedback columns */}
+        {/* ===================================================== */}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <section>
-            <h2 className="mb-4 text-2xl font-semibold">Open</h2>
+            <h2 className="mb-4 text-2xl font-semibold">Offen</h2>
+
             <div className="space-y-4">
               {openIdeas.map((item) => (
                 <FeedbackCard
@@ -127,15 +156,16 @@ export default async function FeedbackPage() {
               ))}
 
               {openIdeas.length === 0 && (
-                <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-                  No open ideas yet.
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+                  Noch keine offenen Ideen vorhanden.
                 </div>
               )}
             </div>
           </section>
 
           <section>
-            <h2 className="mb-4 text-2xl font-semibold">Implemented</h2>
+            <h2 className="mb-4 text-2xl font-semibold">Umgesetzt</h2>
+
             <div className="space-y-4">
               {implementedIdeas.map((item) => (
                 <FeedbackCard
@@ -147,8 +177,8 @@ export default async function FeedbackPage() {
               ))}
 
               {implementedIdeas.length === 0 && (
-                <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
-                  No implemented ideas yet.
+                <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
+                  Noch keine umgesetzten Ideen vorhanden.
                 </div>
               )}
             </div>

@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { memo, useEffect, useRef, useState } from "react";
 import type { FeedPost, ReactionType } from "@/types/feed";
 import CommentsSection from "@/app/components/posts/CommentsSection";
+
+// =====================================================
+// Types
+// =====================================================
 
 type PostCardProps = {
   post: FeedPost;
@@ -18,6 +21,7 @@ type PostCardProps = {
   showAuthor?: boolean;
   dailyRank?: 1 | 2 | 3;
   detailHref?: string;
+  isLoggedIn?: boolean;
 };
 
 const REACTIONS: Array<{
@@ -38,6 +42,7 @@ const REACTIONS: Array<{
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
+
   return new Intl.DateTimeFormat("de-CH", {
     day: "2-digit",
     month: "2-digit",
@@ -54,7 +59,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
         "border border-amber-300/80 bg-gradient-to-br from-amber-50 via-white to-white shadow-[0_10px_30px_rgba(245,158,11,0.10)]",
       badgeClass:
         "border border-amber-200 bg-amber-100/80 text-amber-800",
-      badgeText: "🏆 #1 Today",
+      badgeText: "🏆 #1 heute",
       accentClass: "bg-amber-400",
     };
   }
@@ -65,7 +70,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
         "border border-slate-300 bg-gradient-to-br from-slate-50 via-white to-white shadow-[0_10px_24px_rgba(100,116,139,0.08)]",
       badgeClass:
         "border border-slate-200 bg-slate-100 text-slate-700",
-      badgeText: "✨ #2 Today",
+      badgeText: "✨ #2 heute",
       accentClass: "bg-slate-400",
     };
   }
@@ -76,7 +81,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
         "border border-orange-300/80 bg-gradient-to-br from-orange-50 via-white to-white shadow-[0_10px_24px_rgba(249,115,22,0.08)]",
       badgeClass:
         "border border-orange-200 bg-orange-100/80 text-orange-800",
-      badgeText: "🔥 #3 Today",
+      badgeText: "🔥 #3 heute",
       accentClass: "bg-orange-400",
     };
   }
@@ -102,7 +107,9 @@ function PostCardComponent({
   showAuthor = false,
   dailyRank,
   detailHref,
+  isLoggedIn = false,
 }: PostCardProps) {
+
   // =====================================================
   // State
   // =====================================================
@@ -114,7 +121,8 @@ function PostCardComponent({
     post.comments_count
   );
 
-  const router = useRouter();
+  const pendingReactionAfterLoginRef = useRef<ReactionType | null>(null);
+
   const rankStyles = getRankStyles(dailyRank);
 
   const reactionCounts = {
@@ -132,11 +140,49 @@ function PostCardComponent({
     setLocalCommentsCount(post.comments_count);
   }, [post.comments_count]);
 
-  // =====================================================
+  useEffect(() => {
+    function handleAuthLoginSuccess() {
+      const pendingReaction = pendingReactionAfterLoginRef.current;
+      if (!pendingReaction) return;
+
+      pendingReactionAfterLoginRef.current = null;
+
+      window.setTimeout(() => {
+        void handleReactionClick(pendingReaction, true);
+      }, 0);
+    }
+
+    window.addEventListener("auth-login-success", handleAuthLoginSuccess);
+
+    return () => {
+      window.removeEventListener("auth-login-success", handleAuthLoginSuccess);
+    };
+  }, [post.id, post.viewer_reaction, reactionLoading]);
+
+    // =====================================================
   // Actions
   // =====================================================
 
-  async function handleReactionClick(reaction: ReactionType) {
+  function requireLogin() {
+    window.dispatchEvent(
+      new CustomEvent("open-login-modal", {
+        detail: {
+          redirectPath: window.location.pathname,
+        },
+      })
+    );
+  }
+
+  async function handleReactionClick(
+    reaction: ReactionType,
+    skipLoginCheck = false
+  ) {
+    if (!skipLoginCheck && !isLoggedIn) {
+      pendingReactionAfterLoginRef.current = reaction;
+      requireLogin();
+      return;
+    }
+
     if (reactionLoading) return;
 
     const previousReaction = post.viewer_reaction;
@@ -155,7 +201,7 @@ function PostCardComponent({
       });
 
       if (!res.ok) {
-        throw new Error("Reaction konnte nicht gespeichert werden.");
+        throw new Error("Reaktion konnte nicht gespeichert werden.");
       }
 
       const data = (await res.json()) as {
@@ -167,7 +213,7 @@ function PostCardComponent({
     } catch (error) {
       console.error(error);
       onReactionUpdated(post.id, previousReaction);
-      alert("Reaction konnte nicht gespeichert werden.");
+      alert("Reaktion konnte nicht gespeichert werden.");
     } finally {
       setReactionLoading(false);
     }
@@ -192,7 +238,6 @@ function PostCardComponent({
       }
 
       onPostDeleted(post.id);
-      router.refresh();
     } catch (error) {
       console.error(error);
       alert("Post konnte nicht gelöscht werden.");
@@ -216,7 +261,7 @@ function PostCardComponent({
 
   return (
     <article
-      className={`relative overflow-hidden rounded-2xl p-6 ${rankStyles.articleClass}`}
+      className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 ${rankStyles.articleClass}`}
     >
       {dailyRank && (
         <div
@@ -225,11 +270,11 @@ function PostCardComponent({
         />
       )}
 
-      <div className="mb-5 flex items-start justify-between gap-3">
+      <div className="mb-4 flex items-start justify-between gap-3 sm:mb-5">
         <div className="min-w-0">
           {showAuthor && post.author_username ? (
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
                 {post.author_avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -249,6 +294,7 @@ function PostCardComponent({
                 >
                   @{post.author_username}
                 </Link>
+
                 <p className="mt-1 text-xs text-gray-400">
                   {formatDate(post.created_at)}
                 </p>
@@ -275,24 +321,24 @@ function PostCardComponent({
               disabled={deleteLoading}
               className="rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
             >
-              {deleteLoading ? "Deleting..." : "Delete"}
+              {deleteLoading ? "Lösche..." : "Löschen"}
             </button>
           )}
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-5 sm:mb-6">
         {detailHref ? (
           <Link
             href={detailHref}
             className="block rounded-xl transition hover:opacity-90"
           >
-            <p className="whitespace-pre-wrap break-words text-[17px] leading-8 text-gray-900">
+            <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[17px] sm:leading-8">
               {post.content}
             </p>
           </Link>
         ) : (
-          <p className="whitespace-pre-wrap break-words text-[17px] leading-8 text-gray-900">
+          <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[17px] sm:leading-8">
             {post.content}
           </p>
         )}
@@ -307,7 +353,7 @@ function PostCardComponent({
               <button
                 key={reaction.value}
                 type="button"
-                onClick={() => handleReactionClick(reaction.value)}
+                onClick={() => void handleReactionClick(reaction.value)}
                 disabled={reactionLoading}
                 className={`rounded-full px-3 py-1.5 transition disabled:opacity-50 ${
                   isActive
@@ -330,7 +376,7 @@ function PostCardComponent({
           >
             <span className="mr-1">💬</span>
             {localCommentsCount}{" "}
-            {showComments ? "Hide comments" : "Show comments"}
+            {showComments ? "Kommentare ausblenden" : "Kommentare anzeigen"}
           </button>
         </div>
       </div>
@@ -340,6 +386,7 @@ function PostCardComponent({
           postId={post.id}
           onCommentCreated={handleCommentCreatedLocal}
           onCommentsLoaded={handleCommentsLoaded}
+          isLoggedIn={isLoggedIn}
         />
       )}
     </article>
