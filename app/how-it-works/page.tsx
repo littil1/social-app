@@ -6,208 +6,294 @@ import Link from "next/link";
 
 export default function HowItWorksPage() {
   return (
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-10 px-6 py-10">
+    <main className="relative overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.95),rgba(248,250,252,1)_38%,rgba(241,245,249,1)_100%)]">
       {/* =====================================================
-          Hero
+          Background Decor
       ===================================================== */}
-      <section className="rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4">
-          <span className="text-sm font-medium text-gray-500">
-            So funktioniert APP
-          </span>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[-120px] h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-black/5 blur-3xl" />
+        <div className="absolute right-[-80px] top-[220px] h-[260px] w-[260px] rounded-full bg-amber-200/30 blur-3xl" />
+        <div className="absolute left-[-100px] top-[520px] h-[260px] w-[260px] rounded-full bg-slate-300/20 blur-3xl" />
+      </div>
 
-          <div className="flex flex-col gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-black sm:text-4xl">
-              Entdecke Orte, die dich wirklich weiterbringen.
-            </h1>
-
-            <p className="max-w-2xl text-base leading-7 text-gray-700 sm:text-lg">
-              APP ist keine klassische Social App. Hier geht es nicht um
-              möglichst viele Posts, sondern um gute. Menschen teilen Orte, die
-              sie wirklich empfehlen können.
-            </p>
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-6 sm:px-6 sm:py-10 lg:gap-10">
+        {/* =====================================================
+            Hero
+        ===================================================== */}
+        <section className="relative overflow-hidden rounded-[32px] border border-white/60 bg-gradient-to-br from-black via-neutral-900 to-neutral-800 px-6 py-8 text-white shadow-[0_25px_80px_rgba(0,0,0,0.22)] sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_32%)]" />
+            <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute right-0 top-0 h-48 w-48 rounded-full bg-amber-300/10 blur-3xl" />
           </div>
 
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Link
-              href="/"
-              className="rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-            >
-              Zum Feed
-            </Link>
+          <div className="relative grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
+            <div className="flex flex-col gap-5">
+              <span className="inline-flex w-fit rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-white/80 backdrop-blur">
+                So funktioniert APP
+              </span>
 
-            <Link
-              href="/create"
-              className="rounded-full border px-5 py-2.5 text-sm font-medium text-black transition hover:bg-gray-50"
-            >
-              Beitrag erstellen
-            </Link>
+              <div className="flex flex-col gap-4">
+                <h1 className="max-w-4xl text-4xl font-semibold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+                  Entdecke,
+                  <br />
+                  was dich wirklich
+                  <span className="text-white/70"> weiterbringt.</span>
+                </h1>
+
+                <p className="max-w-2xl text-base leading-7 text-white/75 sm:text-lg sm:leading-8">
+                  a perfect place (APP) ist nicht irgendeine weitere social-media App.
+                  Es ist die einzige, die du jemals wieder brauchst. Hier geht es nicht um
+                  möglichst viele Posts, sondern um wirklich gute.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Link
+                  href="/"
+                  className="inline-flex items-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:opacity-95"
+                >
+                  Zum Feed
+                </Link>
+
+                <Link
+                  href="/create"
+                  className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
+                >
+                  Beitrag erstellen
+                </Link>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <HeroStat
+                value="Keine Ablenkung"
+                text="Kein unnötiger Content, keine Aufmerksamkeitsspiralen."
+              />
+              <HeroStat
+                value="Qualität zuerst"
+                text="Inhalte, die dir konkret helfen – nicht nur unterhalten."
+              />
+              <HeroStat
+                value="Anonym bis zur Spitze"
+                text="Deine Ideen zählen. Dein Name erst, wenn sie wirklich überzeugen."
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* =====================================================
-          Was du hier findest
-      ===================================================== */}
-      <section className="grid gap-4 rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold text-black">
+        {/* =====================================================
             Was du hier findest
-          </h2>
+        ===================================================== */}
+        <section className="rounded-[28px] border border-black/5 bg-white/80 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
+          <div className="mb-6 flex flex-col gap-2">
+            <span className="text-sm font-medium uppercase tracking-[0.16em] text-gray-400">
+              Der Unterschied
+            </span>
 
-          <p className="text-base leading-7 text-gray-700">
-            Menschen teilen Orte, die sie wirklich empfehlen können.
-          </p>
-        </div>
+            <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+              Warum du hier schneller weiterkommst.
+            </h2>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <InfoCard
-            title="Keine Werbung"
-            text="Im Fokus stehen echte Erfahrungen statt beliebiger Inhalte."
-          />
-          <InfoCard
-            title="Keine belanglosen Posts"
-            text="Jeder Beitrag soll inspirieren oder anderen konkret helfen."
-          />
-          <InfoCard
-            title="Echter Mehrwert"
-            text="Die besten Orte werden sichtbar, weil Menschen sie gut finden."
-          />
-        </div>
-      </section>
-
-      {/* =====================================================
-          Guter Post
-      ===================================================== */}
-      <section className="grid gap-6 rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold text-black">
-            Was einen guten Beitrag ausmacht
-          </h2>
-
-          <p className="text-base leading-7 text-gray-700">
-            Qualität ist wichtiger als Quantität. Ein guter Beitrag ist konkret,
-            ehrlich und hilfreich für andere.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border bg-gray-50 p-5">
-            <h3 className="text-lg font-semibold text-black">Gut ist zum Beispiel:</h3>
-
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-gray-700">
-              <li>• Wann lohnt sich der Ort besonders?</li>
-              <li>• Für wen ist er geeignet?</li>
-              <li>• Was macht ihn besonders?</li>
-              <li>• Gibt es Nachteile, die man wissen sollte?</li>
-            </ul>
-          </div>
-
-          <div className="rounded-2xl border bg-gray-50 p-5">
-            <h3 className="text-lg font-semibold text-black">
-              Weniger hilfreich ist:
-            </h3>
-
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-gray-700">
-              <li>• Zu allgemeine Aussagen ohne Kontext</li>
-              <li>• Reine Werbung</li>
-              <li>• Belanglose Einzeiler</li>
-              <li>• Beiträge ohne echte eigene Erfahrung</li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          Ranking
-      ===================================================== */}
-      <section className="grid gap-4 rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold text-black">
-            Wie das Ranking funktioniert
-          </h2>
-
-          <p className="text-base leading-7 text-gray-700">
-            Gute Beiträge sollen sichtbar werden. Deshalb zählen nicht nur
-            Reaktionen, sondern auch Relevanz und Austausch.
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border p-5">
-            <h3 className="text-lg font-semibold text-black">Leaderboard</h3>
-            <p className="mt-3 text-sm leading-6 text-gray-700">
-              Im Leaderboard steigen aktuell die stärksten Beiträge. Reaktionen,
-              Kommentare und Relevanz helfen dabei zu entscheiden, was gerade
-              besonders wertvoll ist.
+            <p className="max-w-2xl text-base leading-7 text-gray-700">
+              Während andere Apps darauf optimiert sind, dich möglichst lange am Bildschirm zu halten,
+              ist „a perfect place“ darauf optimiert, dir im echten Leben weiterzuhelfen.
             </p>
           </div>
 
-          <div className="rounded-2xl border p-5">
-            <h3 className="text-lg font-semibold text-black">Hall of Fame</h3>
-            <p className="mt-3 text-sm leading-6 text-gray-700">
-              In der Hall of Fame landen dauerhaft besonders gute Beiträge. Dort
-              bleiben Inhalte sichtbar, die Menschen langfristig wirklich
-              weiterbringen.
+          <div className="grid gap-4 md:grid-cols-3">
+            <InfoCard
+              title="Kein endloses Scrollen"
+              text="Keine Trends, kein Clickbait, keine Zeitverschwendung. Nur Inhalte, die dir wirklich etwas bringen."
+            />
+            <InfoCard
+              title="Gedanken, die bleiben"
+              text="Gute Ideen verlieren nicht nach 24 Stunden ihren Wert. Hier findest du Inhalte, die langfristig relevant sind. Setz ein Zeichen statt nur einen Like."
+            />
+            <InfoCard
+              title="Qualität entscheidet"
+              text="Durch unser Community-Ranking steigen nur Beiträge auf, die konkret, ehrlich und hilfreich sind. Der Rest verschwindet."
+            />
+          </div>
+        </section>
+
+        {/* =====================================================
+            Guter Post
+        ===================================================== */}
+        <section className="grid gap-5 rounded-[28px] border border-black/5 bg-gradient-to-br from-white to-slate-50 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium uppercase tracking-[0.16em] text-gray-400">
+              Qualitätsstandard
+            </span>
+
+            <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+              Was einen Beitrag wertvoll macht
+            </h2>
+
+            <p className="max-w-2xl text-base leading-7 text-gray-700">
+              Qualität ist wichtiger als Quantität. Ein guter Beitrag hilft anderen konkret weiter.
+              Er basiert auf echter Erfahrung, klaren Gedanken oder einer neuen Perspektive.
             </p>
           </div>
-        </div>
-      </section>
 
-      {/* =====================================================
-          Prinzipien
-      ===================================================== */}
-      <section className="grid gap-4 rounded-2xl border bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-2xl font-semibold text-black">
-            Wofür APP steht
-          </h2>
-        </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-[24px] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-6 shadow-sm">
+              <div className="mb-4 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                Hilfreich
+              </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <InfoCard
-            title="Qualität vor Quantität"
-            text="Ein starker Beitrag bringt mehr als viele durchschnittliche."
-          />
-          <InfoCard
-            title="Von Menschen für Menschen"
-            text="APP lebt von echten Erfahrungen und ehrlichen Empfehlungen."
-          />
-          <InfoCard
-            title="Mensch vor KI"
-            text="KI darf unterstützen, aber keine reinen KI-Beiträge ersetzen echte Erlebnisse."
-          />
-          <InfoCard
-            title="Hilfreich statt laut"
-            text="Nicht Aufmerksamkeit ist das Ziel, sondern echter Nutzen."
-          />
-        </div>
-      </section>
+              <h3 className="text-xl font-semibold text-black">
+                Ein starker Beitrag...
+              </h3>
 
-      {/* =====================================================
-          Call to Action
-      ===================================================== */}
-      <section className="rounded-2xl border bg-black p-6 text-white shadow-sm">
-        <div className="flex flex-col gap-4">
-          <h2 className="text-2xl font-semibold">
-            Teile einen Ort, den du wirklich empfehlen kannst.
-          </h2>
+              <ul className="mt-5 space-y-3 text-sm leading-6 text-gray-700">
+                <li>• beschreibt eine echte Erkenntnis oder Erfahrung</li>
+                <li>• liefert einen konkreten Gedanken, Tipp oder Perspektivwechsel</li>
+                <li>• erklärt, warum etwas funktioniert oder sinnvoll ist</li>
+                <li>• hilft anderen, bessere Entscheidungen zu treffen</li>
+              </ul>
+            </div>
 
-          <p className="max-w-2xl text-sm leading-6 text-gray-200">
-            Schreibe aus deiner eigenen Erfahrung. Hilf anderen, bessere
-            Entscheidungen zu treffen und besondere Orte zu entdecken.
-          </p>
+            <div className="rounded-[24px] border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-6 shadow-sm">
+              <div className="mb-4 inline-flex rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-rose-700">
+                Weniger hilfreich
+              </div>
 
-          <div>
-            <Link
-              href="/create"
-              className="inline-flex rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black transition hover:opacity-90"
-            >
-              Jetzt Beitrag erstellen
-            </Link>
+              <h3 className="text-xl font-semibold text-black">
+                Weniger Mehrwert haben ...
+              </h3>
+
+              <ul className="mt-5 space-y-3 text-sm leading-6 text-gray-700">
+                <li>• allgemeine Aussagen ohne Substanz</li>
+                <li>• reine Selbstdarstellung oder Werbung</li>
+                <li>• Belanglose Einzeiler</li>
+                <li>• Gedanken ohne konkreten Nutzen</li>
+              </ul>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* =====================================================
+            Ranking
+        ===================================================== */}
+        <section className="rounded-[28px] border border-black/5 bg-white/80 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur sm:p-8">
+          <div className="mb-6 flex flex-col gap-2">
+            <span className="text-sm font-medium uppercase tracking-[0.16em] text-gray-400">
+              Sichtbarkeit
+            </span>
+
+            <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+              Wie gute Gedanken sichtbar werden
+            </h2>
+
+            <p className="max-w-2xl text-base leading-7 text-gray-700">
+              Gute Gedanken verdienen eine Bühne. In APP zählt zuerst der Inhalt.
+              Nicht dein Name, nicht deine Reichweite – sondern der Wert deines Beitrags.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="group rounded-[24px] border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+              <div className="mb-4 inline-flex rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">
+                Dynamisch
+              </div>
+
+              <h3 className="text-xl font-semibold text-black">Das Leaderboard</h3>
+
+              <p className="mt-3 text-sm leading-7 text-gray-700">
+                Die besten Beiträge des Tages steigen ins Leaderboard auf.
+                Alle 24 Stunden beginnt alles von vorne – jeder hat die gleiche Chance.
+                Im Feed bleibst du anonym.
+                Erst wenn dein Beitrag wirklich überzeugt, wird sichtbar, wer dahintersteht.
+              </p>
+            </div>
+
+            <div className="group rounded-[24px] border border-black/5 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+              <div className="mb-4 inline-flex rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-indigo-700">
+                Dauerhaft
+              </div>
+
+              <h3 className="text-xl font-semibold text-black">Die Hall of Fame</h3>
+
+              <p className="mt-3 text-sm leading-7 text-gray-700">
+                Die stärksten Beiträge werden dauerhaft gespeichert.
+                Wer es schafft, echten Mehrwert für viele Menschen zu liefern, wird sichtbar – und bleibt es.
+                Nicht durch Lautstärke, sondern durch Qualität.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* =====================================================
+            Prinzipien
+        ===================================================== */}
+        <section className="rounded-[28px] border border-black/5 bg-gradient-to-br from-slate-50 to-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] sm:p-8">
+          <div className="mb-6 flex flex-col gap-2">
+            <span className="text-sm font-medium uppercase tracking-[0.16em] text-gray-400">
+              Prinzipien
+            </span>
+
+            <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
+              Wofür APP steht
+            </h2>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <InfoCard
+              title="Qualität vor Quantität"
+              text="Ein starker Beitrag bringt mehr als viele durchschnittliche."
+            />
+            <InfoCard
+              title="Von Menschen für Menschen"
+              text="APP lebt von echten Erfahrungen und ehrlichen Empfehlungen."
+            />
+            <InfoCard
+              title="Mensch vor KI"
+              text="KI darf unterstützen, aber keine reinen KI-Beiträge ersetzen echte Erlebnisse."
+            />
+            <InfoCard
+              title="Hilfreich statt laut"
+              text="Nicht Aufmerksamkeit ist das Ziel, sondern echter Nutzen."
+            />
+          </div>
+        </section>
+
+        {/* =====================================================
+            Call to Action
+        ===================================================== */}
+        <section className="relative overflow-hidden rounded-[32px] border border-black/10 bg-black px-6 py-8 text-white shadow-[0_25px_80px_rgba(0,0,0,0.18)] sm:px-8 sm:py-10">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute right-[-40px] top-[-40px] h-40 w-40 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute bottom-[-50px] left-[-40px] h-40 w-40 rounded-full bg-amber-300/10 blur-3xl" />
+          </div>
+
+          <div className="relative flex flex-col gap-5">
+            <div className="flex flex-col gap-3">
+              <span className="text-sm font-medium uppercase tracking-[0.16em] text-white/50">
+                Jetzt bist du dran
+              </span>
+
+              <h2 className="max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
+                Teile einen Gedanken, der anderen wirklich hilft.
+              </h2>
+
+              <p className="max-w-2xl text-sm leading-7 text-gray-300 sm:text-base">
+                Teile eine Erkenntnis, einen Tipp oder eine Erfahrung, die für andere einen Unterschied macht.
+                Bleib anonym – bis dein Beitrag zeigt, wie viel er wert ist.
+              </p>
+            </div>
+
+            <div>
+              <Link
+                href="/create"
+                className="inline-flex items-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:opacity-95"
+              >
+                Jetzt Beitrag erstellen
+              </Link>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
@@ -223,9 +309,28 @@ type InfoCardProps = {
 
 function InfoCard({ title, text }: InfoCardProps) {
   return (
-    <div className="rounded-2xl border p-5">
-      <h3 className="text-lg font-semibold text-black">{title}</h3>
-      <p className="mt-3 text-sm leading-6 text-gray-700">{text}</p>
+    <div className="group rounded-[24px] border border-black/5 bg-white/90 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+      <div className="mb-4 h-1.5 w-12 rounded-full bg-gradient-to-r from-black to-gray-300" />
+      <h3 className="text-lg font-semibold tracking-tight text-black">
+        {title}
+      </h3>
+      <p className="mt-3 text-sm leading-7 text-gray-700">{text}</p>
+    </div>
+  );
+}
+
+type HeroStatProps = {
+  value: string;
+  text: string;
+};
+
+function HeroStat({ value, text }: HeroStatProps) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur-md">
+      <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-white">
+        {value}
+      </h3>
+      <p className="mt-2 text-sm leading-6 text-white/70">{text}</p>
     </div>
   );
 }
