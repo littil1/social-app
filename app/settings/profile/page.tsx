@@ -37,7 +37,7 @@ export default async function ProfileSettingsPage() {
       <NavBar user={navUser} />
 
       <main className="mx-auto max-w-xl p-6">
-        <h1 className="mb-6 text-3xl font-bold">Profile Settings</h1>
+        <h1 className="mb-6 text-3xl font-bold">Einstellungen</h1>
 
         <div className="rounded-xl bg-white p-6 shadow">
           <ProfileForm

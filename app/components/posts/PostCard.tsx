@@ -87,7 +87,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
   }
 
   return {
-    articleClass: "border border-gray-100 bg-white shadow",
+    articleClass: "border border-gray-100 bg-white shadow-sm",
     badgeClass: "",
     badgeText: "",
     accentClass: "bg-transparent",
@@ -109,7 +109,6 @@ function PostCardComponent({
   detailHref,
   isLoggedIn = false,
 }: PostCardProps) {
-
   // =====================================================
   // State
   // =====================================================
@@ -120,10 +119,12 @@ function PostCardComponent({
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post.comments_count
   );
+  const [hasAuthSession, setHasAuthSession] = useState(isLoggedIn);
 
   const pendingReactionAfterLoginRef = useRef<ReactionType | null>(null);
 
   const rankStyles = getRankStyles(dailyRank);
+  const effectiveIsLoggedIn = isLoggedIn || hasAuthSession;
 
   const reactionCounts = {
     like: post.reaction_counts?.like ?? 0,
@@ -137,19 +138,28 @@ function PostCardComponent({
   // =====================================================
 
   useEffect(() => {
+    setHasAuthSession(isLoggedIn);
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     setLocalCommentsCount(post.comments_count);
   }, [post.comments_count]);
 
   useEffect(() => {
     function handleAuthLoginSuccess() {
+      setHasAuthSession(true);
+
       const pendingReaction = pendingReactionAfterLoginRef.current;
       if (!pendingReaction) return;
 
       pendingReactionAfterLoginRef.current = null;
 
       window.setTimeout(() => {
-        void handleReactionClick(pendingReaction, true);
-      }, 0);
+  // kleiner Delay, damit Session sicher da ist
+  setTimeout(() => {
+    void handleReactionClick(pendingReaction, true);
+  }, 150);
+}, 0);
     }
 
     window.addEventListener("auth-login-success", handleAuthLoginSuccess);
@@ -159,7 +169,7 @@ function PostCardComponent({
     };
   }, [post.id, post.viewer_reaction, reactionLoading]);
 
-    // =====================================================
+  // =====================================================
   // Actions
   // =====================================================
 
@@ -177,7 +187,7 @@ function PostCardComponent({
     reaction: ReactionType,
     skipLoginCheck = false
   ) {
-    if (!skipLoginCheck && !isLoggedIn) {
+    if (!skipLoginCheck && !effectiveIsLoggedIn) {
       pendingReactionAfterLoginRef.current = reaction;
       requireLogin();
       return;
@@ -222,7 +232,7 @@ function PostCardComponent({
   async function handleDeletePost() {
     if (deleteLoading) return;
 
-    const confirmed = window.confirm("Diesen Post wirklich löschen?");
+    const confirmed = window.confirm("Diesen Beitrag wirklich löschen?");
     if (!confirmed) return;
 
     setDeleteLoading(true);
@@ -234,13 +244,13 @@ function PostCardComponent({
 
       if (!res.ok) {
         const message = await res.text();
-        throw new Error(message || "Post konnte nicht gelöscht werden.");
+        throw new Error(message || "Beitrag konnte nicht gelöscht werden.");
       }
 
       onPostDeleted(post.id);
     } catch (error) {
       console.error(error);
-      alert("Post konnte nicht gelöscht werden.");
+      alert("Beitrag konnte nicht gelöscht werden.");
     } finally {
       setDeleteLoading(false);
     }
@@ -270,61 +280,62 @@ function PostCardComponent({
         />
       )}
 
-      <div className="mb-4 flex items-start justify-between gap-3 sm:mb-5">
-        <div className="min-w-0">
-          {showAuthor && post.author_username ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-                {post.author_avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={post.author_avatar_url}
-                    alt={`${post.author_username} avatar`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  post.author_username.charAt(0).toUpperCase()
-                )}
+      <div className="mb-4 flex flex-col gap-3 sm:mb-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            {showAuthor && post.author_username ? (
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
+                  {post.author_avatar_url ? (
+                    <img
+                      src={post.author_avatar_url}
+                      alt={`${post.author_username} avatar`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    post.author_username.charAt(0).toUpperCase()
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <Link
+                    href={`/u/${post.author_username}`}
+                    className="block truncate text-sm font-semibold text-gray-700 hover:underline"
+                  >
+                    @{post.author_username}
+                  </Link>
+
+                  <p className="mt-1 text-xs text-gray-400">
+                    {formatDate(post.created_at)}
+                  </p>
+                </div>
               </div>
-
-              <div className="min-w-0">
-                <Link
-                  href={`/u/${post.author_username}`}
-                  className="block truncate text-sm font-semibold text-gray-700 hover:underline"
-                >
-                  @{post.author_username}
-                </Link>
-
-                <p className="mt-1 text-xs text-gray-400">
-                  {formatDate(post.created_at)}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
-          )}
-        </div>
-
-        <div className="flex shrink-0 items-start gap-2">
-          {dailyRank && (
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${rankStyles.badgeClass}`}
-            >
-              {rankStyles.badgeText}
-            </span>
-          )}
+            ) : (
+              <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+            )}
+          </div>
 
           {post.can_delete && (
             <button
               type="button"
               onClick={handleDeletePost}
               disabled={deleteLoading}
-              className="rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
             >
               {deleteLoading ? "Lösche..." : "Löschen"}
             </button>
           )}
         </div>
+
+        {dailyRank && (
+          <div className="flex justify-start">
+            <span
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${rankStyles.badgeClass}`}
+            >
+              {rankStyles.badgeText}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="mb-5 sm:mb-6">
@@ -345,39 +356,49 @@ function PostCardComponent({
       </div>
 
       <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50/80 p-3">
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          {REACTIONS.map((reaction) => {
-            const isActive = post.viewer_reaction === reaction.value;
+        <div className="flex flex-col gap-2">
+          <div className="overflow-x-auto">
+            <div className="flex min-w-max items-center gap-2">
+              {REACTIONS.map((reaction) => {
+                const isActive = post.viewer_reaction === reaction.value;
 
-            return (
-              <button
-                key={reaction.value}
-                type="button"
-                onClick={() => void handleReactionClick(reaction.value)}
-                disabled={reactionLoading}
-                className={`rounded-full px-3 py-1.5 transition disabled:opacity-50 ${
-                  isActive
-                    ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
-                    : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
-                }`}
-                aria-pressed={isActive}
-                title={reaction.label}
-              >
-                <span className="mr-1">{reaction.emoji}</span>
-                {reactionCounts[reaction.countKey]}
-              </button>
-            );
-          })}
+                return (
+                  <button
+                    key={reaction.value}
+                    type="button"
+                    onClick={() => void handleReactionClick(reaction.value)}
+                    disabled={reactionLoading}
+                    className={`inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-full px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+                      isActive
+                        ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                        : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+                    }`}
+                    aria-pressed={isActive}
+                    title={reaction.label}
+                  >
+                    <span className="mr-1.5">{reaction.emoji}</span>
+                    <span className="font-medium">
+                      {reactionCounts[reaction.countKey]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setShowComments((prev) => !prev)}
-            className="rounded-full bg-white px-3 py-1.5 text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
-          >
-            <span className="mr-1">💬</span>
-            {localCommentsCount}{" "}
-            {showComments ? "Kommentare ausblenden" : "Kommentare anzeigen"}
-          </button>
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowComments((prev) => !prev)}
+              className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
+            >
+              <span className="mr-1.5">💬</span>
+              <span className="font-medium">
+                {localCommentsCount}{" "}
+                {showComments ? "Kommentare ausblenden" : "Kommentare anzeigen"}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -386,7 +407,7 @@ function PostCardComponent({
           postId={post.id}
           onCommentCreated={handleCommentCreatedLocal}
           onCommentsLoaded={handleCommentsLoaded}
-          isLoggedIn={isLoggedIn}
+          isLoggedIn={effectiveIsLoggedIn}
         />
       )}
     </article>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   updateProfile,
   type UpdateProfileState,
@@ -15,15 +16,15 @@ function validateUsername(value: string | undefined) {
   const normalized = (value ?? "").trim().toLowerCase();
 
   if (normalized.length < 3) {
-    return "Username must be at least 3 characters.";
+    return "Mindestens 3 Zeichen";
   }
 
   if (normalized.length > 20) {
-    return "Username must be at most 20 characters.";
+    return "Maximal 20 Zeichen";
   }
 
   if (!/^[a-z0-9_]+$/.test(normalized)) {
-    return "Only lowercase letters, numbers, and underscores are allowed.";
+    return "Nur a–z, 0–9 und _ erlaubt";
   }
 
   return null;
@@ -33,7 +34,7 @@ function validateBio(value: string | undefined) {
   const safeValue = value ?? "";
 
   if (safeValue.length > 200) {
-    return "Bio must be at most 200 characters.";
+    return "Maximal 200 Zeichen";
   }
 
   return null;
@@ -48,8 +49,11 @@ export default function ProfileForm({
   initialBio: string;
   initialAvatarUrl: string;
 }) {
+  const router = useRouter();
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const avatarMenuRef = useRef<HTMLDivElement | null>(null);
+  const hasRedirectedRef = useRef(false);
 
   const [username, setUsername] = useState(initialUsername ?? "");
   const [bio, setBio] = useState(initialBio ?? "");
@@ -93,6 +97,17 @@ export default function ProfileForm({
       document.removeEventListener("mousedown", handleOutsideClick);
     };
   }, [showAvatarMenu]);
+
+  useEffect(() => {
+    if (!state.success || hasRedirectedRef.current) return;
+
+    const nextUsername = username.trim().toLowerCase();
+    if (!nextUsername) return;
+
+    hasRedirectedRef.current = true;
+    router.push(`/u/${encodeURIComponent(nextUsername)}`);
+    router.refresh();
+  }, [state.success, username, router]);
 
   const usernameError = validateUsername(username);
   const bioError = validateBio(bio);
@@ -148,7 +163,7 @@ export default function ProfileForm({
             )}
 
             <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100">
-              Edit
+              Bild ändern
             </span>
           </button>
 
@@ -159,7 +174,7 @@ export default function ProfileForm({
                 onClick={handleChangePicture}
                 className="block w-full px-4 py-3 text-left text-sm text-gray-800 hover:bg-gray-50"
               >
-                Change picture
+                Bild ändern
               </button>
 
               <button
@@ -167,7 +182,7 @@ export default function ProfileForm({
                 onClick={handleRemovePicture}
                 className="block w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-gray-50"
               >
-                Remove picture
+                Entfernen
               </button>
             </div>
           )}
@@ -183,7 +198,7 @@ export default function ProfileForm({
           className="hidden"
         />
 
-        <p className="text-sm text-gray-500">Max size: 4 MB</p>
+        <p className="text-sm text-gray-500">Maximale Grösse: 4 MB</p>
       </div>
 
       <div>
@@ -191,7 +206,7 @@ export default function ProfileForm({
           htmlFor="username"
           className="mb-2 block text-sm font-medium text-gray-700"
         >
-          Username
+          Dein Name
         </label>
 
         <input
@@ -207,7 +222,7 @@ export default function ProfileForm({
         />
 
         <p className="mt-2 text-sm text-gray-500">
-          Allowed: lowercase letters, numbers, underscore
+          nur a–z, 0–9 und _
         </p>
       </div>
 
@@ -216,7 +231,7 @@ export default function ProfileForm({
           htmlFor="bio"
           className="mb-2 block text-sm font-medium text-gray-700"
         >
-          Bio
+          Kurz über dich
         </label>
 
         <textarea
@@ -227,13 +242,13 @@ export default function ProfileForm({
           onChange={(e) => setBio(e.target.value)}
           maxLength={200}
           className="w-full rounded-lg border border-gray-300 px-4 py-2 outline-none"
-          placeholder="Tell people a bit about yourself..."
+          placeholder="Erzähl etwas über dich..."
         />
 
         <p className="mt-2 text-sm text-gray-500">{bio.length}/200</p>
       </div>
 
-       {clientError && <p className="text-sm text-red-600">{clientError}</p>}
+      {clientError && <p className="text-sm text-red-600">{clientError}</p>}
 
       {!clientError && state.error && (
         <p className="text-sm text-red-600">{state.error}</p>
@@ -248,7 +263,7 @@ export default function ProfileForm({
         disabled={isPending || !!clientError}
         className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-50"
       >
-        {isPending ? "Saving..." : "Save profile"}
+        {isPending ? "speichert..." : "Speichern"}
       </button>
     </form>
   );

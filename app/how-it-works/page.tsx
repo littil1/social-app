@@ -42,9 +42,11 @@ export default function HowItWorksPage() {
                 </h1>
 
                 <p className="max-w-2xl text-base leading-7 text-white/75 sm:text-lg sm:leading-8">
-                  a perfect place (APP) ist nicht irgendeine weitere social-media App.
-                  Es ist die einzige, die du jemals wieder brauchst. Hier geht es nicht um
-                  möglichst viele Posts, sondern um wirklich gute.
+                  a perfect place (APP) ist keine weitere social-media App.
+                  <br />
+                  Wir sind die einzige, die du jemals wieder brauchst.
+                  <br />
+                  Hier geht es nicht um möglichst viele Posts, sondern um wirklich gute.
                 </p>
               </div>
 
@@ -57,7 +59,7 @@ export default function HowItWorksPage() {
                 </Link>
 
                 <Link
-                  href="/create"
+                  href="/#create-post"
                   className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-5 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/15"
                 >
                   Beitrag erstellen
@@ -72,11 +74,11 @@ export default function HowItWorksPage() {
               />
               <HeroStat
                 value="Qualität zuerst"
-                text="Inhalte, die dir konkret helfen – nicht nur unterhalten."
+                text="Inhalte, die dich weiterbringen – nicht nur unterhalten."
               />
               <HeroStat
                 value="Anonym bis zur Spitze"
-                text="Deine Ideen zählen. Dein Name erst, wenn sie wirklich überzeugen."
+                text="Deine Ideen zählen. Dein Name erst, wenn sie überzeugen."
               />
             </div>
           </div>
@@ -92,7 +94,7 @@ export default function HowItWorksPage() {
             </span>
 
             <h2 className="text-2xl font-semibold tracking-tight text-black sm:text-3xl">
-              Warum du hier schneller weiterkommst.
+              Warum du mit uns weiterkommst.
             </h2>
 
             <p className="max-w-2xl text-base leading-7 text-gray-700">
@@ -104,15 +106,15 @@ export default function HowItWorksPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <InfoCard
               title="Kein endloses Scrollen"
-              text="Keine Trends, kein Clickbait, keine Zeitverschwendung. Nur Inhalte, die dir wirklich etwas bringen."
+              text="Hast du alle Posts des Tages gesehen, ist fertig für heute. Alle 24 Stunden startet der Feed von neuem."
             />
             <InfoCard
-              title="Gedanken, die bleiben"
-              text="Gute Ideen verlieren nicht nach 24 Stunden ihren Wert. Hier findest du Inhalte, die langfristig relevant sind. Setz ein Zeichen statt nur einen Like."
+              title="Das Beste bleibt"
+              text="Gute Ideen verlieren nicht nach 24 Stunden ihren Wert. Und die besten werden für immer verewigt. Setz ein Zeichen statt nur einen Like."
             />
             <InfoCard
               title="Qualität entscheidet"
-              text="Durch unser Community-Ranking steigen nur Beiträge auf, die konkret, ehrlich und hilfreich sind. Der Rest verschwindet."
+              text="Durch unser Community-Ranking steigen nur Beiträge auf, welche es Wert sind. Der Rest verschwindet."
             />
           </div>
         </section>
@@ -285,7 +287,7 @@ export default function HowItWorksPage() {
 
             <div>
               <Link
-                href="/create"
+                href="/#create-post"
                 className="inline-flex items-center rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:scale-[1.02] hover:opacity-95"
               >
                 Jetzt Beitrag erstellen

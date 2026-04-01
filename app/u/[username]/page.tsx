@@ -278,85 +278,94 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     <>
       <NavBar user={navUser} />
 
-      <main className="mx-auto max-w-2xl p-6">
-        <div className="mb-6 rounded-xl bg-white p-6 shadow">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-2xl font-semibold text-gray-600">
-                {profile.avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={profile.avatar_url}
-                    alt={`${profile.username} avatar`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  profile.username.charAt(0).toUpperCase()
-                )}
-              </div>
-
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-bold">@{profile.username}</h1>
-
-                  {implementedIdeaCount > 0 && (
-                    <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
-                      Contributor
-                    </span>
-                  )}
-
-                  {hallOfFameCount > 0 && (
-                    <span className="rounded-full bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-700">
-                      Hall of Fame
-                    </span>
+      <main className="mx-auto max-w-2xl px-4 py-4 sm:p-6">
+        <div className="mb-6 rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
+          {/* =====================================================
+              Profilkopf
+          ===================================================== */}
+          <div className="flex flex-col gap-4 sm:gap-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-2xl font-semibold text-gray-600 sm:h-24 sm:w-24">
+                  {profile.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={profile.avatar_url}
+                      alt={`${profile.username} avatar`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    profile.username.charAt(0).toUpperCase()
                   )}
                 </div>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Beigetreten am{" "}
-                  {new Date(profile.created_at).toLocaleDateString("de-CH")}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="break-all text-2xl font-bold text-black sm:text-3xl">
+                      @{profile.username}
+                    </h1>
 
-                {implementedIdeaCount > 0 && (
-                  <p className="mt-1 text-sm text-amber-700">
-                    {implementedIdeaCount} umgesetzte{" "}
-                    {implementedIdeaCount === 1 ? "Idee" : "Ideen"}
-                  </p>
-                )}
+                    {implementedIdeaCount > 0 && (
+                      <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700">
+                        Contributor
+                      </span>
+                    )}
 
-                {hallOfFameCount > 0 && (
-                  <p className="mt-1 text-sm text-indigo-700">
-                    {hallOfFameCount} Hall-of-Fame-
-                    {hallOfFameCount === 1 ? "Eintrag" : "Einträge"}
+                    {hallOfFameCount > 0 && (
+                      <span className="rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700">
+                        Hall of Fame
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="mt-2 text-sm text-gray-500">
+                    Beigetreten am{" "}
+                    {new Date(profile.created_at).toLocaleDateString("de-CH")}
                   </p>
-                )}
+
+                  {implementedIdeaCount > 0 && (
+                    <p className="mt-1 text-sm text-amber-700">
+                      {implementedIdeaCount} umgesetzte{" "}
+                      {implementedIdeaCount === 1 ? "Idee" : "Ideen"}
+                    </p>
+                  )}
+
+                  {hallOfFameCount > 0 && (
+                    <p className="mt-1 text-sm text-indigo-700">
+                      {hallOfFameCount} Hall-of-Fame-
+                      {hallOfFameCount === 1 ? "Eintrag" : "Einträge"}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="w-full sm:w-auto">
+                {isOwnProfile ? (
+                  <Link
+                    href="/settings/profile"
+                    className="inline-flex w-full items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 sm:w-auto"
+                  >
+                    Profil bearbeiten
+                  </Link>
+                ) : user ? (
+                  <div className="w-full sm:w-auto">
+                    <FollowButton
+                      isFollowing={isFollowing}
+                      targetUserId={profile.id}
+                      targetUsername={profile.username}
+                      path={`/u/${profile.username}`}
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            <div>
-              {isOwnProfile ? (
-                <Link
-                  href="/settings/profile"
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700"
-                >
-                  Profil bearbeiten
-                </Link>
-              ) : user ? (
-                <FollowButton
-                  isFollowing={isFollowing}
-                  targetUserId={profile.id}
-                  targetUsername={profile.username}
-                  path={`/u/${profile.username}`}
-                />
-              ) : null}
-            </div>
+            <ProfileBadgesSection
+              targetUserId={profile.id}
+              initialBadges={profileBadges}
+              viewerIsAdmin={viewerIsAdmin}
+            />
           </div>
-
-          <ProfileBadgesSection
-            targetUserId={profile.id}
-            initialBadges={profileBadges}
-            viewerIsAdmin={viewerIsAdmin}
-          />
         </div>
 
         <UserProfileContent

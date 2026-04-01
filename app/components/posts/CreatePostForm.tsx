@@ -22,6 +22,7 @@ export default function CreatePostForm({
 
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   // =====================================================
   // Refs
@@ -38,8 +39,9 @@ export default function CreatePostForm({
   const trimmed = content.trim();
   const remainingCharacters = 500 - content.length;
   const canSubmit = !loading && trimmed.length >= 2;
+  const isExpanded = isFocused || content.length > 0;
 
-   // =====================================================
+  // =====================================================
   // Effects
   // =====================================================
 
@@ -48,7 +50,7 @@ export default function CreatePostForm({
     if (!textarea) return;
 
     textarea.style.height = "0px";
-    const nextHeight = Math.min(textarea.scrollHeight, 140);
+    const nextHeight = Math.min(textarea.scrollHeight, 180);
     textarea.style.height = `${nextHeight}px`;
   }, [content]);
 
@@ -86,7 +88,7 @@ export default function CreatePostForm({
     );
   }
 
-    // =====================================================
+  // =====================================================
   // Actions
   // =====================================================
 
@@ -102,7 +104,7 @@ export default function CreatePostForm({
       return;
     }
 
-    if (!canSubmit) return;
+    if (!canSubmit || loading) return;
 
     setLoading(true);
 
@@ -116,15 +118,16 @@ export default function CreatePostForm({
       });
 
       if (!res.ok) {
-        throw new Error("Post konnte nicht erstellt werden.");
+        throw new Error("Beitrag konnte nicht erstellt werden.");
       }
 
       const newPost: FeedPost = await res.json();
       onPostCreated(newPost);
       setContent("");
+      setIsFocused(false);
     } catch (error) {
       console.error(error);
-      alert("Post konnte nicht erstellt werden.");
+      alert("Beitrag konnte nicht erstellt werden.");
     } finally {
       setLoading(false);
     }
@@ -137,47 +140,78 @@ export default function CreatePostForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full px-3 py-3 sm:px-4 sm:py-3"
+      className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5"
     >
-      {/* Input */}
-      <div className="flex items-center gap-2">
-        <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm text-gray-600 sm:flex">
-          ✍️
+      <div className="mb-4">
+        <div className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-600">
+          Neuer Beitrag
         </div>
 
-        <div className="flex-1">
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder={
-              isLoggedIn
-                ? "Teile eine Erkenntnis..."
-                : "Login erforderlich zum Posten..."
-            }
-            rows={1}
-            disabled={loading}
-            className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm outline-none focus:border-gray-400 focus:bg-white"
-            style={{
-              maxHeight: "140px",
-              scrollbarWidth: "none",
-            }}
-          />
-        </div>
+        <h2 className="mt-3 text-xl font-bold tracking-tight text-black sm:text-2xl">
+          Teile etwas, das andere weiterbringt
+        </h2>
+
+        <p className="mt-1 text-sm leading-6 text-gray-600">
+          Kurz, konkret und hilfreich.
+        </p>
       </div>
 
-      {/* Footer */}
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-[11px] text-gray-400">
-          {remainingCharacters}
-        </span>
+      <div
+        className={`rounded-2xl border bg-gray-50 p-3 transition sm:p-4 ${
+          isExpanded
+            ? "border-gray-300 bg-white shadow-sm"
+            : "border-gray-200"
+        }`}
+      >
+        <div className="flex items-start gap-3">
+          <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black text-sm text-white">
+            ✍️
+          </div>
 
-        <button
-          type="submit"
-          className="rounded-lg bg-black px-4 py-1.5 text-xs text-white disabled:opacity-50"
-        >
-          {loading ? "..." : "Posten"}
-        </button>
+          <div className="min-w-0 flex-1">
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              placeholder={
+                isLoggedIn
+                  ? "Was sollten andere unbedingt wissen?"
+                  : "Melde dich an, um etwas zu teilen"
+              }
+              rows={1}
+              disabled={loading}
+              className="w-full resize-none border-0 bg-transparent px-0 py-1 text-[15px] leading-7 text-gray-900 outline-none placeholder:text-gray-400 sm:text-base"
+              style={{
+                maxHeight: "180px",
+                scrollbarWidth: "none",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 border-t border-gray-200 pt-4">
+          <div className="flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-gray-500">
+                Ein guter Beitrag hilft wirklich weiter.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3">
+              <span className="text-sm text-gray-400">{remainingCharacters}</span>
+
+              <button
+                type="submit"
+                disabled={!canSubmit || loading}
+                className="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:bg-gray-400"
+              >
+                {loading ? "Postet..." : "Posten"}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </form>
   );

@@ -28,15 +28,17 @@ type StatItemProps = {
 
 function StatItem({ label, value, href }: StatItemProps) {
   const content = (
-    <div className="flex flex-col gap-1 rounded-xl px-2 py-1 transition">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="text-lg font-semibold text-black">{value}</span>
+    <div className="flex min-h-[88px] flex-col justify-between rounded-2xl border border-gray-100 bg-gray-50 p-4 transition">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className="text-2xl font-semibold leading-none text-black">
+        {value}
+      </span>
     </div>
   );
 
   if (href) {
     return (
-      <Link href={href} className="rounded-xl hover:bg-gray-50">
+      <Link href={href} className="block rounded-2xl hover:bg-gray-50">
         {content}
       </Link>
     );
@@ -133,9 +135,10 @@ export default function UserProfileContent({
       {/* =====================================================
           Stats
       ===================================================== */}
-      <section className="rounded-2xl border bg-white p-4 shadow-sm">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <section className="rounded-2xl border bg-white p-3 shadow-sm sm:p-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
           <StatItem label="Beiträge" value={posts.length} />
+          <StatItem label="Likes" value={totalLikes} />
           <StatItem
             label="Follower"
             value={followersCount}
@@ -146,14 +149,13 @@ export default function UserProfileContent({
             value={followingCount}
             href={`/u/${username}/following`}
           />
-          <StatItem label="Likes" value={totalLikes} />
         </div>
       </section>
 
       {/* =====================================================
           Posts
       ===================================================== */}
-      <section className="mt-6 space-y-4">
+      <section className="mt-4 space-y-4 sm:mt-6">
         {posts.map((post) => (
           <PostCard
             key={post.id}
@@ -165,7 +167,7 @@ export default function UserProfileContent({
         ))}
 
         {posts.length === 0 && (
-          <div className="rounded-xl bg-white p-6 text-center text-gray-500 shadow">
+          <div className="rounded-xl border bg-white p-6 text-center text-gray-500 shadow-sm">
             Noch keine Beiträge vorhanden.
           </div>
         )}

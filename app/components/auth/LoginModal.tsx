@@ -120,8 +120,8 @@ export default function LoginModal() {
               </h1>
 
               <p className="max-w-md text-sm leading-7 text-gray-600">
-                Teile hilfreiche Orte, ehrliche Erfahrungen und echte
-                Empfehlungen. APP ist von Menschen für Menschen.
+                Teile Gedanken, Erfahrungen und Erkenntnisse. APP ist von
+                Menschen für Menschen.
               </p>
             </div>
           </div>
@@ -129,15 +129,15 @@ export default function LoginModal() {
           <div className="grid gap-3">
             <InfoCard
               title="Hilfreiche Beiträge"
-              text="Teile Orte und Erfahrungen, die anderen wirklich weiterhelfen."
+              text="Teile Dinge, die anderen im echten Leben helfen."
             />
             <InfoCard
               title="Echte Perspektiven"
-              text="Keine generischen Inhalte, sondern persönliche Empfehlungen."
+              text="Persönliche Empfehlungen über generische Inhalte."
             />
             <InfoCard
               title="Starke Community"
-              text="Entdecke Beiträge mit echtem Mehrwert statt leerer Aufmerksamkeit."
+              text="Beiträge mit Mehrwert statt leerer Aufmerksamkeit."
             />
           </div>
         </section>
@@ -155,7 +155,7 @@ export default function LoginModal() {
               <p className="text-sm leading-6 text-gray-600">
                 {mode === "login"
                   ? "Melde dich an, um Beiträge zu erstellen, zu reagieren und Profilseiten zu nutzen."
-                  : "Erstelle deinen Account, um hilfreiche Orte und echte Erfahrungen zu teilen."}
+                  : "Erstelle deinen Account, um Gedanken, Tipps und echte Erfahrungen zu teilen."}
               </p>
             </div>
 
@@ -172,7 +172,7 @@ export default function LoginModal() {
                     : "text-gray-600 hover:text-black"
                 }`}
               >
-                Login
+                Einloggen
               </button>
 
               <button

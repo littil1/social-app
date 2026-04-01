@@ -28,6 +28,10 @@ type PostReactionRow = {
   reaction: ReactionType;
 };
 
+// =====================================================
+// Helpers
+// =====================================================
+
 function createEmptyReactionCounts(): ReactionCounts {
   return {
     like: 0,
@@ -39,6 +43,19 @@ function createEmptyReactionCounts(): ReactionCounts {
 
 function getTotalReactions(counts: ReactionCounts) {
   return counts.like + counts.funny + counts.wow + counts.fire;
+}
+
+function getZurichDayKey(date: Date | string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Zurich",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(date));
+}
+
+function isTodayInZurich(dateString: string) {
+  return getZurichDayKey(dateString) === getZurichDayKey(new Date());
 }
 
 function buildMixedPostIds(params: {
@@ -102,6 +119,94 @@ function buildMixedPostIds(params: {
   return result;
 }
 
+function sortPostsByNewest(posts: PostRow[]) {
+  return [...posts].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+}
+
+function sortPostsByTrending(
+  posts: PostRow[],
+  reactionCountsMap: Map<number, ReactionCounts>,
+  commentCountMap: Map<number, number>
+) {
+  return [...posts].sort((a, b) => {
+    const aReactions = getTotalReactions(
+      reactionCountsMap.get(a.id) ?? createEmptyReactionCounts()
+    );
+    const bReactions = getTotalReactions(
+      reactionCountsMap.get(b.id) ?? createEmptyReactionCounts()
+    );
+
+    if (bReactions !== aReactions) {
+      return bReactions - aReactions;
+    }
+
+    const aComments = commentCountMap.get(a.id) ?? 0;
+    const bComments = commentCountMap.get(b.id) ?? 0;
+
+    if (bComments !== aComments) {
+      return bComments - aComments;
+    }
+
+    return (
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  });
+}
+
+function buildOrderedFeedIds(params: {
+  posts: PostRow[];
+  followingUserIds: string[];
+  reactionCountsMap: Map<number, ReactionCounts>;
+  commentCountMap: Map<number, number>;
+  targetCount: number;
+}) {
+  const {
+    posts,
+    followingUserIds,
+    reactionCountsMap,
+    commentCountMap,
+    targetCount,
+  } = params;
+
+  const todaysPosts = posts.filter((post) => isTodayInZurich(post.created_at));
+  const olderPosts = posts.filter((post) => !isTodayInZurich(post.created_at));
+
+  function buildGroupIds(groupPosts: PostRow[]) {
+    const newestPosts = sortPostsByNewest(groupPosts);
+    const trendingPosts = sortPostsByTrending(
+      groupPosts,
+      reactionCountsMap,
+      commentCountMap
+    );
+
+    const followingPosts =
+      followingUserIds.length > 0
+        ? newestPosts.filter(
+            (post) => !!post.user_id && followingUserIds.includes(post.user_id)
+          )
+        : [];
+
+    return buildMixedPostIds({
+      newestIds: newestPosts.map((post) => post.id),
+      trendingIds: trendingPosts.map((post) => post.id),
+      followingIds: followingPosts.map((post) => post.id),
+      targetCount,
+    });
+  }
+
+  const todaysIds = buildGroupIds(todaysPosts);
+  const olderIds = buildGroupIds(olderPosts);
+
+  return [...todaysIds, ...olderIds];
+}
+
+// =====================================================
+// Main
+// =====================================================
+
 export async function getFeedPage(
   offset = 0,
   limit = FEED_PAGE_SIZE
@@ -116,14 +221,16 @@ export async function getFeedPage(
   let followingUserIds: string[] = [];
 
   if (user) {
-    const [{ data: profileData, error: profileError }, { data: followsData, error: followsError }] =
-      await Promise.all([
-        supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle(),
-        supabase
-          .from("follows")
-          .select("following_id")
-          .eq("follower_id", user.id),
-      ]);
+    const [
+      { data: profileData, error: profileError },
+      { data: followsData, error: followsError },
+    ] = await Promise.all([
+      supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("follows")
+        .select("following_id")
+        .eq("follower_id", user.id),
+    ]);
 
     if (profileError) {
       throw new Error(profileError.message);
@@ -207,57 +314,28 @@ export async function getFeedPage(
     );
   }
 
-  const newestPosts = [...recentPosts].sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-
-  const trendingPosts = [...recentPosts].sort((a, b) => {
-    const aReactions = getTotalReactions(
-      reactionCountsMap.get(a.id) ?? createEmptyReactionCounts()
-    );
-    const bReactions = getTotalReactions(
-      reactionCountsMap.get(b.id) ?? createEmptyReactionCounts()
-    );
-
-    if (bReactions !== aReactions) {
-      return bReactions - aReactions;
-    }
-
-    const aComments = commentCountMap.get(a.id) ?? 0;
-    const bComments = commentCountMap.get(b.id) ?? 0;
-
-    if (bComments !== aComments) {
-      return bComments - aComments;
-    }
-
-    return (
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  });
-
-  const followingPosts =
-    followingUserIds.length > 0
-      ? newestPosts.filter(
-          (post) => !!post.user_id && followingUserIds.includes(post.user_id)
-        )
-      : [];
-
-  const mixedPostIds = buildMixedPostIds({
-    newestIds: newestPosts.map((post) => post.id),
-    trendingIds: trendingPosts.map((post) => post.id),
-    followingIds: followingPosts.map((post) => post.id),
+  const orderedFeedIds = buildOrderedFeedIds({
+    posts: recentPosts,
+    followingUserIds,
+    reactionCountsMap,
+    commentCountMap,
     targetCount,
   });
 
-  const paginatedPostIds = mixedPostIds.slice(offset, offset + limit);
+  const paginatedPostIds = orderedFeedIds.slice(offset, offset + limit);
 
   if (paginatedPostIds.length === 0) {
     return [];
   }
 
+  const postMap = new Map<number, PostRow>();
+
+  for (const post of recentPosts) {
+    postMap.set(post.id, post);
+  }
+
   const selectedPosts = paginatedPostIds
-    .map((id) => recentPosts.find((post) => post.id === id))
+    .map((id) => postMap.get(id))
     .filter((post): post is PostRow => !!post);
 
   const authorIds = selectedPosts
@@ -291,7 +369,7 @@ export async function getFeedPage(
 
     const authorProfile =
       post.user_id && profileMap.has(post.user_id)
-        ? profileMap.get(post.user_id)
+        ? profileMap.get(post.user_id) ?? null
         : null;
 
     return {
