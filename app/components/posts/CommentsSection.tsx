@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FeedComment, ReactionType } from "@/types/feed";
+import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
 // =====================================================
 // Types
@@ -28,7 +29,6 @@ type CommentItemProps = {
   replyParentId: number | null;
   replyContent: string;
   replySubmitting: boolean;
-  onRequireLogin: () => void;
   onReplyOpen: (commentId: number) => void;
   onReplyCancel: () => void;
   onReplyContentChange: (value: string) => void;
@@ -174,6 +174,11 @@ function applyReactionUpdate(
   };
 }
 
+function getResumePath() {
+  if (typeof window === "undefined") return "/";
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
 // =====================================================
 // Comment Item
 // =====================================================
@@ -187,7 +192,6 @@ function CommentItem({
   replyParentId,
   replyContent,
   replySubmitting,
-  onRequireLogin,
   onReplyOpen,
   onReplyCancel,
   onReplyContentChange,
@@ -212,7 +216,6 @@ function CommentItem({
             <div className="mb-2 flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
                 {node.author_avatar_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={node.author_avatar_url}
                     alt={`${node.author_username ?? "User"} avatar`}
@@ -276,14 +279,7 @@ function CommentItem({
                   <button
                     key={reaction.value}
                     type="button"
-                    onClick={() => {
-                      if (!isLoggedIn) {
-                        onRequireLogin();
-                        return;
-                      }
-
-                      void onReactionClick(node.id, reaction.value);
-                    }}
+                    onClick={() => void onReactionClick(node.id, reaction.value)}
                     disabled={reactingCommentId === node.id}
                     className={`rounded-full px-3 py-1.5 text-sm transition disabled:opacity-50 ${
                       isActive
@@ -301,14 +297,7 @@ function CommentItem({
 
               <button
                 type="button"
-                onClick={() => {
-                  if (!isLoggedIn) {
-                    onRequireLogin();
-                    return;
-                  }
-
-                  onReplyOpen(node.id);
-                }}
+                onClick={() => onReplyOpen(node.id)}
                 className="rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
               >
                 Antworten
@@ -326,7 +315,7 @@ function CommentItem({
               )}
             </div>
 
-            {replyParentId === node.id && (
+            {replyParentId === node.id && isLoggedIn && (
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -389,7 +378,6 @@ function CommentItem({
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
-              onRequireLogin={onRequireLogin}
               onReplyOpen={onReplyOpen}
               onReplyCancel={onReplyCancel}
               onReplyContentChange={onReplyContentChange}
@@ -414,6 +402,16 @@ export default function CommentsSection({
   onCommentsLoaded,
   isLoggedIn = false,
 }: CommentsSectionProps) {
+  // =====================================================
+  // Hooks
+  // =====================================================
+
+  const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
+
+  // =====================================================
+  // State
+  // =====================================================
+
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -427,16 +425,12 @@ export default function CommentsSection({
   const [replyParentId, setReplyParentId] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
-  const [authOverride, setAuthOverride] = useState(false);
 
-  const pendingCommentSubmitAfterLoginRef = useRef(false);
-  const pendingReplyAfterLoginRef = useRef<number | null>(null);
-  const pendingReactionAfterLoginRef = useRef<{
-    commentId: number;
-    reaction: ReactionType;
-  } | null>(null);
+  // =====================================================
+  // Derived Values
+  // =====================================================
 
-  const canInteract = isLoggedIn || authOverride;
+  const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const commentTree = useMemo(() => buildCommentTree(comments), [comments]);
 
   // =====================================================
@@ -473,7 +467,7 @@ export default function CommentsSection({
       }
     }
 
-    loadComments();
+    void loadComments();
 
     return () => {
       active = false;
@@ -481,91 +475,23 @@ export default function CommentsSection({
   }, [postId]);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      setAuthOverride(false);
-    }
-  }, [isLoggedIn]);
-
-  useEffect(() => {
     if (loading) return;
-
     onCommentsLoaded?.(comments.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comments.length, loading]);
 
   useEffect(() => {
-    function handleAuthLoginSuccess() {
-      setAuthOverride(true);
-
-      if (pendingCommentSubmitAfterLoginRef.current) {
-        pendingCommentSubmitAfterLoginRef.current = false;
-
-        window.setTimeout(() => {
-          const form = document.getElementById(
-            `post-comment-form-${postId}`
-          ) as HTMLFormElement | null;
-
-          form?.requestSubmit();
-        }, 0);
-
-        return;
-      }
-
-      if (pendingReplyAfterLoginRef.current !== null) {
-        const parentId = pendingReplyAfterLoginRef.current;
-        pendingReplyAfterLoginRef.current = null;
-
-        window.setTimeout(() => {
-          void handleReplySubmit(parentId, true);
-        }, 0);
-
-        return;
-      }
-
-      if (pendingReactionAfterLoginRef.current) {
-        const pendingReaction = pendingReactionAfterLoginRef.current;
-        pendingReactionAfterLoginRef.current = null;
-
-        window.setTimeout(() => {
-          void handleReactionClick(
-            pendingReaction.commentId,
-            pendingReaction.reaction,
-            true
-          );
-        }, 0);
-      }
+    if (!effectiveIsLoggedIn && replyParentId !== null) {
+      setReplyParentId(null);
+      setReplyContent("");
     }
-
-    window.addEventListener("auth-login-success", handleAuthLoginSuccess);
-
-    return () => {
-      window.removeEventListener("auth-login-success", handleAuthLoginSuccess);
-    };
-  }, [postId, replyContent]);
+  }, [effectiveIsLoggedIn, replyParentId]);
 
   // =====================================================
   // Actions
   // =====================================================
 
-  function requireLogin() {
-    window.dispatchEvent(
-      new CustomEvent("open-login-modal", {
-        detail: {
-          redirectPath: window.location.pathname,
-        },
-      })
-    );
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    if (!canInteract) {
-      pendingCommentSubmitAfterLoginRef.current = true;
-      requireLogin();
-      return;
-    }
-
+  async function createComment() {
     const trimmed = content.trim();
     if (!trimmed || submitting) return;
 
@@ -579,6 +505,13 @@ export default function CommentsSection({
         },
         body: JSON.stringify({ content: trimmed }),
       });
+
+      if (res.status === 401 || res.status === 403) {
+        requireLoginAndResume(() => {
+          void createComment();
+        }, getResumePath());
+        return;
+      }
 
       if (!res.ok) {
         throw new Error("Kommentar konnte nicht gespeichert werden.");
@@ -597,16 +530,36 @@ export default function CommentsSection({
     }
   }
 
-  async function handleReplySubmit(
-    parentId: number,
-    skipLoginCheck = false
-  ) {
-    if (!skipLoginCheck && !canInteract) {
-      pendingReplyAfterLoginRef.current = parentId;
-      requireLogin();
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    if (!effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        void createComment();
+      }, getResumePath());
       return;
     }
 
+    await createComment();
+  }
+
+  function openReply(commentId: number) {
+    setReplyParentId(commentId);
+    setReplyContent("");
+  }
+
+  function handleReplyOpen(commentId: number) {
+    if (!effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        openReply(commentId);
+      }, getResumePath());
+      return;
+    }
+
+    openReply(commentId);
+  }
+
+  async function createReply(parentId: number) {
     const trimmed = replyContent.trim();
     if (!trimmed || replySubmitting) return;
 
@@ -623,6 +576,13 @@ export default function CommentsSection({
           parentId,
         }),
       });
+
+      if (res.status === 401 || res.status === 403) {
+        requireLoginAndResume(() => {
+          void createReply(parentId);
+        }, getResumePath());
+        return;
+      }
 
       if (!res.ok) {
         throw new Error("Antwort konnte nicht gespeichert werden.");
@@ -642,11 +602,19 @@ export default function CommentsSection({
     }
   }
 
-  async function handleDeleteComment(commentId: number) {
-    if (deletingCommentId !== null) return;
+  async function handleReplySubmit(parentId: number) {
+    if (!effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        void createReply(parentId);
+      }, getResumePath());
+      return;
+    }
 
-    const confirmed = window.confirm("Diesen Kommentar wirklich löschen?");
-    if (!confirmed) return;
+    await createReply(parentId);
+  }
+
+  async function deleteComment(commentId: number) {
+    if (deletingCommentId !== null) return;
 
     setDeletingCommentId(commentId);
 
@@ -654,6 +622,13 @@ export default function CommentsSection({
       const res = await fetch(`/api/comments/${commentId}`, {
         method: "DELETE",
       });
+
+      if (res.status === 401 || res.status === 403) {
+        requireLoginAndResume(() => {
+          void deleteComment(commentId);
+        }, getResumePath());
+        return;
+      }
 
       if (!res.ok) {
         const message = await res.text();
@@ -678,20 +653,23 @@ export default function CommentsSection({
     }
   }
 
-  async function handleReactionClick(
-    commentId: number,
-    reaction: ReactionType,
-    skipLoginCheck = false
-  ) {
-    if (!skipLoginCheck && !canInteract) {
-      pendingReactionAfterLoginRef.current = {
-        commentId,
-        reaction,
-      };
-      requireLogin();
+  async function handleDeleteComment(commentId: number) {
+    if (deletingCommentId !== null) return;
+
+    if (!effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        void handleDeleteComment(commentId);
+      }, getResumePath());
       return;
     }
 
+    const confirmed = window.confirm("Diesen Kommentar wirklich löschen?");
+    if (!confirmed) return;
+
+    await deleteComment(commentId);
+  }
+
+  async function submitReaction(commentId: number, reaction: ReactionType) {
     if (reactingCommentId !== null) return;
 
     const existingComment = comments.find((comment) => comment.id === commentId);
@@ -717,6 +695,27 @@ export default function CommentsSection({
         },
         body: JSON.stringify({ reaction: nextReaction }),
       });
+
+      if (res.status === 401 || res.status === 403) {
+        setComments((prev) =>
+          prev.map((comment) =>
+            comment.id === commentId
+              ? {
+                  ...comment,
+                  viewer_reaction: existingComment.viewer_reaction,
+                  reaction_counts: { ...existingComment.reaction_counts },
+                  reactions_count: existingComment.reactions_count,
+                }
+              : comment
+          )
+        );
+
+        requireLoginAndResume(() => {
+          void submitReaction(commentId, reaction);
+        }, getResumePath());
+
+        return;
+      }
 
       if (!res.ok) {
         throw new Error("Kommentar-Reaktion konnte nicht gespeichert werden.");
@@ -756,9 +755,18 @@ export default function CommentsSection({
     }
   }
 
-  function handleReplyOpen(commentId: number) {
-    setReplyParentId(commentId);
-    setReplyContent("");
+  async function handleReactionClick(
+    commentId: number,
+    reaction: ReactionType
+  ) {
+    if (!effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        void submitReaction(commentId, reaction);
+      }, getResumePath());
+      return;
+    }
+
+    await submitReaction(commentId, reaction);
   }
 
   function handleReplyCancel() {
@@ -778,11 +786,7 @@ export default function CommentsSection({
         </h3>
       </div>
 
-      <form
-        id={`post-comment-form-${postId}`}
-        onSubmit={handleSubmit}
-        className="mb-4 flex flex-col gap-2"
-      >
+      <form onSubmit={handleSubmit} className="mb-4 flex flex-col gap-2">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
           <input
             type="text"
@@ -821,13 +825,12 @@ export default function CommentsSection({
               key={comment.id}
               node={comment}
               depth={0}
-              isLoggedIn={canInteract}
+              isLoggedIn={effectiveIsLoggedIn}
               deletingCommentId={deletingCommentId}
               reactingCommentId={reactingCommentId}
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
-              onRequireLogin={requireLogin}
               onReplyOpen={handleReplyOpen}
               onReplyCancel={handleReplyCancel}
               onReplyContentChange={setReplyContent}

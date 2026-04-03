@@ -4,11 +4,22 @@ import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+// =====================================================
+// Auth
+// =====================================================
+
 export async function logout() {
   const supabase = await createClient();
+
   await supabase.auth.signOut();
-  redirect("/login");
+
+  revalidatePath("/", "layout");
+  redirect("/");
 }
+
+// =====================================================
+// Follow
+// =====================================================
 
 export async function toggleFollow(formData: FormData) {
   const supabase = await createClient();

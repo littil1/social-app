@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import type { FeedPost, ReactionType } from "@/types/feed";
 import CommentsSection from "@/app/components/posts/CommentsSection";
+import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
 // =====================================================
 // Types
@@ -94,6 +95,11 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
   };
 }
 
+function getResumePath() {
+  if (typeof window === "undefined") return "/";
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
 // =====================================================
 // Component
 // =====================================================
@@ -110,6 +116,12 @@ function PostCardComponent({
   isLoggedIn = false,
 }: PostCardProps) {
   // =====================================================
+  // Hooks
+  // =====================================================
+
+  const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
+
+  // =====================================================
   // State
   // =====================================================
 
@@ -119,12 +131,16 @@ function PostCardComponent({
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post.comments_count
   );
-  const [hasAuthSession, setHasAuthSession] = useState(isLoggedIn);
 
-  const pendingReactionAfterLoginRef = useRef<ReactionType | null>(null);
+  // =====================================================
+  // Derived Values
+  // =====================================================
+
+  const effectiveIsLoggedIn = useMemo(() => {
+    return authReady ? isAuthenticated : isLoggedIn;
+  }, [authReady, isAuthenticated, isLoggedIn]);
 
   const rankStyles = getRankStyles(dailyRank);
-  const effectiveIsLoggedIn = isLoggedIn || hasAuthSession;
 
   const reactionCounts = {
     like: post.reaction_counts?.like ?? 0,
@@ -138,61 +154,14 @@ function PostCardComponent({
   // =====================================================
 
   useEffect(() => {
-    setHasAuthSession(isLoggedIn);
-  }, [isLoggedIn]);
-
-  useEffect(() => {
     setLocalCommentsCount(post.comments_count);
   }, [post.comments_count]);
-
-  useEffect(() => {
-    function handleAuthLoginSuccess() {
-      setHasAuthSession(true);
-
-      const pendingReaction = pendingReactionAfterLoginRef.current;
-      if (!pendingReaction) return;
-
-      pendingReactionAfterLoginRef.current = null;
-
-      window.setTimeout(() => {
-  // kleiner Delay, damit Session sicher da ist
-  setTimeout(() => {
-    void handleReactionClick(pendingReaction, true);
-  }, 150);
-}, 0);
-    }
-
-    window.addEventListener("auth-login-success", handleAuthLoginSuccess);
-
-    return () => {
-      window.removeEventListener("auth-login-success", handleAuthLoginSuccess);
-    };
-  }, [post.id, post.viewer_reaction, reactionLoading]);
 
   // =====================================================
   // Actions
   // =====================================================
 
-  function requireLogin() {
-    window.dispatchEvent(
-      new CustomEvent("open-login-modal", {
-        detail: {
-          redirectPath: window.location.pathname,
-        },
-      })
-    );
-  }
-
-  async function handleReactionClick(
-    reaction: ReactionType,
-    skipLoginCheck = false
-  ) {
-    if (!skipLoginCheck && !effectiveIsLoggedIn) {
-      pendingReactionAfterLoginRef.current = reaction;
-      requireLogin();
-      return;
-    }
-
+  async function submitReaction(reaction: ReactionType) {
     if (reactionLoading) return;
 
     const previousReaction = post.viewer_reaction;
@@ -209,6 +178,15 @@ function PostCardComponent({
         },
         body: JSON.stringify({ reaction: nextReaction }),
       });
+
+      if (res.status === 401 || res.status === 403) {
+        onReactionUpdated(post.id, previousReaction);
+
+        requireLoginAndResume(() => {
+          void submitReaction(reaction);
+        }, getResumePath());
+        return;
+      }
 
       if (!res.ok) {
         throw new Error("Reaktion konnte nicht gespeichert werden.");
@@ -229,11 +207,19 @@ function PostCardComponent({
     }
   }
 
-  async function handleDeletePost() {
-    if (deleteLoading) return;
+  async function handleReactionClick(reaction: ReactionType) {
+    if (!effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        void submitReaction(reaction);
+      }, getResumePath());
+      return;
+    }
 
-    const confirmed = window.confirm("Diesen Beitrag wirklich löschen?");
-    if (!confirmed) return;
+    await submitReaction(reaction);
+  }
+
+  async function deletePost() {
+    if (deleteLoading) return;
 
     setDeleteLoading(true);
 
@@ -241,6 +227,13 @@ function PostCardComponent({
       const res = await fetch(`/api/posts/${post.id}`, {
         method: "DELETE",
       });
+
+      if (res.status === 401 || res.status === 403) {
+        requireLoginAndResume(() => {
+          void deletePost();
+        }, getResumePath());
+        return;
+      }
 
       if (!res.ok) {
         const message = await res.text();
@@ -254,6 +247,22 @@ function PostCardComponent({
     } finally {
       setDeleteLoading(false);
     }
+  }
+
+  async function handleDeletePost() {
+    if (deleteLoading) return;
+
+    if (!effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        void handleDeletePost();
+      }, getResumePath());
+      return;
+    }
+
+    const confirmed = window.confirm("Diesen Beitrag wirklich löschen?");
+    if (!confirmed) return;
+
+    await deletePost();
   }
 
   function handleCommentCreatedLocal() {
@@ -318,7 +327,7 @@ function PostCardComponent({
           {post.can_delete && (
             <button
               type="button"
-              onClick={handleDeletePost}
+              onClick={() => void handleDeletePost()}
               disabled={deleteLoading}
               className="inline-flex shrink-0 items-center justify-center rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
             >

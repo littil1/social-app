@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import FeedbackCommentsSection from "@/app/components/feedback/FeedbackCommentsSection";
+import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 import {
   deleteFeatureRequest,
   toggleFeatureRequestLike,
@@ -16,15 +17,36 @@ type FeedbackCardProps = {
   currentUserIsAdmin: boolean;
 };
 
+function getResumePath() {
+  if (typeof window === "undefined") return "/";
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
 export default function FeedbackCard({
   item,
   currentUserId,
   currentUserIsAdmin,
 }: FeedbackCardProps) {
+  const { requireLoginAndResume } = useAuthModal();
+
   const isOwnRequest = currentUserId === item.user_id;
   const canDelete = isOwnRequest || currentUserIsAdmin;
   const isImplemented = item.status === "implemented";
+
   const [showComments, setShowComments] = useState(false);
+
+  const likeFormRef = useRef<HTMLFormElement | null>(null);
+
+  function handleLikeClick() {
+    if (!currentUserId) {
+      requireLoginAndResume(() => {
+        likeFormRef.current?.requestSubmit();
+      }, getResumePath());
+      return;
+    }
+
+    likeFormRef.current?.requestSubmit();
+  }
 
   return (
     <article className="rounded-[28px] border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
@@ -96,8 +118,7 @@ export default function FeedbackCard({
 
       <div className="mt-5 flex flex-wrap gap-2">
         <span className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700">
-          {item.likeCount}{" "}
-          {item.likeCount === 1 ? "Zustimmung" : "Zustimmungen"}
+          {item.likeCount} {item.likeCount === 1 ? "Zustimmung" : "Zustimmungen"}
         </span>
 
         <button
@@ -122,28 +143,20 @@ export default function FeedbackCard({
       {/* ===================================================== */}
 
       <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-gray-100 pb-5">
-        {currentUserId ? (
-          <form action={toggleFeatureRequestLike}>
-            <input type="hidden" name="request_id" value={item.id} />
-            <button
-              type="submit"
-              className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
-                item.likedByViewer
-                  ? "border-pink-300 bg-pink-50 text-pink-700"
-                  : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              {item.likedByViewer ? "♥ Unterstützt" : "♡ Unterstützen"}
-            </button>
-          </form>
-        ) : (
-          <a
-            href="/login"
-            className="inline-flex rounded-2xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        <form ref={likeFormRef} action={toggleFeatureRequestLike}>
+          <input type="hidden" name="request_id" value={item.id} />
+          <button
+            type="button"
+            onClick={handleLikeClick}
+            className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+              item.likedByViewer
+                ? "border-pink-300 bg-pink-50 text-pink-700"
+                : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+            }`}
           >
-            ♡ Unterstützen
-          </a>
-        )}
+            {item.likedByViewer ? "♥ Unterstützt" : "♡ Unterstützen"}
+          </button>
+        </form>
 
         {currentUserIsAdmin &&
           (!isImplemented ? (

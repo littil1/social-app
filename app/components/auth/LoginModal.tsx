@@ -1,7 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { loginAction, signupAction, type AuthState } from "@/app/login/actions";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
@@ -19,8 +18,12 @@ const initialState: AuthState = {
 // =====================================================
 
 export default function LoginModal() {
-  const router = useRouter();
-  const { isOpen, redirectPath, closeLogin } = useAuthModal();
+  const {
+    isOpen,
+    redirectPath,
+    closeLogin,
+    handleAuthSuccess,
+  } = useAuthModal();
 
   const [mode, setMode] = useState<"login" | "signup">("login");
 
@@ -33,6 +36,8 @@ export default function LoginModal() {
     signupAction,
     initialState
   );
+
+  const authSuccessHandledRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -55,32 +60,37 @@ export default function LoginModal() {
   }, [isOpen, closeLogin]);
 
   useEffect(() => {
-    if (loginState.success !== "OK") return;
-
-    closeLogin();
-    router.refresh();
-
-    window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("auth-login-success"));
-    }, 0);
-  }, [loginState.success, closeLogin, router]);
-
-  useEffect(() => {
-    if (signupState.success !== "OK") return;
-
-    closeLogin();
-    router.refresh();
-
-    window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("auth-login-success"));
-    }, 0);
-  }, [signupState.success, closeLogin, router]);
-
-  useEffect(() => {
     if (!isOpen) {
       setMode("login");
+      authSuccessHandledRef.current = false;
+      return;
     }
+
+    authSuccessHandledRef.current = false;
   }, [isOpen]);
+
+  useEffect(() => {
+    const loginSucceeded = !!loginState.success && !loginState.error;
+    const signupSucceeded =
+      !!signupState.success && signupState.success === "OK" && !signupState.error;
+
+    if (!isOpen) return;
+    if (loginPending || signupPending) return;
+    if (authSuccessHandledRef.current) return;
+    if (!loginSucceeded && !signupSucceeded) return;
+
+    authSuccessHandledRef.current = true;
+    handleAuthSuccess();
+  }, [
+    isOpen,
+    loginPending,
+    signupPending,
+    loginState.success,
+    loginState.error,
+    signupState.success,
+    signupState.error,
+    handleAuthSuccess,
+  ]);
 
   if (!isOpen) return null;
 
@@ -93,9 +103,6 @@ export default function LoginModal() {
         className="relative grid w-full max-w-4xl overflow-hidden rounded-3xl border bg-white shadow-xl lg:grid-cols-[1fr_1.05fr]"
         onClick={(event) => event.stopPropagation()}
       >
-        {/* =====================================================
-            Close
-        ===================================================== */}
         <button
           type="button"
           onClick={closeLogin}
@@ -105,9 +112,6 @@ export default function LoginModal() {
           ✕
         </button>
 
-        {/* =====================================================
-            Intro
-        ===================================================== */}
         <section className="hidden border-r bg-gray-50 p-8 lg:flex lg:flex-col lg:justify-between">
           <div className="space-y-4">
             <span className="text-sm font-medium text-gray-500">
@@ -142,9 +146,6 @@ export default function LoginModal() {
           </div>
         </section>
 
-        {/* =====================================================
-            Form Area
-        ===================================================== */}
         <section className="p-6 sm:p-8">
           <div className="mx-auto w-full max-w-md">
             <div className="mb-6 space-y-3">
@@ -159,9 +160,6 @@ export default function LoginModal() {
               </p>
             </div>
 
-            {/* =====================================================
-                Tabs
-            ===================================================== */}
             <div className="mb-6 grid grid-cols-2 rounded-2xl bg-gray-100 p-1">
               <button
                 type="button"

@@ -1,4 +1,8 @@
+"use client";
+
 import Link from "next/link";
+import { useRef } from "react";
+import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 import {
   addFeatureRequestComment,
   deleteFeatureRequestComment,
@@ -12,12 +16,31 @@ type FeedbackCommentsSectionProps = {
   currentUserIsAdmin: boolean;
 };
 
+function getResumePath() {
+  if (typeof window === "undefined") return "/";
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
 export default function FeedbackCommentsSection({
   requestId,
   comments,
   currentUserId,
   currentUserIsAdmin,
 }: FeedbackCommentsSectionProps) {
+  const { requireLoginAndResume } = useAuthModal();
+  const commentFormRef = useRef<HTMLFormElement | null>(null);
+
+  function handleCommentSubmit() {
+    if (!currentUserId) {
+      requireLoginAndResume(() => {
+        commentFormRef.current?.requestSubmit();
+      }, getResumePath());
+      return;
+    }
+
+    commentFormRef.current?.requestSubmit();
+  }
+
   return (
     <div className="mt-5 rounded-[24px] border border-gray-200 bg-gray-50 p-4 sm:p-5">
       {/* ===================================================== */}
@@ -97,46 +120,37 @@ export default function FeedbackCommentsSection({
       {/* Comment form */}
       {/* ===================================================== */}
 
-      {currentUserId ? (
-        <form
-          action={addFeatureRequestComment}
-          className="mt-4 flex flex-col gap-2 sm:flex-row"
+      <form
+        ref={commentFormRef}
+        action={addFeatureRequestComment}
+        className="mt-4 flex flex-col gap-2 sm:flex-row"
+      >
+        <input type="hidden" name="request_id" value={requestId} />
+
+        <input
+          type="text"
+          name="content"
+          placeholder="Schreibe einen Kommentar ..."
+          required
+          maxLength={500}
+          disabled={!currentUserId}
+          className={`flex-1 rounded-2xl px-4 py-2.5 text-sm outline-none transition ${
+            currentUserId
+              ? "border border-gray-300 bg-white focus:border-indigo-400"
+              : "border border-gray-200 bg-white text-gray-400"
+          }`}
+        />
+
+        <button
+          type="button"
+          onClick={handleCommentSubmit}
+          className={`rounded-2xl px-4 py-2.5 text-sm font-medium text-white transition ${
+            currentUserId ? "bg-black hover:opacity-90" : "bg-black hover:opacity-90"
+          }`}
         >
-          <input type="hidden" name="request_id" value={requestId} />
-
-          <input
-            type="text"
-            name="content"
-            placeholder="Schreibe einen Kommentar ..."
-            required
-            maxLength={500}
-            className="flex-1 rounded-2xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition focus:border-indigo-400"
-          />
-
-          <button
-            type="submit"
-            className="rounded-2xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-          >
-            Kommentieren
-          </button>
-        </form>
-      ) : (
-        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-          <input
-            type="text"
-            placeholder="Schreibe einen Kommentar ..."
-            disabled
-            className="flex-1 rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-400 outline-none"
-          />
-
-          <a
-            href="/login"
-            className="inline-flex items-center justify-center rounded-2xl bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
-          >
-            Kommentieren
-          </a>
-        </div>
-      )}
+          Kommentieren
+        </button>
+      </form>
     </div>
   );
 }

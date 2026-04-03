@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FeedPost } from "@/types/feed";
+import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
 type CreatePostFormProps = {
   onPostCreated: (post: FeedPost) => void;
@@ -17,6 +18,12 @@ export default function CreatePostForm({
   isLoggedIn,
 }: CreatePostFormProps) {
   // =====================================================
+  // Hooks
+  // =====================================================
+
+  const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
+
+  // =====================================================
   // State
   // =====================================================
 
@@ -29,13 +36,12 @@ export default function CreatePostForm({
   // =====================================================
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const pendingSubmitAfterLoginRef = useRef(false);
-  const skipLoginCheckRef = useRef(false);
 
   // =====================================================
   // Derived Values
   // =====================================================
 
+  const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const trimmed = content.trim();
   const remainingCharacters = 500 - content.length;
   const canSubmit = !loading && trimmed.length >= 2;
@@ -54,53 +60,15 @@ export default function CreatePostForm({
     textarea.style.height = `${nextHeight}px`;
   }, [content]);
 
-  useEffect(() => {
-    function handleAuthLoginSuccess() {
-      if (!pendingSubmitAfterLoginRef.current) return;
-
-      pendingSubmitAfterLoginRef.current = false;
-      skipLoginCheckRef.current = true;
-
-      window.setTimeout(() => {
-        const form = textareaRef.current?.form;
-        form?.requestSubmit();
-      }, 0);
-    }
-
-    window.addEventListener("auth-login-success", handleAuthLoginSuccess);
-
-    return () => {
-      window.removeEventListener("auth-login-success", handleAuthLoginSuccess);
-    };
-  }, []);
-
-  // =====================================================
-  // Helpers
-  // =====================================================
-
-  function requireLogin() {
-    window.dispatchEvent(
-      new CustomEvent("open-login-modal", {
-        detail: {
-          redirectPath: window.location.pathname,
-        },
-      })
-    );
-  }
-
   // =====================================================
   // Actions
   // =====================================================
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    const skipLoginCheck = skipLoginCheckRef.current;
-    skipLoginCheckRef.current = false;
-
-    if (!skipLoginCheck && !isLoggedIn) {
-      pendingSubmitAfterLoginRef.current = true;
-      requireLogin();
+  async function submitPost(skipLoginCheck = false) {
+    if (!skipLoginCheck && !effectiveIsLoggedIn) {
+      requireLoginAndResume(() => {
+        void submitPost(true);
+      }, window.location.pathname);
       return;
     }
 
@@ -117,6 +85,13 @@ export default function CreatePostForm({
         body: JSON.stringify({ content: trimmed }),
       });
 
+      if (res.status === 401 || res.status === 403) {
+        requireLoginAndResume(() => {
+          void submitPost(true);
+        }, window.location.pathname);
+        return;
+      }
+
       if (!res.ok) {
         throw new Error("Beitrag konnte nicht erstellt werden.");
       }
@@ -131,6 +106,11 @@ export default function CreatePostForm({
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    await submitPost();
   }
 
   // =====================================================
@@ -176,7 +156,7 @@ export default function CreatePostForm({
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               placeholder={
-                isLoggedIn
+                effectiveIsLoggedIn
                   ? "Was sollten andere unbedingt wissen?"
                   : "Melde dich an, um etwas zu teilen"
               }

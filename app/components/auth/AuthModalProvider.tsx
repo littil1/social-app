@@ -6,20 +6,33 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import LoginModal from "@/app/components/auth/LoginModal";
+import { createClient } from "@/lib/supabase-browser";
 
 // =====================================================
 // Types
 // =====================================================
 
+type PendingAuthAction = () => void | Promise<void>;
+
 type AuthModalContextValue = {
   isOpen: boolean;
   redirectPath: string;
+  isAuthenticated: boolean;
+  authReady: boolean;
   openLogin: (redirectPath?: string) => void;
   closeLogin: () => void;
+  requireLoginAndResume: (
+    action: PendingAuthAction,
+    redirectPath?: string
+  ) => void;
+  handleAuthSuccess: () => void;
 };
 
 // =====================================================
@@ -29,7 +42,7 @@ type AuthModalContextValue = {
 const AuthModalContext = createContext<AuthModalContextValue | null>(null);
 
 // =====================================================
-// Helper
+// Helpers
 // =====================================================
 
 function getSafeRedirectPath(value?: string) {
@@ -51,8 +64,65 @@ export default function AuthModalProvider({
 }: {
   children: ReactNode;
 }) {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
+
   const [isOpen, setIsOpen] = useState(false);
   const [redirectPath, setRedirectPath] = useState("/");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+
+  const pendingActionRef = useRef<PendingAuthAction | null>(null);
+  const resumeInProgressRef = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadInitialSession() {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Initial auth session could not be loaded:", error);
+      }
+
+      if (!isMounted) return;
+
+      setIsAuthenticated(!!data.session);
+      setAuthReady(true);
+    }
+
+    void loadInitialSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        if (!isMounted) return;
+
+        const nextIsAuthenticated = !!session;
+
+        setIsAuthenticated(nextIsAuthenticated);
+        setAuthReady(true);
+
+        if (event === "SIGNED_OUT") {
+          pendingActionRef.current = null;
+          resumeInProgressRef.current = false;
+          setIsOpen(false);
+          router.refresh();
+          return;
+        }
+
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          router.refresh();
+        }
+      }
+    );
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router, supabase]);
 
   const openLogin = useCallback((nextRedirectPath?: string) => {
     setRedirectPath(getSafeRedirectPath(nextRedirectPath));
@@ -60,12 +130,49 @@ export default function AuthModalProvider({
   }, []);
 
   const closeLogin = useCallback(() => {
+    pendingActionRef.current = null;
+    resumeInProgressRef.current = false;
     setIsOpen(false);
   }, []);
 
-  // =====================================================
-  // Global Event Listener (wichtig für deine App!)
-  // =====================================================
+  const requireLoginAndResume = useCallback(
+    (action: PendingAuthAction, nextRedirectPath?: string) => {
+      pendingActionRef.current = action;
+      resumeInProgressRef.current = false;
+      setRedirectPath(getSafeRedirectPath(nextRedirectPath));
+      setIsOpen(true);
+    },
+    []
+  );
+
+  const handleAuthSuccess = useCallback(() => {
+    if (resumeInProgressRef.current) return;
+
+    const pendingAction = pendingActionRef.current;
+
+    resumeInProgressRef.current = true;
+    pendingActionRef.current = null;
+
+    setIsAuthenticated(true);
+    setAuthReady(true);
+    setIsOpen(false);
+    router.refresh();
+
+    if (!pendingAction) {
+      resumeInProgressRef.current = false;
+      return;
+    }
+
+    window.setTimeout(() => {
+      void Promise.resolve(pendingAction())
+        .catch((error) => {
+          console.error("Pending auth action failed:", error);
+        })
+        .finally(() => {
+          resumeInProgressRef.current = false;
+        });
+    }, 0);
+  }, [router]);
 
   useEffect(() => {
     function handleOpenLoginModal(event: Event) {
@@ -84,10 +191,23 @@ export default function AuthModalProvider({
     () => ({
       isOpen,
       redirectPath,
+      isAuthenticated,
+      authReady,
       openLogin,
       closeLogin,
+      requireLoginAndResume,
+      handleAuthSuccess,
     }),
-    [isOpen, redirectPath, openLogin, closeLogin]
+    [
+      isOpen,
+      redirectPath,
+      isAuthenticated,
+      authReady,
+      openLogin,
+      closeLogin,
+      requireLoginAndResume,
+      handleAuthSuccess,
+    ]
   );
 
   return (

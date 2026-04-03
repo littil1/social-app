@@ -14,17 +14,34 @@ export async function deletePost(postId: number) {
     throw new Error("Nicht eingeloggt.");
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    throw new Error(profileError.message);
+  }
+
   const { data: post, error: postError } = await supabase
     .from("posts")
     .select("id, user_id")
     .eq("id", postId)
-    .single();
+    .maybeSingle();
 
-  if (postError || !post) {
+  if (postError) {
+    throw new Error(postError.message);
+  }
+
+  if (!post) {
     throw new Error("Post nicht gefunden.");
   }
 
-  if (post.user_id !== user.id) {
+  const isOwner = post.user_id === user.id;
+  const isAdmin = !!profile?.is_admin;
+
+  if (!isOwner && !isAdmin) {
     throw new Error("Du darfst diesen Post nicht löschen.");
   }
 
@@ -39,4 +56,5 @@ export async function deletePost(postId: number) {
 
   revalidatePath("/");
   revalidatePath("/explore");
+  revalidatePath("/hall-of-fame");
 }
