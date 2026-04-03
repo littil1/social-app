@@ -26,9 +26,9 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const body = await request.json().catch(() => null);
-    const reaction = body?.reaction;
+    const reaction = body?.reaction as ReactionType | null;
 
-    if (!isReactionType(reaction)) {
+    if (reaction !== null && !isReactionType(reaction)) {
       return new NextResponse("Ungültige Reaction.", { status: 400 });
     }
 
@@ -83,28 +83,36 @@ export async function POST(request: Request, context: RouteContext) {
       authorUsername = authorProfile?.username ?? null;
     }
 
-    if (existingReaction) {
-      if (existingReaction.reaction === reaction) {
-        const { error: deleteError } = await supabase
-          .from("post_reactions")
-          .delete()
-          .eq("id", existingReaction.id);
-
-        if (deleteError) {
-          return new NextResponse(deleteError.message, { status: 500 });
-        }
-
-        revalidatePath("/");
-        if (authorUsername) {
-          revalidatePath(`/u/${authorUsername}`);
-        }
-
+    if (reaction === null) {
+      if (!existingReaction) {
         return NextResponse.json({
           success: true,
           reaction: null,
         });
       }
 
+      const { error: deleteError } = await supabase
+        .from("post_reactions")
+        .delete()
+        .eq("id", existingReaction.id);
+
+      if (deleteError) {
+        return new NextResponse(deleteError.message, { status: 500 });
+      }
+
+      revalidatePath("/");
+      revalidatePath("/explore");
+      if (authorUsername) {
+        revalidatePath(`/u/${authorUsername}`);
+      }
+
+      return NextResponse.json({
+        success: true,
+        reaction: null,
+      });
+    }
+
+    if (existingReaction) {
       const { error: updateError } = await supabase
         .from("post_reactions")
         .update({ reaction })
@@ -115,6 +123,7 @@ export async function POST(request: Request, context: RouteContext) {
       }
 
       revalidatePath("/");
+      revalidatePath("/explore");
       if (authorUsername) {
         revalidatePath(`/u/${authorUsername}`);
       }
@@ -136,6 +145,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     revalidatePath("/");
+    revalidatePath("/explore");
     if (authorUsername) {
       revalidatePath(`/u/${authorUsername}`);
     }
