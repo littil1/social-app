@@ -427,6 +427,7 @@ export default function CommentsSection({
   const [replyParentId, setReplyParentId] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
+  const [authOverride, setAuthOverride] = useState(false);
 
   const pendingCommentSubmitAfterLoginRef = useRef(false);
   const pendingReplyAfterLoginRef = useRef<number | null>(null);
@@ -435,13 +436,14 @@ export default function CommentsSection({
     reaction: ReactionType;
   } | null>(null);
 
+  const canInteract = isLoggedIn || authOverride;
   const commentTree = useMemo(() => buildCommentTree(comments), [comments]);
 
   // =====================================================
   // Effects
   // =====================================================
 
-    useEffect(() => {
+  useEffect(() => {
     let active = true;
 
     async function loadComments() {
@@ -479,15 +481,22 @@ export default function CommentsSection({
   }, [postId]);
 
   useEffect(() => {
+    if (isLoggedIn) {
+      setAuthOverride(false);
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     if (loading) return;
 
     onCommentsLoaded?.(comments.length);
-    // absichtlich ohne onCommentsLoaded, damit kein Render-Loop entsteht
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comments.length, loading]);
 
   useEffect(() => {
     function handleAuthLoginSuccess() {
+      setAuthOverride(true);
+
       if (pendingCommentSubmitAfterLoginRef.current) {
         pendingCommentSubmitAfterLoginRef.current = false;
 
@@ -532,9 +541,9 @@ export default function CommentsSection({
     return () => {
       window.removeEventListener("auth-login-success", handleAuthLoginSuccess);
     };
-  }, [postId, replyContent, reactingCommentId, submitting, replySubmitting]);
+  }, [postId, replyContent]);
 
-    // =====================================================
+  // =====================================================
   // Actions
   // =====================================================
 
@@ -551,7 +560,7 @@ export default function CommentsSection({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!isLoggedIn) {
+    if (!canInteract) {
       pendingCommentSubmitAfterLoginRef.current = true;
       requireLogin();
       return;
@@ -592,7 +601,7 @@ export default function CommentsSection({
     parentId: number,
     skipLoginCheck = false
   ) {
-    if (!skipLoginCheck && !isLoggedIn) {
+    if (!skipLoginCheck && !canInteract) {
       pendingReplyAfterLoginRef.current = parentId;
       requireLogin();
       return;
@@ -674,7 +683,7 @@ export default function CommentsSection({
     reaction: ReactionType,
     skipLoginCheck = false
   ) {
-    if (!skipLoginCheck && !isLoggedIn) {
+    if (!skipLoginCheck && !canInteract) {
       pendingReactionAfterLoginRef.current = {
         commentId,
         reaction,
@@ -770,10 +779,10 @@ export default function CommentsSection({
       </div>
 
       <form
-          id={`post-comment-form-${postId}`}
-          onSubmit={handleSubmit}
-          className="mb-4 flex flex-col gap-2"
-        >
+        id={`post-comment-form-${postId}`}
+        onSubmit={handleSubmit}
+        className="mb-4 flex flex-col gap-2"
+      >
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
           <input
             type="text"
@@ -812,7 +821,7 @@ export default function CommentsSection({
               key={comment.id}
               node={comment}
               depth={0}
-              isLoggedIn={isLoggedIn}
+              isLoggedIn={canInteract}
               deletingCommentId={deletingCommentId}
               reactingCommentId={reactingCommentId}
               replyParentId={replyParentId}
