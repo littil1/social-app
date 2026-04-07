@@ -625,7 +625,7 @@ export default function LeaderboardPodiumCard({
               aria-pressed={viewerReaction === "wow"}
               title="Wow"
             >
-              <span className="text-[16px] leading-none">😮</span>
+              <span className="text-[16px] leading-none">🤯</span>
               <span className="tabular-nums">{animatedWow}</span>
             </button>
 

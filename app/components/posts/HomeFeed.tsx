@@ -102,24 +102,13 @@ export default function HomeFeed({
   pageSize,
   isLoggedIn,
 }: HomeFeedProps) {
-  // =====================================================
-  // State
-  // =====================================================
-
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length === pageSize);
-
-  // =====================================================
-  // Refs
-  // =====================================================
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  // =====================================================
-  // Derived Values
-  // =====================================================
 
   const seenIds = useMemo(() => new Set(posts.map((post) => post.id)), [posts]);
 
@@ -144,10 +133,6 @@ export default function HomeFeed({
     () => todaysPosts.filter((post) => !topPostIds.has(post.id)),
     [todaysPosts, topPostIds]
   );
-
-  // =====================================================
-  // Data Loading
-  // =====================================================
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -181,10 +166,6 @@ export default function HomeFeed({
     }
   }, [hasMore, loadingMore, offset, pageSize]);
 
-  // =====================================================
-  // Effects
-  // =====================================================
-
   useEffect(() => {
     const element = sentinelRef.current;
     if (!element) return;
@@ -206,9 +187,16 @@ export default function HomeFeed({
     return () => observer.disconnect();
   }, [loadMore]);
 
-  // =====================================================
-  // Actions
-  // =====================================================
+  useEffect(() => {
+    if (!isCreateOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isCreateOpen]);
 
   function handlePostCreated(newPost: FeedPost) {
     setPosts((prev) => {
@@ -257,19 +245,16 @@ export default function HomeFeed({
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   }
 
-  // =====================================================
-  // Render
-  // =====================================================
+  function openCreateModal() {
+    setIsCreateOpen(true);
+  }
+
+  function closeCreateModal() {
+    setIsCreateOpen(false);
+  }
 
   return (
-    <div className="space-y-6">
-      <section id="create-post" className="space-y-3 scroll-mt-24">
-        <CreatePostForm
-          onPostCreated={handlePostCreated}
-          isLoggedIn={isLoggedIn}
-        />
-      </section>
-
+    <>
       <div className="space-y-4">
         {topPosts.map((post) => (
           <PostCard
@@ -308,12 +293,13 @@ export default function HomeFeed({
             </p>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-              <Link
-                href="/#create-post"
+              <button
+                type="button"
+                onClick={openCreateModal}
                 className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
                 Beitrag erstellen
-              </Link>
+              </button>
 
               <Link
                 href="/leaderboard"
@@ -370,12 +356,13 @@ export default function HomeFeed({
             </p>
 
             <div className="mt-4">
-              <Link
-                href="/#create-post"
+              <button
+                type="button"
+                onClick={openCreateModal}
                 className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
                 Beitrag erstellen
-              </Link>
+              </button>
             </div>
           </div>
         )}
@@ -390,7 +377,7 @@ export default function HomeFeed({
       )}
 
       {!hasMore && posts.length > 0 && olderPosts.length > 0 && (
-        <div className="pb-8 pt-2 text-center">
+        <div className="pb-24 pt-2 text-center">
           <p className="text-sm font-semibold text-gray-700">
             Jetzt ist aber wirklich Schluss.
           </p>
@@ -401,10 +388,37 @@ export default function HomeFeed({
       )}
 
       {!hasMore && posts.length > 0 && olderPosts.length === 0 && (
-        <p className="pb-8 text-center text-sm text-gray-400">
+        <p className="pb-24 text-center text-sm text-gray-400">
           Keine weiteren Beiträge.
         </p>
       )}
-    </div>
+
+      <button
+        type="button"
+        onClick={openCreateModal}
+        aria-label="Beitrag erstellen"
+        className="fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-black text-3xl font-light text-white shadow-lg transition hover:scale-[1.03] hover:bg-gray-900"
+      >
+        +
+      </button>
+
+      {isCreateOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-6">
+          <div
+            className="absolute inset-0"
+            onClick={closeCreateModal}
+            aria-hidden="true"
+          />
+
+          <div className="relative z-10 w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-xl sm:rounded-3xl sm:p-6">
+            <CreatePostForm
+              onPostCreated={handlePostCreated}
+              isLoggedIn={isLoggedIn}
+              onClose={closeCreateModal}
+            />
+          </div>
+        </div>
+      )}
+    </>
   );
 }

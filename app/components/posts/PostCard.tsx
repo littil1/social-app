@@ -33,7 +33,7 @@ const REACTIONS: Array<{
 }> = [
   { value: "like", emoji: "❤️", label: "Gefällt mir", countKey: "like" },
   { value: "funny", emoji: "😂", label: "Lustig", countKey: "funny" },
-  { value: "wow", emoji: "😮", label: "Wow", countKey: "wow" },
+  { value: "wow", emoji: "🤯", label: "Mindblowing", countKey: "wow" },
   { value: "fire", emoji: "🔥", label: "Stark", countKey: "fire" },
 ];
 
@@ -57,7 +57,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
   if (dailyRank === 1) {
     return {
       articleClass:
-        "border border-amber-300/80 bg-gradient-to-br from-amber-50 via-white to-white shadow-[0_10px_30px_rgba(245,158,11,0.10)]",
+        "border border-amber-300/80 bg-gradient-to-br from-amber-50 via-white to-white shadow-[0_10px_24px_rgba(245,158,11,0.08)]",
       badgeClass:
         "border border-amber-200 bg-amber-100/80 text-amber-800",
       badgeText: "🏆 #1 heute",
@@ -68,7 +68,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
   if (dailyRank === 2) {
     return {
       articleClass:
-        "border border-slate-300 bg-gradient-to-br from-slate-50 via-white to-white shadow-[0_10px_24px_rgba(100,116,139,0.08)]",
+        "border border-slate-300 bg-gradient-to-br from-slate-50 via-white to-white shadow-[0_10px_20px_rgba(100,116,139,0.07)]",
       badgeClass:
         "border border-slate-200 bg-slate-100 text-slate-700",
       badgeText: "✨ #2 heute",
@@ -79,7 +79,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
   if (dailyRank === 3) {
     return {
       articleClass:
-        "border border-orange-300/80 bg-gradient-to-br from-orange-50 via-white to-white shadow-[0_10px_24px_rgba(249,115,22,0.08)]",
+        "border border-orange-300/80 bg-gradient-to-br from-orange-50 via-white to-white shadow-[0_10px_20px_rgba(249,115,22,0.07)]",
       badgeClass:
         "border border-orange-200 bg-orange-100/80 text-orange-800",
       badgeText: "🔥 #3 heute",
@@ -115,15 +115,7 @@ function PostCardComponent({
   detailHref,
   isLoggedIn = false,
 }: PostCardProps) {
-  // =====================================================
-  // Hooks
-  // =====================================================
-
   const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
-
-  // =====================================================
-  // State
-  // =====================================================
 
   const [reactionLoading, setReactionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -131,10 +123,6 @@ function PostCardComponent({
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post.comments_count
   );
-
-  // =====================================================
-  // Derived Values
-  // =====================================================
 
   const effectiveIsLoggedIn = useMemo(() => {
     return authReady ? isAuthenticated : isLoggedIn;
@@ -149,17 +137,9 @@ function PostCardComponent({
     fire: post.reaction_counts?.fire ?? 0,
   };
 
-  // =====================================================
-  // Effects
-  // =====================================================
-
   useEffect(() => {
     setLocalCommentsCount(post.comments_count);
   }, [post.comments_count]);
-
-  // =====================================================
-  // Actions
-  // =====================================================
 
   async function submitReaction(reaction: ReactionType) {
     if (reactionLoading) return;
@@ -274,13 +254,9 @@ function PostCardComponent({
     onCommentsCountChange?.(post.id, count);
   }
 
-  // =====================================================
-  // Render
-  // =====================================================
-
   return (
     <article
-      className={`relative overflow-hidden rounded-2xl p-4 sm:p-6 ${rankStyles.articleClass}`}
+      className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 ${rankStyles.articleClass}`}
     >
       {dailyRank && (
         <div
@@ -289,125 +265,128 @@ function PostCardComponent({
         />
       )}
 
-      <div className="mb-4 flex flex-col gap-3 sm:mb-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            {showAuthor && post.author_username ? (
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-                  {post.author_avatar_url ? (
-                    <img
-                      src={post.author_avatar_url}
-                      alt={`${post.author_username} avatar`}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    post.author_username.charAt(0).toUpperCase()
+      <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
+        <div className="min-w-0 flex-1">
+          {showAuthor && post.author_username ? (
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
+                {post.author_avatar_url ? (
+                  <img
+                    src={post.author_avatar_url}
+                    alt={`${post.author_username} avatar`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  post.author_username.charAt(0).toUpperCase()
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <Link
+                  href={`/u/${post.author_username}`}
+                  className="block truncate text-sm font-semibold text-gray-700 hover:underline"
+                >
+                  @{post.author_username}
+                </Link>
+
+                <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                  {dailyRank && (
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${rankStyles.badgeClass}`}
+                    >
+                      {rankStyles.badgeText}
+                    </span>
                   )}
-                </div>
 
-                <div className="min-w-0">
-                  <Link
-                    href={`/u/${post.author_username}`}
-                    className="block truncate text-sm font-semibold text-gray-700 hover:underline"
-                  >
-                    @{post.author_username}
-                  </Link>
-
-                  <p className="mt-1 text-xs text-gray-400">
+                  <p className="text-xs text-gray-400">
                     {formatDate(post.created_at)}
                   </p>
                 </div>
               </div>
-            ) : (
-              <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {dailyRank && (
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${rankStyles.badgeClass}`}
+                >
+                  {rankStyles.badgeText}
+                </span>
+              )}
 
-          {post.can_delete && (
-            <button
-              type="button"
-              onClick={() => void handleDeletePost()}
-              disabled={deleteLoading}
-              className="inline-flex shrink-0 items-center justify-center rounded-xl border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-            >
-              {deleteLoading ? "Lösche..." : "Löschen"}
-            </button>
+              <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+            </div>
           )}
         </div>
 
-        {dailyRank && (
-          <div className="flex justify-start">
-            <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${rankStyles.badgeClass}`}
-            >
-              {rankStyles.badgeText}
-            </span>
-          </div>
+        {post.can_delete && (
+          <button
+            type="button"
+            onClick={() => void handleDeletePost()}
+            disabled={deleteLoading}
+            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+          >
+            {deleteLoading ? "Lösche..." : "Löschen"}
+          </button>
         )}
       </div>
 
-      <div className="mb-5 sm:mb-6">
+      <div className="mb-4 sm:mb-5">
         {detailHref ? (
           <Link
             href={detailHref}
             className="block rounded-xl transition hover:opacity-90"
           >
-            <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[17px] sm:leading-8">
+            <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[16px] sm:leading-7">
               {post.content}
             </p>
           </Link>
         ) : (
-          <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[17px] sm:leading-8">
+          <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[16px] sm:leading-7">
             {post.content}
           </p>
         )}
       </div>
 
-      <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50/80 p-3">
-        <div className="flex flex-col gap-2">
-          <div className="overflow-x-auto">
-            <div className="flex min-w-max items-center gap-2">
-              {REACTIONS.map((reaction) => {
-                const isActive = post.viewer_reaction === reaction.value;
+      <div className="mb-3 overflow-x-auto">
+        <div className="flex min-w-max items-center gap-2">
+          {REACTIONS.map((reaction) => {
+            const isActive = post.viewer_reaction === reaction.value;
 
-                return (
-                  <button
-                    key={reaction.value}
-                    type="button"
-                    onClick={() => void handleReactionClick(reaction.value)}
-                    disabled={reactionLoading}
-                    className={`inline-flex min-h-[40px] shrink-0 items-center justify-center rounded-full px-3 py-1.5 text-sm transition disabled:opacity-50 ${
-                      isActive
-                        ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
-                        : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
-                    }`}
-                    aria-pressed={isActive}
-                    title={reaction.label}
-                  >
-                    <span className="mr-1.5">{reaction.emoji}</span>
-                    <span className="font-medium">
-                      {reactionCounts[reaction.countKey]}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+            return (
+              <button
+                key={reaction.value}
+                type="button"
+                onClick={() => void handleReactionClick(reaction.value)}
+                disabled={reactionLoading}
+                className={`inline-flex min-h-[34px] shrink-0 items-center justify-center rounded-full px-3 py-1 text-sm transition disabled:opacity-50 ${
+                  isActive
+                    ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+                    : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+                }`}
+                aria-pressed={isActive}
+                title={reaction.label}
+              >
+                <span className="mr-1.5">{reaction.emoji}</span>
+                <span className="font-medium">
+                  {reactionCounts[reaction.countKey]}
+                </span>
+              </button>
+            );
+          })}
 
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowComments((prev) => !prev)}
-              className="inline-flex min-h-[40px] items-center justify-center rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
-            >
-              <span className="mr-1.5">💬</span>
-              <span className="font-medium">
-                {localCommentsCount}{" "}
-                {showComments ? "Kommentare ausblenden" : "Kommentare anzeigen"}
-              </span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowComments((prev) => !prev)}
+            className={`inline-flex min-h-[34px] shrink-0 items-center justify-center rounded-full px-3 py-1 text-sm transition ${
+              showComments
+                ? "border border-gray-300 bg-gray-100 text-gray-900 ring-1 ring-gray-300"
+                : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+            }`}
+          >
+            <span className="mr-1.5">💬</span>
+            <span className="font-medium">{localCommentsCount}</span>
+          </button>
         </div>
       </div>
 

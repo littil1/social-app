@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import LoginModal from "@/app/components/auth/LoginModal";
 import { createClient } from "@/lib/supabase-browser";
 
@@ -21,11 +21,18 @@ import { createClient } from "@/lib/supabase-browser";
 
 type PendingAuthAction = () => void | Promise<void>;
 
+type AuthProfile = {
+  username: string | null;
+  avatar_url: string | null;
+};
+
 type AuthModalContextValue = {
   isOpen: boolean;
   redirectPath: string;
   isAuthenticated: boolean;
   authReady: boolean;
+  user: User | null;
+  profile: AuthProfile | null;
   openLogin: (redirectPath?: string) => void;
   closeLogin: () => void;
   requireLoginAndResume: (
@@ -71,9 +78,38 @@ export default function AuthModalProvider({
   const [redirectPath, setRedirectPath] = useState("/");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<AuthProfile | null>(null);
 
   const pendingActionRef = useRef<PendingAuthAction | null>(null);
   const resumeInProgressRef = useRef(false);
+
+  const loadProfile = useCallback(
+    async (userId: string | null | undefined) => {
+      if (!userId) {
+        setProfile(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("username, avatar_url")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Auth profile could not be loaded:", error);
+        setProfile(null);
+        return;
+      }
+
+      setProfile({
+        username: data?.username ?? null,
+        avatar_url: data?.avatar_url ?? null,
+      });
+    },
+    [supabase]
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -87,8 +123,17 @@ export default function AuthModalProvider({
 
       if (!isMounted) return;
 
+      const sessionUser = data.session?.user ?? null;
+
       setIsAuthenticated(!!data.session);
+      setUser(sessionUser);
       setAuthReady(true);
+
+      if (sessionUser?.id) {
+        await loadProfile(sessionUser.id);
+      } else {
+        setProfile(null);
+      }
     }
 
     void loadInitialSession();
@@ -96,13 +141,21 @@ export default function AuthModalProvider({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
+      async (event: AuthChangeEvent, session: Session | null) => {
         if (!isMounted) return;
 
+        const sessionUser = session?.user ?? null;
         const nextIsAuthenticated = !!session;
 
         setIsAuthenticated(nextIsAuthenticated);
+        setUser(sessionUser);
         setAuthReady(true);
+
+        if (sessionUser?.id) {
+          await loadProfile(sessionUser.id);
+        } else {
+          setProfile(null);
+        }
 
         if (event === "SIGNED_OUT") {
           pendingActionRef.current = null;
@@ -122,7 +175,7 @@ export default function AuthModalProvider({
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router, supabase]);
+  }, [router, supabase, loadProfile]);
 
   const openLogin = useCallback((nextRedirectPath?: string) => {
     setRedirectPath(getSafeRedirectPath(nextRedirectPath));
@@ -158,6 +211,27 @@ export default function AuthModalProvider({
     setIsOpen(false);
     router.refresh();
 
+    void supabase.auth
+      .getUser()
+      .then(async ({ data, error }) => {
+        if (error) {
+          console.error("Authenticated user could not be loaded:", error);
+          return;
+        }
+
+        const nextUser = data.user ?? null;
+        setUser(nextUser);
+
+        if (nextUser?.id) {
+          await loadProfile(nextUser.id);
+        } else {
+          setProfile(null);
+        }
+      })
+      .catch((error) => {
+        console.error("Authenticated user could not be loaded:", error);
+      });
+
     if (!pendingAction) {
       resumeInProgressRef.current = false;
       return;
@@ -172,7 +246,7 @@ export default function AuthModalProvider({
           resumeInProgressRef.current = false;
         });
     }, 0);
-  }, [router]);
+  }, [router, supabase, loadProfile]);
 
   useEffect(() => {
     function handleOpenLoginModal(event: Event) {
@@ -193,6 +267,8 @@ export default function AuthModalProvider({
       redirectPath,
       isAuthenticated,
       authReady,
+      user,
+      profile,
       openLogin,
       closeLogin,
       requireLoginAndResume,
@@ -203,6 +279,8 @@ export default function AuthModalProvider({
       redirectPath,
       isAuthenticated,
       authReady,
+      user,
+      profile,
       openLogin,
       closeLogin,
       requireLoginAndResume,

@@ -179,7 +179,7 @@ export default function HallOfFameFrozenPostCard({
           <div
             className={`rounded-full border px-4 py-2.5 text-sm ${styles.reactionPill}`}
           >
-            😮 {post.reaction_counts.wow}
+            🤯 {post.reaction_counts.wow}
           </div>
           <div
             className={`rounded-full border px-4 py-2.5 text-sm ${styles.reactionPill}`}
