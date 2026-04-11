@@ -87,7 +87,7 @@ export default function LeaderboardPodiumStage({
     try {
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(nextSnapshot));
     } catch {
-      // ignore storage errors
+      //
     }
 
     const timeout = window.setTimeout(() => {
@@ -99,10 +99,9 @@ export default function LeaderboardPodiumStage({
 
   function scrollByDirection(direction: "left" | "right") {
     const container = scrollRef.current;
-
     if (!container) return;
 
-    const amount = Math.round(container.clientWidth * 0.88);
+    const amount = Math.round(container.clientWidth * 0.86);
 
     container.scrollBy({
       left: direction === "left" ? -amount : amount,
@@ -135,13 +134,10 @@ export default function LeaderboardPodiumStage({
 
         <div
           ref={scrollRef}
-          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 pr-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {mobileItems.map((entry) => (
-            <div
-              key={entry.position}
-              className="w-[88%] min-w-[88%] snap-center"
-            >
+            <div key={entry.position} className="w-[88%] min-w-[88%] snap-center">
               <LeaderboardPodiumCard
                 position={entry.position}
                 post={entry.post}
@@ -155,7 +151,7 @@ export default function LeaderboardPodiumStage({
         </div>
       </div>
 
-      <div className="hidden min-h-0 flex-1 md:grid md:grid-cols-3 md:items-end md:gap-4 lg:gap-5">
+      <div className="hidden md:grid md:grid-cols-3 md:items-stretch md:gap-5 xl:gap-6">
         {items.map((entry) => (
           <LeaderboardPodiumCard
             key={entry.position}
@@ -164,6 +160,7 @@ export default function LeaderboardPodiumStage({
             changeType={
               entry.post ? changeByPostId.get(entry.post.id) ?? null : null
             }
+            isLoggedIn={isLoggedIn}
           />
         ))}
       </div>

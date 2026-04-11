@@ -92,7 +92,7 @@ export default function SinglePostView({
 
   function handlePostDeleted(postId: number) {
     if (postId !== post.id) return;
-    router.push("/");
+    router.push("/leaderboard");
     router.refresh();
   }
 
@@ -106,7 +106,6 @@ export default function SinglePostView({
       onReactionUpdated={handleReactionUpdated}
       onCommentCreated={handleCommentCreated}
       onPostDeleted={handlePostDeleted}
-      showAuthor
     />
   );
 }

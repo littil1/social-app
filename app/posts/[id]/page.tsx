@@ -136,26 +136,6 @@ export default async function PostDetailPage({ params }: PageProps) {
   const post = postData as PostRow;
 
   // =====================================================
-  // Load Author
-  // =====================================================
-
-  let authorProfile: ProfileRow | null = null;
-
-  if (post.user_id) {
-    const { data: authorData, error: authorError } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url")
-      .eq("id", post.user_id)
-      .maybeSingle();
-
-    if (authorError) {
-      throw new Error(authorError.message);
-    }
-
-    authorProfile = (authorData ?? null) as ProfileRow | null;
-  }
-
-  // =====================================================
   // Load Reactions / Comments
   // =====================================================
 
@@ -204,8 +184,6 @@ export default async function PostDetailPage({ params }: PageProps) {
     viewer_reaction: viewerReaction,
     comments_count: commentsCount,
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
-    author_username: authorProfile?.username ?? null,
-    author_avatar_url: authorProfile?.avatar_url ?? null,
   };
 
   // =====================================================
@@ -220,13 +198,13 @@ export default async function PostDetailPage({ params }: PageProps) {
         {!user && (
           <div className="mb-6 rounded-xl bg-white p-4 shadow">
             <p className="mb-3 text-gray-700">
-              You need an account to like, comment, and interact with posts.
+              Du musst eingeloggt sein, um zu interagieren.
             </p>
             <Link
               href="/login"
               className="inline-block rounded-lg bg-black px-4 py-2 text-white"
             >
-              Go to Login / Signup
+              Anmelden / Registrieren
             </Link>
           </div>
         )}

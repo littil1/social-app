@@ -7,15 +7,8 @@ import type { ReactionCounts } from "@/types/feed";
 
 export const dynamic = "force-dynamic";
 
-type DailyWinnerRow =
-  Database["public"]["Tables"]["daily_post_winners"]["Row"];
-
-type PostReactionRow =
-  Database["public"]["Tables"]["post_reactions"]["Row"];
-
+type DailyWinnerRow = Database["public"]["Tables"]["daily_post_winners"]["Row"];
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
-
-type ReactionType = Database["public"]["Enums"]["reaction_type"];
 
 type FrozenWinnerPost = {
   id: number;
@@ -37,10 +30,9 @@ type DailyWinnerEntry = {
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
-
-  return new Intl.DateTimeFormat("de-CH", {
+  return new Intl.DateTimeFormat("en-GB", { // Auf Englisch umgestellt für Konsistenz
     day: "2-digit",
-    month: "2-digit",
+    month: "long",
     year: "numeric",
   }).format(date);
 }
@@ -54,49 +46,15 @@ function getZurichDayKey(date: Date | string) {
   }).format(new Date(date));
 }
 
-function createEmptyReactionCounts(): ReactionCounts {
-  return {
-    like: 0,
-    funny: 0,
-    wow: 0,
-    fire: 0,
-  };
-}
-
 function countTotalReactions(reactionCounts: ReactionCounts) {
-  return (
-    reactionCounts.like +
-    reactionCounts.funny +
-    reactionCounts.wow +
-    reactionCounts.fire
-  );
-}
-
-function isReactionType(value: string): value is ReactionType {
-  return (
-    value === "like" ||
-    value === "funny" ||
-    value === "wow" ||
-    value === "fire"
-  );
+  return reactionCounts.like + reactionCounts.funny + reactionCounts.wow + reactionCounts.fire;
 }
 
 export default async function HallOfFamePage() {
-  // =====================================================
-  // Data
-  // =====================================================
-
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let navUser: {
-    username: string;
-    avatar_url: string | null;
-    is_admin: boolean;
-  } | null = null;
+  let navUser: { username: string; avatar_url: string | null; is_admin: boolean; } | null = null;
 
   if (user) {
     const { data: profile, error: profileError } = await supabase
@@ -105,10 +63,7 @@ export default async function HallOfFamePage() {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profileError) {
-      throw new Error(profileError.message);
-    }
-
+    if (profileError) throw new Error(profileError.message);
     if (profile?.username) {
       navUser = {
         username: profile.username,
@@ -124,28 +79,14 @@ export default async function HallOfFamePage() {
     .order("winner_date", { ascending: false })
     .order("rank_position", { ascending: true });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  // =====================================================
-  // Winner rows
-  // =====================================================
+  if (error) throw new Error(error.message);
 
   const todayKey = getZurichDayKey(new Date());
-
   const winnerRows: DailyWinnerRow[] = (data ?? []).filter(
     (item) => item.winner_date !== todayKey && item.rank_position === 1
   );
 
-  const winnerPostIds = Array.from(
-    new Set(winnerRows.map((item) => item.post_id))
-  );
-
-  // =====================================================
-  // Live comments counts
-  // =====================================================
-
+  const winnerPostIds = Array.from(new Set(winnerRows.map((item) => item.post_id)));
   const commentsCountMap = new Map<number, number>();
 
   if (winnerPostIds.length > 0) {
@@ -154,62 +95,21 @@ export default async function HallOfFamePage() {
       .select("post_id")
       .in("post_id", winnerPostIds);
 
-    if (commentsError) {
-      throw new Error(commentsError.message);
-    }
-
+    if (commentsError) throw new Error(commentsError.message);
     for (const comment of (commentsData ?? []) as Pick<CommentRow, "post_id">[]) {
       const postId = comment.post_id;
       commentsCountMap.set(postId, (commentsCountMap.get(postId) ?? 0) + 1);
     }
   }
 
-  // =====================================================
-  // Live reaction counts
-  // =====================================================
-
-  const reactionCountsMap = new Map<number, ReactionCounts>();
-
-  if (winnerPostIds.length > 0) {
-    const { data: reactionsData, error: reactionsError } = await supabase
-      .from("post_reactions")
-      .select("post_id, reaction")
-      .in("post_id", winnerPostIds);
-
-    if (reactionsError) {
-      throw new Error(reactionsError.message);
-    }
-
-    for (const reaction of (reactionsData ?? []) as Pick<
-      PostReactionRow,
-      "post_id" | "reaction"
-    >[]) {
-      const postId = reaction.post_id;
-      const reactionType = reaction.reaction;
-
-      if (!isReactionType(reactionType)) {
-        continue;
-      }
-
-      const currentCounts =
-        reactionCountsMap.get(postId) ?? createEmptyReactionCounts();
-
-      currentCounts[reactionType] += 1;
-      reactionCountsMap.set(postId, currentCounts);
-    }
-  }
-
-  // =====================================================
-  // Final winners list
-  // =====================================================
-
   const dailyWinners: DailyWinnerEntry[] = winnerRows
     .map((item) => {
-      const reactionCounts =
-        reactionCountsMap.get(item.post_id) ?? createEmptyReactionCounts();
-
-      const commentsCount = commentsCountMap.get(item.post_id) ?? 0;
-
+      const reactionCounts: ReactionCounts = {
+        like: Number(item.likes_count ?? 0),
+        funny: Number((item as any).funny_count ?? 0),
+        wow: Number((item as any).wow_count ?? 0),
+        fire: Number((item as any).fire_count ?? 0),
+      };
       return {
         dayKey: item.winner_date,
         dayLabel: formatDate(`${item.winner_date}T00:00:00`),
@@ -217,7 +117,7 @@ export default async function HallOfFamePage() {
           id: item.post_id,
           post_content: item.post_content ?? "",
           post_created_at: item.post_created_at,
-          comments_count: commentsCount,
+          comments_count: commentsCountMap.get(item.post_id) ?? 0,
           relevance_score: Number(item.relevance_score ?? 0),
           author_username: item.author_username ?? null,
           reactions_count: countTotalReactions(reactionCounts),
@@ -231,119 +131,85 @@ export default async function HallOfFamePage() {
   const latestWinner = dailyWinners[0] ?? null;
   const olderWinners = dailyWinners.slice(1);
 
-  // =====================================================
-  // Render
-  // =====================================================
-
   return (
-    <>
+    <div className="min-h-screen bg-[#fafafa]">
       <NavBar user={navUser} />
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 lg:py-16">
         {dailyWinners.length === 0 ? (
-          <section className="relative overflow-hidden rounded-[32px] border border-amber-100 bg-gradient-to-br from-white via-amber-50/70 to-yellow-100/60 p-6 shadow-[0_30px_80px_-40px_rgba(245,158,11,0.35)] sm:p-10">
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute left-8 top-8 h-24 w-24 rounded-full bg-yellow-200/40 blur-3xl" />
-              <div className="absolute bottom-0 right-0 h-32 w-32 rounded-full bg-amber-200/40 blur-3xl" />
-            </div>
-
-            <div className="relative mx-auto max-w-2xl text-center">
-              <div className="mb-4 inline-flex rounded-full border border-amber-200 bg-white/85 px-4 py-1.5 text-sm font-semibold text-amber-900 backdrop-blur">
-                Hall of Fame
-              </div>
-
-              <h1 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
-                Noch keine vergangenen Einträge vorhanden
-              </h1>
-
-              <p className="mt-4 text-sm leading-6 text-gray-700 sm:text-base sm:leading-7">
-                Sobald ein abgeschlossener Tag einen Sieger hervorbringt, bleibt
-                dieser Beitrag hier dauerhaft sichtbar.
-              </p>
-            </div>
+          <section className="relative overflow-hidden rounded-[40px] border border-neutral-200 bg-white p-12 text-center shadow-sm">
+             <span className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400">The Hall</span>
+             <h1 className="mt-6 text-4xl font-black tracking-tighter text-neutral-950 sm:text-6xl">
+               No legends yet.
+             </h1>
+             <p className="mt-4 text-neutral-500 font-medium">Every day, the top post secures its legacy here.</p>
           </section>
         ) : (
-          <div className="space-y-10 sm:space-y-12 lg:space-y-14">
-            <section className="relative overflow-hidden rounded-[32px] border border-amber-100/80 bg-gradient-to-br from-[#fffdf8] via-amber-50/80 to-yellow-100/70 px-5 py-6 shadow-[0_35px_90px_-45px_rgba(245,158,11,0.38)] sm:px-8 sm:py-9 lg:px-10 lg:py-11">
+          <div className="space-y-20">
+            {/* HERO MANIFEST */}
+            <section className="relative overflow-hidden rounded-[40px] bg-neutral-950 px-8 py-16 text-white shadow-2xl lg:px-16 lg:py-20">
               <div className="pointer-events-none absolute inset-0">
-                <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-yellow-200/30 blur-3xl" />
-                <div className="absolute left-0 top-10 h-28 w-28 rounded-full bg-amber-200/25 blur-3xl" />
-                <div className="absolute bottom-0 right-0 h-36 w-36 rounded-full bg-orange-200/25 blur-3xl" />
+                <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-amber-400/10 blur-[120px]" />
+                <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-[100px]" />
               </div>
 
               <div className="relative max-w-3xl">
-                <div className="mb-4 inline-flex rounded-full border border-amber-200 bg-white/85 px-4 py-1.5 text-sm font-semibold text-amber-900 backdrop-blur">
-                  Hall of Fame
-                </div>
-
-                <h1 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl lg:text-6xl">
-                  Wer überzeugt, bleibt für immer sichtbar
+                <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
+                  The Hall of Fame
+                </span>
+                <h1 className="mt-8 text-5xl font-black tracking-tighter sm:text-7xl lg:text-8xl">
+                  Legends stay <br />
+                  <span className="text-neutral-500 text-glow-neutral">visible forever.</span>
                 </h1>
-
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-700 sm:text-base sm:leading-7">
-                  Jeden Tag wird der stärkste Beitrag ausgewählt und dauerhaft in
-                  die Hall of Fame aufgenommen.
+                <p className="mt-8 text-lg font-medium leading-relaxed text-neutral-400 sm:text-xl">
+                  Every day, one post becomes legendary. Secure your badge and join the hall.
                 </p>
 
-                <div className="mt-5 flex flex-wrap gap-2">
-                  <span className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur">
-                    Hilfreich
-                  </span>
-                  <span className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur">
-                    Konkret
-                  </span>
-                  <span className="rounded-full border border-white/70 bg-white/80 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur">
-                    Relevant
-                  </span>
+                <div className="mt-10 flex flex-wrap gap-3">
+                  {["Interesting", "Helpful", "Relevant"].map((label) => (
+                    <span key={label} className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm">
+                      {label}
+                    </span>
+                  ))}
                 </div>
               </div>
             </section>
 
+            {/* REIGNING CHAMPION */}
             {latestWinner && (
-              <section className="space-y-5 sm:space-y-6">
-                <div className="max-w-2xl">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                    Hall of Fame · Neu
-                  </p>
-                  <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl lg:text-4xl">
-                    Bester Beitrag von gestern
-                  </h2>
-                  <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">
+              <section className="space-y-8">
+                <div className="flex items-end justify-between border-b border-neutral-200 pb-6">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Current</span>
+                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">Reigning Champion</h2>
+                  </div>
+                  <p className="text-sm font-bold text-neutral-400 uppercase tracking-tighter">
                     {latestWinner.dayLabel}
                   </p>
                 </div>
-
                 <HallOfFameFrozenPostCard
                   post={latestWinner.winner}
-                  archiveLabel="Tagessieger"
+                  archiveLabel="Champion"
                   variant="featured"
                 />
               </section>
             )}
 
+            {/* ARCHIVE */}
             {olderWinners.length > 0 && (
-              <section className="space-y-5 sm:space-y-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                  <div className="max-w-2xl">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                      Archiv
-                    </p>
-                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl lg:text-4xl">
-                      Frühere Tagessieger
-                    </h2>
-                    <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">
-                      Starte beim neuesten Sieger und swipe oder scrolle durch
-                      alle bisherigen Gewinner.
-                    </p>
+              <section className="space-y-8">
+                <div className="flex items-end justify-between border-b border-neutral-200 pb-6">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Archive</span>
+                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">Previous Champions</h2>
                   </div>
                 </div>
-
                 <HallOfFameWinnersCarousel items={olderWinners} />
               </section>
             )}
           </div>
         )}
       </main>
-    </>
+    </div>
   );
 }

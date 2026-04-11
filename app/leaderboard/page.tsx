@@ -1,9 +1,11 @@
 import NavBar from "@/app/components/layout/navbar";
 import { createClient } from "@/lib/supabase-server";
-import FreezeDailyWinnersForm from "@/app/components/leaderboard/FreezeDailyWinnersForm";
 import LeaderboardLiveHeader from "@/app/components/leaderboard/LeaderboardLiveHeader";
 import LeaderboardPodiumCard from "@/app/components/leaderboard/LeaderboardPodiumCard";
 import LeaderboardPodiumCarousel from "@/app/components/leaderboard/LeaderboardPodiumCarousel";
+import HomeFeed from "@/app/components/posts/HomeFeed";
+import LoginCta from "@/app/components/auth/LoginCta";
+import { FEED_PAGE_SIZE, getFeedPage } from "@/lib/feed";
 import type { Database } from "@/types/database";
 import type { ReactionCounts } from "@/types/feed";
 
@@ -17,11 +19,6 @@ export const revalidate = 0;
 type PostRow = Pick<
   Database["public"]["Tables"]["posts"]["Row"],
   "id" | "content" | "created_at" | "user_id"
->;
-
-type ProfileRow = Pick<
-  Database["public"]["Tables"]["profiles"]["Row"],
-  "id" | "username"
 >;
 
 type CommentRow = Pick<Database["public"]["Tables"]["comments"]["Row"], "post_id">;
@@ -120,10 +117,6 @@ function getMobilePodiumPositions() {
 // =====================================================
 
 export default async function LeaderboardPage() {
-  // =====================================================
-  // Data
-  // =====================================================
-
   const supabase = await createClient();
 
   const {
@@ -171,37 +164,7 @@ export default async function LeaderboardPage() {
 
   const todaysPosts = (postsData ?? []) as PostRow[];
   const hasPostsToday = todaysPosts.length > 0;
-
   const postIds = todaysPosts.map((post) => post.id);
-
-  const authorIds = Array.from(
-    new Set(
-      todaysPosts
-        .map((post) => post.user_id)
-        .filter((id): id is string => typeof id === "string")
-    )
-  );
-
-  let profilesById = new Map<string, ProfileRow>();
-
-  if (authorIds.length > 0) {
-    const { data: profilesData, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, username")
-      .in("id", authorIds);
-
-    if (profilesError) {
-      throw new Error(profilesError.message);
-    }
-
-    profilesById = new Map(
-      ((profilesData ?? []) as ProfileRow[]).map((profile) => [
-        profile.id,
-        profile,
-      ])
-    );
-  }
-
   const reactionCountsByPostId = new Map<number, ReactionCounts>();
   const viewerReactionByPostId = new Map<number, ReactionType>();
   const commentCountByPostId = new Map<number, number>();
@@ -247,13 +210,8 @@ export default async function LeaderboardPage() {
     }
   }
 
-  // =====================================================
-  // Ranking
-  // =====================================================
-
   const baseRankedPosts = todaysPosts
     .map((post) => {
-      const authorProfile = post.user_id ? profilesById.get(post.user_id) : null;
       const reactionCounts =
         reactionCountsByPostId.get(post.id) ?? createEmptyReactionCounts();
       const reactionsCount = getReactionsCount(reactionCounts);
@@ -265,7 +223,7 @@ export default async function LeaderboardPage() {
         post_created_at: post.created_at,
         comments_count: commentsCount,
         relevance_score: getLeaderboardScore(reactionsCount, commentsCount),
-        author_username: authorProfile?.username ?? null,
+        author_username: null,
         reactions_count: reactionsCount,
         reaction_counts: reactionCounts,
         viewer_reaction: viewerReactionByPostId.get(post.id) ?? null,
@@ -326,30 +284,14 @@ export default async function LeaderboardPage() {
   );
 
   const todayLabel = formatDate(`${todayKey}T00:00:00`);
-
-  // =====================================================
-  // Render
-  // =====================================================
+  const initialPosts = await getFeedPage(0, FEED_PAGE_SIZE);
 
   return (
     <>
       <NavBar user={navUser} />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-4 sm:px-6 sm:py-6 lg:min-h-[calc(100vh-110px)] lg:gap-6 lg:px-8 lg:py-6">
-        {navUser?.is_admin && (
-          <details className="rounded-3xl border border-gray-200 bg-white shadow-sm group">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-semibold text-gray-900">
-              <span>Admin Panel</span>
-              <span className="text-lg text-gray-500 transition group-open:rotate-45">
-                +
-              </span>
-            </summary>
-
-            <div className="border-t border-gray-100 px-5 py-4">
-              <FreezeDailyWinnersForm />
-            </div>
-          </details>
-        )}
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:gap-8 lg:px-8 lg:py-6">
+        {!user && <LoginCta />}
 
         {!hasPostsToday ? (
           <section className="relative overflow-hidden rounded-[32px] border border-emerald-100 bg-gradient-to-br from-white via-emerald-50/70 to-sky-100/60 p-6 shadow-[0_30px_80px_-40px_rgba(16,185,129,0.25)] sm:p-10">
@@ -360,7 +302,7 @@ export default async function LeaderboardPage() {
 
             <div className="relative mx-auto max-w-2xl text-center">
               <div className="mb-4 inline-flex rounded-full border border-emerald-200 bg-white/85 px-4 py-1.5 text-sm font-semibold text-emerald-900 backdrop-blur">
-                Live-Leaderboard
+                Live-Rennen
               </div>
 
               <h1 className="text-3xl font-bold tracking-tight text-gray-950 sm:text-5xl">
@@ -374,42 +316,48 @@ export default async function LeaderboardPage() {
             </div>
           </section>
         ) : (
-          <section className="flex min-h-0 flex-1 flex-col gap-5 lg:gap-6">
-            <LeaderboardLiveHeader todayLabel={todayLabel} />
+          <>
+            <section className="flex min-h-0 flex-1 flex-col gap-5 lg:gap-6">
+              <LeaderboardLiveHeader todayLabel={todayLabel} />
 
-            <section className="flex min-h-0 flex-1 flex-col gap-4 lg:gap-5">
-              <div className="flex flex-col gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">
-                  Tagesrennen
-                </p>
-                <h2 className="text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-                  Live-Podium
-                </h2>
-                <p className="max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-                  Jede Reaction und jeder Kommentar kann das Ranking bis
-                  Mitternacht verändern.
-                </p>
-              </div>
-
-              <div className="md:hidden">
-                <LeaderboardPodiumCarousel
-                  items={mobilePodium}
-                  isLoggedIn={!!user}
-                />
-              </div>
-
-              <div className="hidden min-h-0 flex-1 md:grid md:grid-cols-3 md:items-end md:gap-4 lg:gap-5">
-                {desktopPodium.map((entry) => (
-                  <LeaderboardPodiumCard
-                    key={entry.position}
-                    position={entry.position}
-                    post={entry.post}
+              <section className="flex min-h-0 flex-1 flex-col gap-4 lg:gap-5">
+                <div className="md:hidden">
+                  <LeaderboardPodiumCarousel
+                    items={mobilePodium}
                     isLoggedIn={!!user}
                   />
-                ))}
-              </div>
+                </div>
+
+                <div className="hidden min-h-0 flex-1 md:grid md:grid-cols-3 md:items-end md:gap-4 lg:gap-5">
+                  {desktopPodium.map((entry) => (
+                    <LeaderboardPodiumCard
+                      key={entry.position}
+                      position={entry.position}
+                      post={entry.post}
+                      isLoggedIn={!!user}
+                    />
+                  ))}
+                </div>
+              </section>
             </section>
-          </section>
+
+            <section className="mx-auto w-full max-w-5xl">
+              <HomeFeed
+                initialPosts={initialPosts}
+                pageSize={FEED_PAGE_SIZE}
+                isLoggedIn={!!user}
+                currentUserProfile={
+                  navUser
+                    ? {
+                        username: navUser.username,
+                        avatar_url: navUser.avatar_url,
+                      }
+                    : null
+                }
+                showTopSection={false}
+              />
+            </section>
+          </>
         )}
       </main>
     </>

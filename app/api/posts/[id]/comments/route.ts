@@ -273,7 +273,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new NextResponse("Kommentar-Inhalt fehlt.", { status: 400 });
     }
 
-    if (content.length > 300) {
+    if (content.length > 200) {
       return new NextResponse("Kommentar ist zu lang.", { status: 400 });
     }
 

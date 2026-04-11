@@ -4,16 +4,29 @@ import { useEffect, useRef, useState } from "react";
 import type { FeedPost } from "@/types/feed";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
+// =====================================================
+// Types
+// =====================================================
+
 type CreatePostFormProps = {
   onPostCreated: (post: FeedPost) => void;
   isLoggedIn: boolean;
   onClose?: () => void;
+  currentUserProfile?: {
+    username: string;
+    avatar_url: string | null;
+  } | null;
 };
+
+// =====================================================
+// Component
+// =====================================================
 
 export default function CreatePostForm({
   onPostCreated,
   isLoggedIn,
   onClose,
+  currentUserProfile = null,
 }: CreatePostFormProps) {
   const {
     requireLoginAndResume,
@@ -32,6 +45,13 @@ export default function CreatePostForm({
   const trimmed = content.trim();
   const remainingCharacters = 500 - content.length;
   const canSubmit = !loading && trimmed.length >= 2;
+
+  const fallbackAvatarUrl = profile?.avatar_url?.trim() || null;
+  const displayAvatarUrl =
+    currentUserProfile?.avatar_url?.trim() || fallbackAvatarUrl;
+
+  const displayUsername =
+    currentUserProfile?.username || profile?.username || null;
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -94,21 +114,17 @@ export default function CreatePostForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <p className="text-base font-semibold text-gray-900">
-        Was denkst du gerade?
-      </p>
-
       <div className="rounded-3xl border border-gray-200 bg-gray-50/80 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-            {profile?.avatar_url ? (
+            {displayAvatarUrl ? (
               <img
-                src={profile.avatar_url}
-                alt="avatar"
+                src={displayAvatarUrl}
+                alt="Profilbild"
                 className="h-full w-full object-cover"
               />
-            ) : profile?.username ? (
-              profile.username.charAt(0).toUpperCase()
+            ) : displayUsername ? (
+              displayUsername.charAt(0).toUpperCase()
             ) : user?.email ? (
               user.email.charAt(0).toUpperCase()
             ) : (
@@ -127,7 +143,7 @@ export default function CreatePostForm({
               }}
               placeholder={
                 effectiveIsLoggedIn
-                  ? "Schreib es hier auf ..."
+                  ? "Was denkst du gerade?"
                   : "Melde dich an, um etwas zu posten"
               }
               rows={4}

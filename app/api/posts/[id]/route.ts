@@ -52,8 +52,8 @@ export async function DELETE(_: Request, context: RouteContext) {
     // Kommentare löschen
     await supabase.from("comments").delete().eq("post_id", postId);
 
-    // Likes löschen
-    await supabase.from("likes").delete().eq("post_id", postId);
+    // Reactions löschen
+    await supabase.from("post_reactions").delete().eq("post_id", postId);
 
     // Post löschen
     const { error: deleteError } = await supabase

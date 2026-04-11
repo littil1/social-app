@@ -6,10 +6,19 @@ import type { FeedPost, ReactionType } from "@/types/feed";
 import CreatePostForm from "@/app/components/posts/CreatePostForm";
 import PostCard from "@/app/components/posts/PostCard";
 
+// =====================================================
+// Types
+// =====================================================
+
 type HomeFeedProps = {
   initialPosts: FeedPost[];
   pageSize: number;
   isLoggedIn: boolean;
+  currentUserProfile?: {
+    username: string;
+    avatar_url: string | null;
+  } | null;
+  showTopSection?: boolean;
 };
 
 type RankedTopPost = FeedPost & {
@@ -101,13 +110,15 @@ export default function HomeFeed({
   initialPosts,
   pageSize,
   isLoggedIn,
+  currentUserProfile = null,
+  showTopSection = true,
 }: HomeFeedProps) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length === pageSize);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-
+  const [showOlderPosts, setShowOlderPosts] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const seenIds = useMemo(() => new Set(posts.map((post) => post.id)), [posts]);
@@ -255,41 +266,58 @@ export default function HomeFeed({
 
   return (
     <>
-      <div className="space-y-4">
-        {topPosts.map((post) => (
-          <PostCard
-            key={`top-${post.id}`}
-            post={post}
-            dailyRank={post.dailyRank}
-            detailHref={`/posts/${post.id}`}
-            onReactionUpdated={handleReactionUpdated}
-            onCommentCreated={handleCommentCreated}
-            onCommentsCountChange={handleCommentsCountChange}
-            onPostDeleted={handlePostDeleted}
-            isLoggedIn={isLoggedIn}
-          />
-        ))}
+      <div className="space-y-6">
+        {showTopSection && topPosts.length > 0 && (
+          <section className="space-y-4">
+            {topPosts.map((post) => (
+              <PostCard
+                key={`top-${post.id}`}
+                post={post}
+                dailyRank={post.dailyRank}
+                detailHref={`/posts/${post.id}`}
+                onReactionUpdated={handleReactionUpdated}
+                onCommentCreated={handleCommentCreated}
+                onCommentsCountChange={handleCommentsCountChange}
+                onPostDeleted={handlePostDeleted}
+                isLoggedIn={isLoggedIn}
+              />
+            ))}
+          </section>
+        )}
 
-        {regularTodaysPosts.map((post) => (
-          <PostCard
-            key={post.id}
-            post={post}
-            detailHref={`/posts/${post.id}`}
-            onReactionUpdated={handleReactionUpdated}
-            onCommentCreated={handleCommentCreated}
-            onCommentsCountChange={handleCommentsCountChange}
-            onPostDeleted={handlePostDeleted}
-            isLoggedIn={isLoggedIn}
-          />
-        ))}
+        {regularTodaysPosts.length > 0 && (
+          <section className="space-y-4 pt-1">
+            <div className="px-1 pb-1">
+              <p className="text-base font-semibold text-gray-900">
+                In the shadows
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Content is king. Your identity remains hidden until you become a Legend.
+              </p>
+            </div>
+
+            {regularTodaysPosts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                detailHref={`/posts/${post.id}`}
+                onReactionUpdated={handleReactionUpdated}
+                onCommentCreated={handleCommentCreated}
+                onCommentsCountChange={handleCommentsCountChange}
+                onPostDeleted={handlePostDeleted}
+                isLoggedIn={isLoggedIn}
+              />
+            ))}
+          </section>
+        )}
 
         {todaysPosts.length > 0 && (
           <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
             <p className="text-base font-semibold text-gray-900">
-              Das war’s für heute.
+              You’re all caught up.
             </p>
             <p className="mt-2 text-sm text-gray-500">
-              Jetzt bist du dran.
+              Create your own post or see who made history.
             </p>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
@@ -298,34 +326,37 @@ export default function HomeFeed({
                 onClick={openCreateModal}
                 className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
-                Beitrag erstellen
+                Create Post
               </button>
 
-              <Link
-                href="/leaderboard"
-                className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                Zum Leaderboard
-              </Link>
+              {olderPosts.length > 0 && !showOlderPosts && (
+                <button
+                  type="button"
+                  onClick={() => setShowOlderPosts(true)}
+                  className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                >
+                  View Archive
+                </button>
+              )}
 
               <Link
                 href="/hall-of-fame"
                 className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
               >
-                Zur Hall of Fame
+                See the Hall
               </Link>
             </div>
           </div>
         )}
 
-        {olderPosts.length > 0 && (
+        {showOlderPosts && olderPosts.length > 0 && (
           <section className="space-y-4 pt-2">
-            <div className="px-1">
-              <p className="text-sm font-medium text-gray-500">
-                Frühere Beiträge
+            <div className="px-1 pb-1">
+              <p className="text-base font-semibold text-gray-900">
+                View Archive
               </p>
-              <p className="mt-1 text-sm text-gray-400">
-                Alles Aktuelle hast du gesehen. Das hier sind ältere Beiträge.
+              <p className="mt-1 text-sm text-gray-500">
+                Past Posts.
               </p>
             </div>
 
@@ -349,10 +380,10 @@ export default function HomeFeed({
         {posts.length === 0 && (
           <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
             <p className="text-base font-semibold text-gray-900">
-              Sei heute der Erste.
+              Lead the race.
             </p>
             <p className="mt-2 text-sm text-gray-500">
-              Teile etwas, das andere wirklich weiterbringt.
+              Make an impact.
             </p>
 
             <div className="mt-4">
@@ -361,7 +392,7 @@ export default function HomeFeed({
                 onClick={openCreateModal}
                 className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
               >
-                Beitrag erstellen
+                Create Post
               </button>
             </div>
           </div>
@@ -372,24 +403,41 @@ export default function HomeFeed({
 
       {loadingMore && (
         <p className="pb-8 text-center text-sm text-gray-500">
-          Lade weitere Beiträge ...
+          Show more ...
         </p>
       )}
 
-      {!hasMore && posts.length > 0 && olderPosts.length > 0 && (
-        <div className="pb-24 pt-2 text-center">
-          <p className="text-sm font-semibold text-gray-700">
-            Jetzt ist aber wirklich Schluss.
+      {!hasMore && posts.length > 0 && olderPosts.length > 0 && showOlderPosts && (
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+          <p className="text-base font-semibold text-gray-900">
+            That's it.
           </p>
-          <p className="mt-1 text-sm text-gray-500">
-            Du hast alles gesehen.
+          <p className="mt-2 text-sm text-gray-500">
+            You've seen everything.
           </p>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Create Post
+            </button>
+
+            <Link
+              href="/hall-of-fame"
+              className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+            >
+              See the Hall
+            </Link>
+          </div>
         </div>
       )}
 
       {!hasMore && posts.length > 0 && olderPosts.length === 0 && (
         <p className="pb-24 text-center text-sm text-gray-400">
-          Keine weiteren Beiträge.
+          Nothing more today.
         </p>
       )}
 
@@ -415,6 +463,7 @@ export default function HomeFeed({
               onPostCreated={handlePostCreated}
               isLoggedIn={isLoggedIn}
               onClose={closeCreateModal}
+              currentUserProfile={currentUserProfile}
             />
           </div>
         </div>

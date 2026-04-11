@@ -1,9 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
-import type {
-  FeedPost,
-  ReactionCounts,
-  ReactionType,
-} from "@/types/feed";
+import type { FeedPost, ReactionCounts, ReactionType } from "@/types/feed";
 import type { Database } from "@/types/database";
 
 export const FEED_PAGE_SIZE = 10;
@@ -11,12 +7,9 @@ export const FEED_PAGE_SIZE = 10;
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 type CommentRow = Pick<
   Database["public"]["Tables"]["comments"]["Row"],
-  "post_id"
+  "id" | "post_id"
 >;
-type ProfileRow = Pick<
-  Database["public"]["Tables"]["profiles"]["Row"],
-  "id" | "username" | "avatar_url" | "is_admin"
->;
+
 type FollowRow = Pick<
   Database["public"]["Tables"]["follows"]["Row"],
   "following_id"
@@ -150,9 +143,7 @@ function sortPostsByTrending(
       return bComments - aComments;
     }
 
-    return (
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 }
 
@@ -225,7 +216,11 @@ export async function getFeedPage(
       { data: profileData, error: profileError },
       { data: followsData, error: followsError },
     ] = await Promise.all([
-      supabase.from("profiles").select("is_admin").eq("id", user.id).maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("is_admin")
+        .eq("id", user.id)
+        .maybeSingle(),
       supabase
         .from("follows")
         .select("following_id")
@@ -275,7 +270,10 @@ export async function getFeedPage(
       .from("post_reactions")
       .select("post_id, user_id, reaction")
       .in("post_id", recentPostIds),
-    supabase.from("comments").select("post_id").in("post_id", recentPostIds),
+    supabase
+      .from("comments")
+      .select("id, post_id")
+      .in("post_id", recentPostIds),
   ]);
 
   if (reactionsError) {
@@ -338,39 +336,9 @@ export async function getFeedPage(
     .map((id) => postMap.get(id))
     .filter((post): post is PostRow => !!post);
 
-  const authorIds = selectedPosts
-    .map((post) => post.user_id)
-    .filter((userId): userId is string => typeof userId === "string");
-
-  let profiles: ProfileRow[] = [];
-
-  if (authorIds.length > 0) {
-    const { data: profilesData, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, username, avatar_url, is_admin")
-      .in("id", authorIds);
-
-    if (profilesError) {
-      throw new Error(profilesError.message);
-    }
-
-    profiles = (profilesData ?? []) as ProfileRow[];
-  }
-
-  const profileMap = new Map<string, ProfileRow>();
-
-  for (const profile of profiles) {
-    profileMap.set(profile.id, profile);
-  }
-
   return selectedPosts.map((post) => {
     const reactionCounts =
       reactionCountsMap.get(post.id) ?? createEmptyReactionCounts();
-
-    const authorProfile =
-      post.user_id && profileMap.has(post.user_id)
-        ? profileMap.get(post.user_id) ?? null
-        : null;
 
     return {
       id: post.id,
@@ -381,8 +349,8 @@ export async function getFeedPage(
       viewer_reaction: viewerReactionMap.get(post.id) ?? null,
       comments_count: commentCountMap.get(post.id) ?? 0,
       can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
-      author_username: authorProfile?.username ?? null,
-      author_avatar_url: authorProfile?.avatar_url ?? null,
+      author_username: null,
+      author_avatar_url: null,
     };
   });
 }

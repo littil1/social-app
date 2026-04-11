@@ -1,7 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AuthModalProvider from "@/app/components/auth/AuthModalProvider";
+
+// =====================================================
+// Fonts
+// =====================================================
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,10 +17,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// =====================================================
+// Metadata
+// =====================================================
+
 export const metadata: Metadata = {
   title: "APP",
   description: "a perfect place",
 };
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
+// =====================================================
+// Layout
+// =====================================================
 
 export default function RootLayout({
   children,
@@ -24,7 +41,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de">
+    <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

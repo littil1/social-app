@@ -52,7 +52,7 @@ const REACTIONS: Array<{
 }> = [
   { value: "like", emoji: "❤️", label: "Gefällt mir", countKey: "like" },
   { value: "funny", emoji: "😂", label: "Lustig", countKey: "funny" },
-  { value: "wow", emoji: "😮", label: "Wow", countKey: "wow" },
+  { value: "wow", emoji: "🤯", label: "Wow", countKey: "wow" },
   { value: "fire", emoji: "🔥", label: "Stark", countKey: "fire" },
 ];
 

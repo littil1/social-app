@@ -19,7 +19,6 @@ type PostCardProps = {
   onCommentCreated?: (postId: number) => void;
   onCommentsCountChange?: (postId: number, count: number) => void;
   onPostDeleted: (postId: number) => void;
-  showAuthor?: boolean;
   dailyRank?: 1 | 2 | 3;
   detailHref?: string;
   isLoggedIn?: boolean;
@@ -110,7 +109,6 @@ function PostCardComponent({
   onCommentCreated,
   onCommentsCountChange,
   onPostDeleted,
-  showAuthor = false,
   dailyRank,
   detailHref,
   isLoggedIn = false,
@@ -267,56 +265,17 @@ function PostCardComponent({
 
       <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
         <div className="min-w-0 flex-1">
-          {showAuthor && post.author_username ? (
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-                {post.author_avatar_url ? (
-                  <img
-                    src={post.author_avatar_url}
-                    alt={`${post.author_username} avatar`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  post.author_username.charAt(0).toUpperCase()
-                )}
-              </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {dailyRank && (
+              <span
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${rankStyles.badgeClass}`}
+              >
+                {rankStyles.badgeText}
+              </span>
+            )}
 
-              <div className="min-w-0">
-                <Link
-                  href={`/u/${post.author_username}`}
-                  className="block truncate text-sm font-semibold text-gray-700 hover:underline"
-                >
-                  @{post.author_username}
-                </Link>
-
-                <div className="mt-0.5 flex flex-wrap items-center gap-2">
-                  {dailyRank && (
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${rankStyles.badgeClass}`}
-                    >
-                      {rankStyles.badgeText}
-                    </span>
-                  )}
-
-                  <p className="text-xs text-gray-400">
-                    {formatDate(post.created_at)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              {dailyRank && (
-                <span
-                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${rankStyles.badgeClass}`}
-                >
-                  {rankStyles.badgeText}
-                </span>
-              )}
-
-              <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
-            </div>
-          )}
+            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
+          </div>
         </div>
 
         {post.can_delete && (

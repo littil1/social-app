@@ -51,37 +51,41 @@ function getCardStyles(variant: "featured" | "archive") {
   };
 }
 
+function getCommentsStorageKey(postId: number) {
+  return `app_hof_comments_open_${postId}`;
+}
+
 export default function HallOfFameFrozenPostCard({
   post,
   archiveLabel,
   variant = "archive",
 }: HallOfFameFrozenPostCardProps) {
-  // =====================================================
-  // State
-  // =====================================================
-
   const [showComments, setShowComments] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post?.comments_count ?? 0
   );
 
-  // =====================================================
-  // Derived state
-  // =====================================================
-
   const styles = useMemo(() => getCardStyles(variant), [variant]);
-
-  // =====================================================
-  // Effects
-  // =====================================================
 
   useEffect(() => {
     setLocalCommentsCount(post?.comments_count ?? 0);
   }, [post?.comments_count]);
 
-  // =====================================================
-  // Empty state
-  // =====================================================
+  useEffect(() => {
+    if (!post || typeof window === "undefined") return;
+
+    const saved = window.sessionStorage.getItem(getCommentsStorageKey(post.id));
+    setShowComments(saved === "true");
+  }, [post?.id]);
+
+  useEffect(() => {
+    if (!post || typeof window === "undefined") return;
+
+    window.sessionStorage.setItem(
+      getCommentsStorageKey(post.id),
+      String(showComments)
+    );
+  }, [post?.id, showComments]);
 
   if (!post) {
     return (
@@ -100,15 +104,11 @@ export default function HallOfFameFrozenPostCard({
         </div>
 
         <div className="mt-6 rounded-3xl border border-dashed border-gray-300 bg-white/70 p-4 text-sm text-gray-600">
-          Für diesen Eintrag gibt es keinen gespeicherten Beitrag.
+          No post found.
         </div>
       </article>
     );
   }
-
-  // =====================================================
-  // Render
-  // =====================================================
 
   return (
     <article
@@ -120,17 +120,17 @@ export default function HallOfFameFrozenPostCard({
             <p
               className={`text-xs font-semibold uppercase tracking-[0.18em] ${styles.accentText}`}
             >
-              Hall of Fame
+              Legends
             </p>
             <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-              {archiveLabel ?? "Tagessieger"}
+              {archiveLabel ?? "Champion of the day"}
             </h3>
           </div>
 
           <span
             className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold sm:px-4 sm:text-sm ${styles.badge}`}
           >
-            Ausgezeichnet
+            Legend
           </span>
         </div>
 
@@ -140,7 +140,7 @@ export default function HallOfFameFrozenPostCard({
           <span
             className={`text-xs font-semibold uppercase tracking-[0.18em] ${styles.accentText}`}
           >
-            Ausgezeichnet
+            Legend
           </span>
 
           {post.author_username ? (
@@ -151,7 +151,7 @@ export default function HallOfFameFrozenPostCard({
               @{post.author_username}
             </Link>
           ) : (
-            <span className="text-xl font-bold text-gray-950">Unbekannt</span>
+            <span className="text-xl font-bold text-gray-950">Unknown</span>
           )}
         </div>
 
@@ -195,8 +195,8 @@ export default function HallOfFameFrozenPostCard({
             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-gray-50 sm:w-auto"
           >
             💬 {localCommentsCount}{" "}
-            {localCommentsCount === 1 ? "Kommentar" : "Kommentare"}{" "}
-            {showComments ? "ausblenden" : "anzeigen"}
+            {localCommentsCount === 1 ? "Comment" : "Comments"}{" "}
+            {showComments ? "hide" : "show"}
           </button>
         </div>
 

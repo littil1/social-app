@@ -22,7 +22,7 @@ type NavBarProps = {
 // =====================================================
 
 function isActivePath(pathname: string, path: string) {
-  return path === "/" ? pathname === "/" : pathname.startsWith(path);
+  return pathname === path;
 }
 
 // =====================================================
@@ -37,21 +37,21 @@ export default function NavBar({ user = null }: NavBarProps) {
     const isActive = isActivePath(pathname, path);
 
     return [
-      "inline-flex items-center rounded-full px-3 py-2 text-sm transition",
+      "inline-flex shrink-0 items-center rounded-full px-3 py-2 text-sm whitespace-nowrap transition",
       isActive
-        ? "bg-black text-white font-semibold"
+        ? "bg-black font-semibold text-white"
         : "text-gray-600 hover:bg-gray-100 hover:text-black",
     ].join(" ");
   }
 
   return (
     <header className="border-b bg-white">
-      <div className="mx-auto max-w-5xl px-4 py-3 sm:px-6 sm:py-4">
-        {/* =====================================================
-            Top row
-        ===================================================== */}
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
         <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="shrink-0 text-lg font-bold text-black">
+          <Link
+            href="/leaderboard"
+            className="shrink-0 text-lg font-bold text-black"
+          >
             APP
           </Link>
 
@@ -65,7 +65,7 @@ export default function NavBar({ user = null }: NavBarProps) {
             ) : (
               <button
                 type="button"
-                onClick={() => openLogin(pathname || "/")}
+                onClick={() => openLogin(pathname || "/leaderboard")}
                 className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
               >
                 Login
@@ -74,30 +74,25 @@ export default function NavBar({ user = null }: NavBarProps) {
           </div>
         </div>
 
-        {/* =====================================================
-            Navigation
-        ===================================================== */}
         <nav className="mt-3">
-          <div className="flex flex-wrap gap-2">
-            <Link href="/" className={getLinkClass("/")}>
-              Home
-            </Link>
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <div className="flex min-w-max gap-2 pb-1">
+              <Link href="/leaderboard" className={getLinkClass("/leaderboard")}>
+                Live
+              </Link>
 
-            <Link href="/leaderboard" className={getLinkClass("/leaderboard")}>
-              Leaderboard
-            </Link>
+              <Link href="/hall-of-fame" className={getLinkClass("/hall-of-fame")}>
+                Legends
+              </Link>
 
-            <Link href="/hall-of-fame" className={getLinkClass("/hall-of-fame")}>
-              Hall of Fame
-            </Link>
+              <Link href="/feedback" className={getLinkClass("/feedback")}>
+                Input
+              </Link>
 
-            <Link href="/feedback" className={getLinkClass("/feedback")}>
-              Wünsche
-            </Link>
-
-            <Link href="/how-it-works" className={getLinkClass("/how-it-works")}>
-              So funktioniert APP
-            </Link>
+              <Link href="/how-it-works" className={getLinkClass("/how-it-works")}>
+                Vibe
+              </Link>
+            </div>
           </div>
         </nav>
       </div>
