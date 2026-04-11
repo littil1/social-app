@@ -16,6 +16,8 @@ export type FeedPost = {
   viewer_reaction: ReactionType | null;
   comments_count: number;
   can_delete: boolean;
+  author_username?: string | null;
+  author_avatar_url?: string | null;
 };
 
 export type FeedComment = {
