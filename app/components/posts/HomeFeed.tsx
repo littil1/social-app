@@ -250,15 +250,29 @@ export default function HomeFeed({
       )}
 
       {/* END MARKER */}
-      {!hasMore && posts.length > 0 && (
-        <div className="py-16 text-center">
-          <div className="inline-flex items-center gap-3">
-            <div className="h-[1px] w-8 bg-neutral-200" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-300">End of History</span>
-            <div className="h-[1px] w-8 bg-neutral-200" />
+      {!hasMore && posts.length > 0 && showOlderPosts && (
+        <div className="py-16 px-4 text-center">
+          <div className="max-w-2xl mx-auto bg-white rounded-[40px] border border-neutral-100 p-12 shadow-sm flex flex-col items-center gap-8">
+            
+            <div className="space-y-4">
+
+              <h3 className="text-lg font-black tracking-tight text-neutral-950">
+                That is actually the end.
+              </h3>
+
+              <div className="inline-flex items-center gap-3">
+                <div className="h-[1px] w-8 bg-neutral-200" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500">
+                  You have seen everything
+                </span>
+                <div className="h-[1px] w-8 bg-neutral-200" />
+              </div>
+            </div>                     
           </div>
         </div>
       )}
+
+      {/* Das hier ist wichtig für das Infinite Scrolling */}
       <div ref={sentinelRef} className="h-10" />
     </div>
   );
