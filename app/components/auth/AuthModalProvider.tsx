@@ -206,8 +206,6 @@ export default function AuthModalProvider({
     resumeInProgressRef.current = true;
     pendingActionRef.current = null;
 
-    setIsAuthenticated(true);
-    setAuthReady(true);
     setIsOpen(false);
     router.refresh();
 
@@ -216,36 +214,41 @@ export default function AuthModalProvider({
       .then(async ({ data, error }) => {
         if (error) {
           console.error("Authenticated user could not be loaded:", error);
+          resumeInProgressRef.current = false;
           return;
         }
 
         const nextUser = data.user ?? null;
-        setUser(nextUser);
 
-        if (nextUser?.id) {
-          await loadProfile(nextUser.id);
-        } else {
-          setProfile(null);
+        if (!nextUser) {
+          resumeInProgressRef.current = false;
+          return;
         }
+
+        setIsAuthenticated(true);
+        setAuthReady(true);
+        setUser(nextUser);
+        await loadProfile(nextUser.id);
+
+        if (!pendingAction) {
+          resumeInProgressRef.current = false;
+          return;
+        }
+
+        window.setTimeout(() => {
+          void Promise.resolve(pendingAction())
+            .catch((actionError) => {
+              console.error("Pending auth action failed:", actionError);
+            })
+            .finally(() => {
+              resumeInProgressRef.current = false;
+            });
+        }, 150);
       })
       .catch((error) => {
         console.error("Authenticated user could not be loaded:", error);
+        resumeInProgressRef.current = false;
       });
-
-    if (!pendingAction) {
-      resumeInProgressRef.current = false;
-      return;
-    }
-
-    window.setTimeout(() => {
-      void Promise.resolve(pendingAction())
-        .catch((error) => {
-          console.error("Pending auth action failed:", error);
-        })
-        .finally(() => {
-          resumeInProgressRef.current = false;
-        });
-    }, 0);
   }, [router, supabase, loadProfile]);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { FeedPost } from "@/types/feed";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
@@ -28,6 +29,8 @@ export default function CreatePostForm({
   onClose,
   currentUserProfile = null,
 }: CreatePostFormProps) {
+  const router = useRouter();
+
   const {
     requireLoginAndResume,
     isAuthenticated,
@@ -63,13 +66,13 @@ export default function CreatePostForm({
   }, [content]);
 
   async function submitPost(skipLoginCheck = false) {
-    // FIX: Wenn nicht eingeloggt, Fenster schließen bevor das Login-Modal kommt
     if (!skipLoginCheck && !effectiveIsLoggedIn) {
-      onClose?.(); // Schließt das Post-Fenster sofort
-      
+      onClose?.();
+
       requireLoginAndResume(() => {
         void submitPost(true);
       }, window.location.pathname);
+
       return;
     }
 
@@ -87,10 +90,20 @@ export default function CreatePostForm({
       });
 
       if (res.status === 401 || res.status === 403) {
-        onClose?.(); // Auch hier zur Sicherheit schließen
+        // WICHTIG:
+        // Wenn wir bereits aus einem Resume-Flow kommen, niemals erneut
+        // requireLoginAndResume aufrufen, sonst entsteht eine Schleife.
+        if (skipLoginCheck) {
+          router.refresh();
+          throw new Error("AUTH_NOT_READY_AFTER_LOGIN");
+        }
+
+        onClose?.();
+
         requireLoginAndResume(() => {
           void submitPost(true);
         }, window.location.pathname);
+
         return;
       }
 
@@ -105,7 +118,15 @@ export default function CreatePostForm({
       onClose?.();
     } catch (error) {
       console.error(error);
-      alert("Beitrag konnte nicht erstellt werden.");
+
+      if (
+        error instanceof Error &&
+        error.message === "AUTH_NOT_READY_AFTER_LOGIN"
+      ) {
+        alert("Bitte versuche es jetzt noch einmal.");
+      } else {
+        alert("Beitrag konnte nicht erstellt werden.");
+      }
     } finally {
       setLoading(false);
     }
