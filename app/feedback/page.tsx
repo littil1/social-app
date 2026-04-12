@@ -49,7 +49,7 @@ export default async function FeedbackPage() {
               <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
                 Co-Creation
               </span>
-              <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-6xl">
+              <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-7xl">
                 Build the <span className="text-amber-400">Future</span> of APP.
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-neutral-400">
@@ -76,27 +76,34 @@ export default async function FeedbackPage() {
         {/* INPUT AREA */}
         <section className="mb-20 grid gap-8 lg:grid-cols-2">
           <div className="rounded-[32px] border border-neutral-200 bg-white p-8 shadow-sm">
-             <h2 className="text-2xl font-black tracking-tight text-neutral-950">How to contribute</h2>
-             <p className="mt-4 text-neutral-600 leading-relaxed font-medium">
-               We don't want "more" features. We want "better" ones. When submitting, ask yourself: 
-               Does this help reduce noise? Does this increase the value of content?
-             </p>
-             <div className="mt-8 space-y-4">
-               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                  <span className="text-xl">🎯</span>
-                  <div>
-                    <p className="font-bold text-neutral-900">Be Specific</p>
-                    <p className="text-sm text-neutral-500">Vague ideas are hard to build. Describe the problem, then the solution.</p>
-                  </div>
-               </div>
-               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                  <span className="text-xl">🤝</span>
-                  <div>
-                    <p className="font-bold text-neutral-900">Upvote Relevancy</p>
-                    <p className="text-sm text-neutral-500">Support ideas that benefit the entire community, not just yourself.</p>
-                  </div>
-               </div>
-             </div>
+            <h2 className="text-2xl font-black tracking-tight text-neutral-950">How to contribute</h2>
+            
+            <div className="mt-8 space-y-4">
+
+              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+                <span className="text-xl">🎨</span>
+                <div>
+                  <p className="font-bold text-neutral-900">Be Creative</p>
+                  <p className="text-sm text-neutral-500">Tell us about your dream. We are here to listen and build the future together.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+                <span className="text-xl">🎯</span>
+                <div>
+                  <p className="font-bold text-neutral-900">Be Specific</p>
+                  <p className="text-sm text-neutral-500">Vague ideas are hard to build. Describe the problem, then the solution.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+                <span className="text-xl">🤝</span>
+                <div>
+                  <p className="font-bold text-neutral-900">Get supported</p>
+                  <p className="text-sm text-neutral-500">Support ideas that benefit the entire community, not just yourself.</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-[32px] border border-neutral-200 bg-white p-8 shadow-sm">

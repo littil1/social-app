@@ -1,8 +1,38 @@
 import Link from "next/link";
+import NavBar from "@/app/components/layout/navbar";
+import { createClient } from "@/lib/supabase-server";
 
-export default function VibePage() {
+// =====================================================
+// Page Component
+// =====================================================
+
+export default async function VibePage() {
+  const supabase = await createClient();
+  
+  // User-Daten abrufen für die NavBar
+  const { data: { user } } = await supabase.auth.getUser();
+  let navUser = null;
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("username, avatar_url, is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profile) {
+      navUser = {
+        username: profile.username,
+        avatar_url: profile.avatar_url ?? null,
+        is_admin: profile.is_admin ?? false,
+      };
+    }
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#fafafa]">
+      <NavBar user={navUser} />
+
       {/* Background Decor */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-[-10%] h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-amber-100/40 blur-[120px]" />
@@ -21,7 +51,7 @@ export default function VibePage() {
           </h1>
           <p className="mx-auto mt-8 max-w-2xl text-lg font-medium leading-relaxed text-neutral-600 sm:text-xl">
             APP isn’t just another digital playground. It’s an arena for the sharpest minds. 
-            Your name doesn't matter here—your impact does.
+            Your name doesn't matter here — your impact does.
           </p>
         </section>
 
@@ -40,7 +70,7 @@ export default function VibePage() {
           <FeatureCard 
             badge="03"
             title="The Legend Badge"
-            text="Only the daily champion is revealed and awarded the Legend badge. Your moment to flex your status."
+            text="Only the daily champion is revealed and awarded the Legend badge."
           />
         </div>
 
@@ -53,7 +83,7 @@ export default function VibePage() {
                 Earn your badge.<br />Own your legacy.
               </h2>
               <p className="mt-6 text-lg leading-relaxed text-neutral-600">
-                The **Legend Badge** is more than an icon. It’s proof that you owned the day. Once you win, your contribution is immortalized in the Hall of Fame.
+                The Legend Badge is more than an icon. It’s proof that you owned the day. Once you win, your contribution is immortalized in the Hall of Fame.
               </p>
               <ul className="mt-8 space-y-4">
                 <li className="flex items-center gap-3 font-semibold text-neutral-800">
@@ -66,7 +96,7 @@ export default function VibePage() {
                 </li>
                 <li className="flex items-center gap-3 font-semibold text-neutral-800">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600 text-xs">✓</span>
-                  Ultimate digital flex
+                  Ultimate flex
                 </li>
               </ul>
             </div>
@@ -99,7 +129,7 @@ export default function VibePage() {
         </section>
 
         {/* Final CTA */}
-        <section className="mt-32 text-center">
+        <section className="mt-32 text-center pb-20">
           <h2 className="text-4xl font-black tracking-tight text-neutral-950 sm:text-6xl">Ready to Race?</h2>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
@@ -121,6 +151,10 @@ export default function VibePage() {
     </main>
   );
 }
+
+// =====================================================
+// Helper Component
+// =====================================================
 
 function FeatureCard({ badge, title, text }: { badge: string; title: string; text: string }) {
   return (

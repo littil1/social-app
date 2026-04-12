@@ -59,7 +59,7 @@ export default function LoginModal() {
       onClick={closeLogin}
     >
       <div
-        className="relative grid w-full max-w-4xl overflow-hidden rounded-[32px] border border-neutral-200 bg-white shadow-2xl lg:grid-cols-[1fr_1.1fr]"
+        className="relative grid w-full max-w-4xl overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-2xl lg:grid-cols-[1fr_1.1fr]"
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -71,38 +71,38 @@ export default function LoginModal() {
           ✕
         </button>
 
-        {/* Sidebar Manifest */}
-        <section className="hidden bg-neutral-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
-          <div className="space-y-6">
-            <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
-              The Arena
+        {/* Sidebar Manifesto - Minimalist Refactor */}
+        <section className="hidden bg-neutral-950 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+          <div className="space-y-8">
+            <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+              A PERFECT PLACE
             </span>
 
-            <div className="space-y-4">
-              <h1 className="text-4xl font-black tracking-tighter sm:text-5xl">
+            <div className="space-y-6">
+              <h1 className="text-5xl font-black tracking-tighter leading-none">
                 Impact over <br />
-                <span className="text-neutral-500 text-glow-neutral">Volume.</span>
+                <span className="text-neutral-600 text-glow-neutral">Fame.</span>
               </h1>
-              <p className="max-w-md text-base leading-relaxed text-neutral-400">
-                Join a community that values deep insights over loud noise. Your journey to become a Legend starts here.
+              <p className="max-w-[280px] text-lg font-medium leading-relaxed text-neutral-400">
+                Resonance is the only currency.
               </p>
             </div>
           </div>
 
-          <div className="grid gap-4">
-            <InfoCard title="Curated Noise" text="We filter the chaos. You only see what truly matters." />
-            <InfoCard title="Earned Status" text="Your name is revealed only when your value is proven." />
-            <InfoCard title="Daily Reset" text="Every 24 hours is a new chance to lead the pack." />
+          <div className="grid gap-3">
+            <InfoCard title="Substance Only" text="We filter the noise. See what truly moves the community." />
+            <InfoCard title="Earned Status" text="Your identity is revealed only when your value is proven." />
+            <InfoCard title="Daily Race" text="Every 24 hours is a new chance to lead the pack." />
           </div>
         </section>
 
         {/* Form Section */}
-        <section className="flex flex-col justify-center p-8 sm:p-12">
+        <section className="flex flex-col justify-center p-8 sm:p-16">
           <div className="mx-auto w-full max-w-sm">
-            <div className="mb-8">
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Access APP</span>
+            <div className="mb-10">
+              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Identity Portal</span>
               <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">
-                {mode === "login" ? "Welcome back." : "Join the race."}
+                {mode === "login" ? "Welcome back." : "Create your account now."}
               </h2>
             </div>
 
@@ -111,7 +111,7 @@ export default function LoginModal() {
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                className={`rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                   mode === "login" ? "bg-white text-black shadow-sm" : "text-neutral-500 hover:text-black"
                 }`}
               >
@@ -120,7 +120,7 @@ export default function LoginModal() {
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className={`rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
+                className={`rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                   mode === "signup" ? "bg-white text-black shadow-sm" : "text-neutral-500 hover:text-black"
                 }`}
               >
@@ -128,11 +128,11 @@ export default function LoginModal() {
               </button>
             </div>
 
-            <form action={mode === "login" ? loginFormAction : signupFormAction} className="space-y-5">
+            <form action={mode === "login" ? loginFormAction : signupFormAction} className="space-y-6">
               <input type="hidden" name="redirect" value={redirectPath} />
 
               <div className="space-y-2">
-                <label htmlFor="auth-email" className="text-xs font-bold uppercase tracking-tight text-neutral-500">
+                <label htmlFor="auth-email" className="text-xs font-black uppercase tracking-widest text-neutral-500">
                   Email Address
                 </label>
                 <input
@@ -141,12 +141,12 @@ export default function LoginModal() {
                   type="email"
                   required
                   placeholder="name@example.com"
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
                 />
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="auth-password" className="text-xs font-bold uppercase tracking-tight text-neutral-500">
+                <label htmlFor="auth-password" className="text-xs font-black uppercase tracking-widest text-neutral-500">
                   Password
                 </label>
                 <input
@@ -156,14 +156,13 @@ export default function LoginModal() {
                   required
                   minLength={mode === "signup" ? 6 : undefined}
                   placeholder="••••••••"
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
                 />
-                {mode === "signup" && <p className="text-[10px] font-medium text-neutral-400">Min. 6 characters</p>}
               </div>
 
               {/* Status Messages */}
               {(loginState.error || signupState.error) && (
-                <div className="rounded-2xl bg-red-50 p-4 text-xs font-bold text-red-600 border border-red-100 animate-shake">
+                <div className="rounded-2xl bg-red-50 p-4 text-xs font-bold text-red-600 border border-red-100">
                   {loginState.error || signupState.error}
                 </div>
               )}
@@ -176,11 +175,11 @@ export default function LoginModal() {
               <button
                 type="submit"
                 disabled={loginPending || signupPending}
-                className="w-full rounded-2xl bg-neutral-950 py-4 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+                className="w-full rounded-2xl bg-neutral-950 py-5 text-sm font-bold text-white shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
               >
                 {mode === "login"
-                  ? loginPending ? "Authenticating..." : "Sign In"
-                  : signupPending ? "Creating Account..." : "Create Account"}
+                  ? loginPending ? "Syncing..." : "Enter the Place"
+                  : signupPending ? "Initializing..." : "Create Identity"}
               </button>
             </form>
           </div>
@@ -197,9 +196,9 @@ type InfoCardProps = {
 
 function InfoCard({ title, text }: InfoCardProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition hover:bg-white/10">
-      <h3 className="text-sm font-black tracking-tight text-white">{title}</h3>
-      <p className="mt-2 text-xs leading-relaxed text-neutral-400">{text}</p>
+    <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-5 transition hover:bg-white/[0.06]">
+      <h3 className="text-xs font-black uppercase tracking-widest text-white">{title}</h3>
+      <p className="mt-1 text-[11px] font-medium leading-relaxed text-neutral-500">{text}</p>
     </div>
   );
 }

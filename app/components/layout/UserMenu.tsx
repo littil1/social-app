@@ -44,55 +44,79 @@ export default function UserMenu({
   }, []);
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative flex items-center gap-2" ref={wrapperRef}>
+      {/* Create Post Button - Als eigenständiger Punkt */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new CustomEvent("open-create-post"))}
+        className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg transition hover:bg-emerald-600 active:scale-90 sm:h-12 sm:w-12"
+      >
+        <span className="text-xl font-bold">＋</span>
+      </button>
+
+      {/* Profile Trigger */}
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center gap-3 rounded-lg px-2 py-1 hover:bg-gray-50"
+        className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 transition-all sm:h-12 sm:w-12 ${
+          open 
+            ? "border-white bg-white shadow-xl" 
+            : "border-white/10 bg-neutral-800 hover:border-white/40"
+        }`}
       >
-        <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarUrl}
-              alt="Your avatar"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            username.charAt(0).toUpperCase()
-          )}
-        </div>
-
-        <div className="hidden text-left text-sm text-gray-600 sm:block">
-          <div>@{username}</div>
-          {isAdmin && <div className="text-xs text-red-600">Admin</div>}
-        </div>
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt="Your avatar"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <span className="font-black text-white">
+            {username.charAt(0).toUpperCase()}
+          </span>
+        )}
       </button>
 
+      {/* Dropdown Menu - Öffnet nach OBEN */}
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-gray-200 bg-white py-2 shadow-lg">
+        <div className="absolute bottom-full right-0 z-50 mb-4 w-56 overflow-hidden rounded-[24px] border border-neutral-200 bg-white p-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2">
+          <div className="px-4 py-3 border-b border-neutral-50 mb-1">
+             <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Signed in as</p>
+             <p className="truncate text-sm font-bold text-neutral-950">@{username}</p>
+          </div>
+
           <Link
             href={`/u/${username}`}
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="block rounded-xl px-4 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950"
             onClick={() => setOpen(false)}
           >
-            Mein Profil
+            View Profile
           </Link>
 
           <Link
             href="/settings/profile"
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+            className="block rounded-xl px-4 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950"
             onClick={() => setOpen(false)}
           >
-            Einstellungen
+            Settings
           </Link>
 
-          <div className="my-1 border-t border-gray-100" />
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="block rounded-xl px-4 py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50"
+              onClick={() => setOpen(false)}
+            >
+              Admin Panel
+            </Link>
+          )}
+
+          <div className="my-1 border-t border-neutral-100" />
 
           <form action={logout}>
             <button
               type="submit"
-              className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+              className="block w-full rounded-xl px-4 py-3 text-left text-sm font-bold text-red-500 hover:bg-red-50"
             >
               Logout
             </button>

@@ -1,0 +1,42 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import CreatePostForm from "./CreatePostForm";
+import { useRouter, usePathname } from "next/navigation";
+
+export default function GlobalPostModal({ isLoggedIn, currentUserProfile }: any) {
+  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const handleOpen = () => setIsOpen(true);
+    window.addEventListener("open-create-post", handleOpen);
+    return () => window.removeEventListener("open-create-post", handleOpen);
+  }, []);
+
+  // Wenn gepostet wurde: Modal schließen und zum Live-Feed leiten,
+  // damit der User seinen Impact sofort sieht.
+  const handlePostCreated = (newPost: any) => {
+    setIsOpen(false);
+    if (pathname !== "/leaderboard") {
+      router.push("/leaderboard");
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-6">
+      <div className="absolute inset-0" onClick={() => setIsOpen(false)} />
+      <div className="relative z-10 w-full rounded-t-[32px] bg-white p-6 shadow-2xl sm:max-w-xl sm:rounded-[32px]">
+        <CreatePostForm
+          onPostCreated={handlePostCreated}
+          isLoggedIn={isLoggedIn}
+          onClose={() => setIsOpen(false)}
+          currentUserProfile={currentUserProfile}
+        />
+      </div>
+    </div>
+  );
+}

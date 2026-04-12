@@ -3,12 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FeedPost, ReactionType } from "@/types/feed";
-import CreatePostForm from "@/app/components/posts/CreatePostForm";
 import PostCard from "@/app/components/posts/PostCard";
-
-// =====================================================
-// Types
-// =====================================================
 
 type HomeFeedProps = {
   initialPosts: FeedPost[];
@@ -44,17 +39,10 @@ function isTodayInZurich(dateString: string) {
 
 function getDailyTopPosts(posts: FeedPost[]): RankedTopPost[] {
   const todaysPosts = posts.filter((post) => isTodayInZurich(post.created_at));
-
   const ranked = [...todaysPosts]
     .sort((a, b) => {
-      if (b.reactions_count !== a.reactions_count) {
-        return b.reactions_count - a.reactions_count;
-      }
-
-      if (b.comments_count !== a.comments_count) {
-        return b.comments_count - a.comments_count;
-      }
-
+      if (b.reactions_count !== a.reactions_count) return b.reactions_count - a.reactions_count;
+      if (b.comments_count !== a.comments_count) return b.comments_count - a.comments_count;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     })
     .slice(0, 3);
@@ -65,41 +53,23 @@ function getDailyTopPosts(posts: FeedPost[]): RankedTopPost[] {
   }));
 }
 
-function applyReactionUpdate(
-  post: FeedPost,
-  nextReaction: ReactionType | null
-): FeedPost {
+function applyReactionUpdate(post: FeedPost, nextReaction: ReactionType | null): FeedPost {
   const previousReaction = post.viewer_reaction;
+  if (previousReaction === nextReaction) return post;
 
-  if (previousReaction === nextReaction) {
-    return post;
-  }
-
-  const nextReactionCounts = {
-    ...post.reaction_counts,
-  };
-
+  const nextReactionCounts = { ...post.reaction_counts };
   let nextReactionsCount = post.reactions_count;
 
   if (previousReaction) {
-    nextReactionCounts[previousReaction] = Math.max(
-      0,
-      nextReactionCounts[previousReaction] - 1
-    );
+    nextReactionCounts[previousReaction] = Math.max(0, nextReactionCounts[previousReaction] - 1);
     nextReactionsCount = Math.max(0, nextReactionsCount - 1);
   }
-
   if (nextReaction) {
     nextReactionCounts[nextReaction] += 1;
     nextReactionsCount += 1;
   }
 
-  return {
-    ...post,
-    viewer_reaction: nextReaction,
-    reaction_counts: nextReactionCounts,
-    reactions_count: nextReactionsCount,
-  };
+  return { ...post, viewer_reaction: nextReaction, reaction_counts: nextReactionCounts, reactions_count: nextReactionsCount };
 }
 
 // =====================================================
@@ -110,64 +80,37 @@ export default function HomeFeed({
   initialPosts,
   pageSize,
   isLoggedIn,
-  currentUserProfile = null,
   showTopSection = true,
 }: HomeFeedProps) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [offset, setOffset] = useState(initialPosts.length);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialPosts.length === pageSize);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [showOlderPosts, setShowOlderPosts] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const seenIds = useMemo(() => new Set(posts.map((post) => post.id)), [posts]);
-
-  const todaysPosts = useMemo(
-    () => posts.filter((post) => isTodayInZurich(post.created_at)),
-    [posts]
-  );
-
-  const olderPosts = useMemo(
-    () => posts.filter((post) => !isTodayInZurich(post.created_at)),
-    [posts]
-  );
-
+  const todaysPosts = useMemo(() => posts.filter((post) => isTodayInZurich(post.created_at)), [posts]);
+  const olderPosts = useMemo(() => posts.filter((post) => !isTodayInZurich(post.created_at)), [posts]);
   const topPosts = useMemo(() => getDailyTopPosts(todaysPosts), [todaysPosts]);
+  const topPostIds = useMemo(() => new Set(topPosts.map((post) => post.id)), [topPosts]);
+  const regularTodaysPosts = useMemo(() => todaysPosts.filter((post) => !topPostIds.has(post.id)), [todaysPosts, topPostIds]);
 
-  const topPostIds = useMemo(
-    () => new Set(topPosts.map((post) => post.id)),
-    [topPosts]
-  );
-
-  const regularTodaysPosts = useMemo(
-    () => todaysPosts.filter((post) => !topPostIds.has(post.id)),
-    [todaysPosts, topPostIds]
-  );
+  const triggerGlobalPost = () => {
+    window.dispatchEvent(new CustomEvent("open-create-post"));
+  };
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
-
     setLoadingMore(true);
-
     try {
-      const res = await fetch(`/api/feed?offset=${offset}&limit=${pageSize}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      if (!res.ok) {
-        throw new Error("Feed konnte nicht geladen werden.");
-      }
-
+      const res = await fetch(`/api/feed?offset=${offset}&limit=${pageSize}`, { method: "GET", cache: "no-store" });
+      if (!res.ok) throw new Error("Feed load failed");
       const data: FeedPost[] = await res.json();
-
       setPosts((prev) => {
         const existingIds = new Set(prev.map((post) => post.id));
         const next = data.filter((post) => !existingIds.has(post.id));
         return [...prev, ...next];
       });
-
       setOffset((prev) => prev + data.length);
       setHasMore(data.length === pageSize);
     } catch (error) {
@@ -180,93 +123,33 @@ export default function HomeFeed({
   useEffect(() => {
     const element = sentinelRef.current;
     if (!element) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first?.isIntersecting) {
-          loadMore();
-        }
-      },
-      {
-        rootMargin: "300px",
-      }
-    );
-
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) loadMore();
+    }, { rootMargin: "300px" });
     observer.observe(element);
-
     return () => observer.disconnect();
   }, [loadMore]);
 
-  useEffect(() => {
-    if (!isCreateOpen) return;
-
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isCreateOpen]);
-
-  function handlePostCreated(newPost: FeedPost) {
-    setPosts((prev) => {
-      if (seenIds.has(newPost.id)) return prev;
-      return [newPost, ...prev];
-    });
-    setOffset((prev) => prev + 1);
-  }
-
-  function handleReactionUpdated(
-    postId: number,
-    nextReaction: ReactionType | null
-  ) {
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId ? applyReactionUpdate(post, nextReaction) : post
-      )
-    );
+  function handleReactionUpdated(postId: number, nextReaction: ReactionType | null) {
+    setPosts((prev) => prev.map((post) => post.id === postId ? applyReactionUpdate(post, nextReaction) : post));
   }
 
   function handleCommentCreated(postId: number) {
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
-          ? { ...post, comments_count: post.comments_count + 1 }
-          : post
-      )
-    );
+    setPosts((prev) => prev.map((post) => post.id === postId ? { ...post, comments_count: post.comments_count + 1 } : post));
   }
 
   function handleCommentsCountChange(postId: number, count: number) {
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id !== postId) return post;
-        if (post.comments_count === count) return post;
-
-        return {
-          ...post,
-          comments_count: count,
-        };
-      })
-    );
+    setPosts((prev) => prev.map((post) => post.id === postId ? { ...post, comments_count: count } : post));
   }
 
   function handlePostDeleted(postId: number) {
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   }
 
-  function openCreateModal() {
-    setIsCreateOpen(true);
-  }
-
-  function closeCreateModal() {
-    setIsCreateOpen(false);
-  }
-
   return (
     <>
-      <div className="space-y-6">
+      <div className="space-y-12">
+        {/* 1. TOP 3 TODAY */}
         {showTopSection && topPosts.length > 0 && (
           <section className="space-y-4">
             {topPosts.map((post) => (
@@ -285,82 +168,82 @@ export default function HomeFeed({
           </section>
         )}
 
+        {/* 2. REGULAR TODAY POSTS */}
         {regularTodaysPosts.length > 0 && (
-          <section className="space-y-4 pt-1">
-            <div className="px-1 pb-1">
-              <p className="text-base font-semibold text-gray-900">
-                In the shadows
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                Content is king. Your identity remains hidden until you become a Legend.
-              </p>
+          <section className="space-y-6">
+            <div className="px-2">
+              <h2 className="text-xl font-black tracking-tight text-neutral-950">In the shadows</h2>
+              <p className="mt-1 text-sm font-medium text-neutral-400">Content is king. Every thought fights for its rank.</p>
             </div>
-
-            {regularTodaysPosts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                detailHref={`/posts/${post.id}`}
-                onReactionUpdated={handleReactionUpdated}
-                onCommentCreated={handleCommentCreated}
-                onCommentsCountChange={handleCommentsCountChange}
-                onPostDeleted={handlePostDeleted}
-                isLoggedIn={isLoggedIn}
-              />
-            ))}
+            <div className="space-y-4">
+              {regularTodaysPosts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  detailHref={`/posts/${post.id}`}
+                  onReactionUpdated={handleReactionUpdated}
+                  onCommentCreated={handleCommentCreated}
+                  onCommentsCountChange={handleCommentsCountChange}
+                  onPostDeleted={handlePostDeleted}
+                  isLoggedIn={isLoggedIn}
+                />
+              ))}
+            </div>
           </section>
         )}
 
-        {todaysPosts.length > 0 && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-            <p className="text-base font-semibold text-gray-900">
-              You’re all caught up.
-            </p>
-            <p className="mt-2 text-sm text-gray-500">
-              Create your own post or see who made history.
-            </p>
+        {/* 3. STATUS AREA / EMPTY STATE */}
+        <div className="rounded-[32px] border border-neutral-200 bg-white p-10 text-center shadow-sm">
+          {todaysPosts.length > 0 ? (
+            <>
+              <p className="text-lg font-black tracking-tight text-neutral-950">You’re all caught up.</p>
+              <p className="mt-2 text-sm font-medium text-neutral-400">Join the race or explore the legacy.</p>
+            </>
+          ) : (
+            <>
+              <div className="mb-4 inline-flex rounded-full border border-emerald-100 bg-emerald-50 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
+                Live Race
+              </div>
+              <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-8xl">
+                The Arena is <span className="text-neutral-400 text-glow-neutral">quiet.</span>
+              </h1>
+              <p className="mx-auto mt-4 max-w-md text-base font-medium text-neutral-500">
+                Be the first to share a thought and lead today's ranking.
+              </p>
+            </>
+          )}
 
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={triggerGlobalPost}
+              className="rounded-full bg-neutral-950 px-8 py-4 text-sm font-bold text-white transition hover:scale-105 active:scale-95 shadow-lg"
+            >
+              Create Post
+            </button>
+            {olderPosts.length > 0 && !showOlderPosts && (
               <button
                 type="button"
-                onClick={openCreateModal}
-                className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                onClick={() => setShowOlderPosts(true)}
+                className="rounded-full border border-neutral-200 bg-white px-8 py-4 text-sm font-bold text-neutral-950 transition hover:bg-neutral-50"
               >
-                Create Post
-              </button>
-
-              {olderPosts.length > 0 && !showOlderPosts && (
-                <button
-                  type="button"
-                  onClick={() => setShowOlderPosts(true)}
-                  className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-                >
-                  View Archive
-                </button>
-              )}
-
-              <Link
-                href="/hall-of-fame"
-                className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-              >
-                See the Hall
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {showOlderPosts && olderPosts.length > 0 && (
-          <section className="space-y-4 pt-2">
-            <div className="px-1 pb-1">
-              <p className="text-base font-semibold text-gray-900">
                 View Archive
-              </p>
-              <p className="mt-1 text-sm text-gray-500">
-                Past Posts.
-              </p>
-            </div>
+              </button>
+            )}
+            <Link href="/hall-of-fame" className="rounded-full border border-neutral-200 bg-white px-8 py-4 text-sm font-bold text-neutral-950 transition hover:bg-neutral-50">
+              See the Hall
+            </Link>
+          </div>
+        </div>
 
-            <div className="space-y-4 opacity-55">
+        {/* 4. ARCHIVE SECTION */}
+        {showOlderPosts && olderPosts.length > 0 && (
+          <section className="space-y-6 pt-4">
+            <div className="px-2">
+              <h2 className="text-xl font-black tracking-tight text-neutral-950">Archive</h2>
+              <p className="mt-1 text-sm font-medium text-neutral-400">Past contributions that shaped the Place.</p>
+            </div>
+            <div className="space-y-4 opacity-60">
               {olderPosts.map((post) => (
                 <PostCard
                   key={`older-${post.id}`}
@@ -376,98 +259,9 @@ export default function HomeFeed({
             </div>
           </section>
         )}
-
-        {posts.length === 0 && (
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-            <p className="text-base font-semibold text-gray-900">
-              Lead the race.
-            </p>
-            <p className="mt-2 text-sm text-gray-500">
-              Make an impact.
-            </p>
-
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={openCreateModal}
-                className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                Create Post
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       <div ref={sentinelRef} className="h-10" />
-
-      {loadingMore && (
-        <p className="pb-8 text-center text-sm text-gray-500">
-          Show more ...
-        </p>
-      )}
-
-      {!hasMore && posts.length > 0 && olderPosts.length > 0 && showOlderPosts && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-          <p className="text-base font-semibold text-gray-900">
-            That's it.
-          </p>
-          <p className="mt-2 text-sm text-gray-500">
-            You've seen everything.
-          </p>
-
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-            <button
-              type="button"
-              onClick={openCreateModal}
-              className="inline-flex items-center rounded-full bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-            >
-              Create Post
-            </button>
-
-            <Link
-              href="/hall-of-fame"
-              className="inline-flex items-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
-            >
-              See the Hall
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {!hasMore && posts.length > 0 && olderPosts.length === 0 && (
-        <p className="pb-24 text-center text-sm text-gray-400">
-          Nothing more today.
-        </p>
-      )}
-
-      <button
-        type="button"
-        onClick={openCreateModal}
-        aria-label="Beitrag erstellen"
-        className="fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-black text-3xl font-light text-white shadow-lg transition hover:scale-[1.03] hover:bg-gray-900"
-      >
-        +
-      </button>
-
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-6">
-          <div
-            className="absolute inset-0"
-            onClick={closeCreateModal}
-            aria-hidden="true"
-          />
-
-          <div className="relative z-10 w-full rounded-t-3xl bg-white p-5 shadow-2xl sm:max-w-xl sm:rounded-3xl sm:p-6">
-            <CreatePostForm
-              onPostCreated={handlePostCreated}
-              isLoggedIn={isLoggedIn}
-              onClose={closeCreateModal}
-              currentUserProfile={currentUserProfile}
-            />
-          </div>
-        </div>
-      )}
     </>
   );
 }

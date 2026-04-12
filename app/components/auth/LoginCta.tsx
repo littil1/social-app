@@ -31,7 +31,7 @@ export default function LoginCta() {
             Ready to join the race?
           </h3>
           <p className="mt-1 text-sm font-medium leading-relaxed text-neutral-500">
-            Log in to post your thoughts, react to others, and start your journey toward becoming a Legend.
+            Log in to post your thoughts, react to others, and become a Legend.
           </p>
         </div>
 
