@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { FeedComment, ReactionType } from "@/types/feed";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 
 // =====================================================
-// Types
+// Types & Constants
 // =====================================================
 
 type CommentsSectionProps = {
@@ -34,15 +35,8 @@ type CommentItemProps = {
   onReplyContentChange: (value: string) => void;
   onReplySubmit: (parentId: number) => Promise<void>;
   onDeleteComment: (commentId: number) => Promise<void>;
-  onReactionClick: (
-    commentId: number,
-    reaction: ReactionType
-  ) => Promise<void>;
+  onReactionClick: (commentId: number, reaction: ReactionType) => Promise<void>;
 };
-
-// =====================================================
-// Constants
-// =====================================================
 
 const REACTIONS: Array<{
   value: ReactionType;
@@ -50,10 +44,10 @@ const REACTIONS: Array<{
   label: string;
   countKey: keyof FeedComment["reaction_counts"];
 }> = [
-  { value: "like", emoji: "❤️", label: "Gefällt mir", countKey: "like" },
-  { value: "funny", emoji: "😂", label: "Lustig", countKey: "funny" },
+  { value: "like", emoji: "❤️", label: "Impact", countKey: "like" },
+  { value: "funny", emoji: "😂", label: "Funny", countKey: "funny" },
   { value: "wow", emoji: "🤯", label: "Wow", countKey: "wow" },
-  { value: "fire", emoji: "🔥", label: "Stark", countKey: "fire" },
+  { value: "fire", emoji: "🔥", label: "Strong", countKey: "fire" },
 ];
 
 // =====================================================
@@ -62,8 +56,7 @@ const REACTIONS: Array<{
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
-
-  return new Intl.DateTimeFormat("de-CH", {
+  return new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -72,22 +65,12 @@ function formatDate(dateString: string) {
   }).format(date);
 }
 
-function getHallOfFameCategoryLabel(category: string) {
-  if (category === "likes") return "Top Likes";
-  if (category === "relevance") return "Top Relevance";
-  if (category === "comments") return "Top Comments";
-  return "Hall of Fame";
-}
-
 function buildCommentTree(comments: FeedComment[]) {
   const nodes = new Map<number, CommentNode>();
   const roots: CommentNode[] = [];
 
   for (const comment of comments) {
-    nodes.set(comment.id, {
-      ...comment,
-      children: [],
-    });
+    nodes.set(comment.id, { ...comment, children: [] });
   }
 
   for (const comment of comments) {
@@ -100,7 +83,6 @@ function buildCommentTree(comments: FeedComment[]) {
     }
 
     const parentNode = nodes.get(comment.parent_id);
-
     if (!parentNode) {
       roots.push(node);
       continue;
@@ -112,45 +94,14 @@ function buildCommentTree(comments: FeedComment[]) {
   return roots;
 }
 
-function collectCommentIdsToRemove(
-  commentId: number,
-  comments: FeedComment[]
-): Set<number> {
-  const idsToRemove = new Set<number>([commentId]);
-  let changed = true;
-
-  while (changed) {
-    changed = false;
-
-    for (const comment of comments) {
-      if (
-        comment.parent_id !== null &&
-        idsToRemove.has(comment.parent_id) &&
-        !idsToRemove.has(comment.id)
-      ) {
-        idsToRemove.add(comment.id);
-        changed = true;
-      }
-    }
-  }
-
-  return idsToRemove;
-}
-
 function applyReactionUpdate(
   comment: FeedComment,
   nextReaction: ReactionType | null
 ): FeedComment {
   const previousReaction = comment.viewer_reaction;
+  if (previousReaction === nextReaction) return comment;
 
-  if (previousReaction === nextReaction) {
-    return comment;
-  }
-
-  const nextReactionCounts = {
-    ...comment.reaction_counts,
-  };
-
+  const nextReactionCounts = { ...comment.reaction_counts };
   let nextReactionsCount = comment.reactions_count;
 
   if (previousReaction) {
@@ -174,13 +125,30 @@ function applyReactionUpdate(
   };
 }
 
-function getResumePath() {
-  if (typeof window === "undefined") return "/";
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+function getCommentSubtreeIds(comments: FeedComment[], rootId: number) {
+  const idsToRemove = new Set<number>([rootId]);
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+
+    for (const comment of comments) {
+      if (
+        comment.parent_id !== null &&
+        idsToRemove.has(comment.parent_id) &&
+        !idsToRemove.has(comment.id)
+      ) {
+        idsToRemove.add(comment.id);
+        changed = true;
+      }
+    }
+  }
+
+  return idsToRemove;
 }
 
 // =====================================================
-// Comment Item
+// Comment Item Component
 // =====================================================
 
 function CommentItem({
@@ -201,77 +169,70 @@ function CommentItem({
 }: CommentItemProps) {
   const maxIndentLevel = 4;
   const effectiveDepth = Math.min(depth, maxIndentLevel);
-  const hallOfFameCategories = node.author_hall_of_fame_categories ?? [];
 
   return (
     <div
-      className={effectiveDepth > 0 ? "border-l border-gray-200 pl-3 sm:pl-4" : ""}
+      className={
+        effectiveDepth > 0
+          ? "mt-3 border-l-2 border-neutral-100 pl-3 sm:pl-4"
+          : "mt-4"
+      }
       style={{
-        marginLeft: effectiveDepth > 0 ? `${effectiveDepth * 10}px` : undefined,
+        marginLeft: effectiveDepth > 0 ? `${effectiveDepth * 8}px` : undefined,
       }}
     >
-      <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
-        <div className="flex items-start justify-between gap-3">
+      <div className="relative rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm transition-all hover:border-neutral-200 sm:p-5">
+        {node.can_delete && (
+          <button
+            type="button"
+            onClick={() => void onDeleteComment(node.id)}
+            disabled={deletingCommentId === node.id}
+            className="absolute right-4 top-4 text-[10px] font-black uppercase tracking-widest text-neutral-300 transition-colors hover:text-red-500 disabled:opacity-30"
+          >
+            {deletingCommentId === node.id ? "..." : "Delete"}
+          </button>
+        )}
+
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-bold text-neutral-400 shadow-inner">
+            {node.author_avatar_url ? (
+              <img
+                src={node.author_avatar_url}
+                alt="avatar"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              (node.author_username ?? "A").charAt(0).toUpperCase()
+            )}
+          </div>
+
           <div className="min-w-0 flex-1">
-            <div className="mb-2 flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-                {node.author_avatar_url ? (
-                  <img
-                    src={node.author_avatar_url}
-                    alt={`${node.author_username ?? "User"} avatar`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  (node.author_username ?? "U").charAt(0).toUpperCase()
+            <div className="mb-2">
+              <div className="flex items-center gap-2 pr-12">
+                <Link
+                  href={`/u/${encodeURIComponent(node.author_username ?? "")}`}
+                  className="truncate text-sm font-black text-neutral-950 hover:underline"
+                >
+                  @{node.author_username ?? "anonymous"}
+                </Link>
+
+                {(node.author_hall_of_fame_count ?? 0) > 0 && (
+                  <span className="rounded-full border border-amber-100/50 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-600">
+                    Legend
+                  </span>
                 )}
               </div>
 
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  {node.author_username ? (
-                    <Link
-                      href={`/u/${encodeURIComponent(node.author_username)}`}
-                      className="truncate text-sm font-semibold text-gray-700 hover:underline"
-                    >
-                      @{node.author_username}
-                    </Link>
-                  ) : (
-                    <p className="truncate text-sm font-semibold text-gray-700">
-                      Unbekannter Nutzer
-                    </p>
-                  )}
-
-                  {(node.author_hall_of_fame_count ?? 0) > 0 && (
-                    <span className="rounded-full bg-indigo-100 px-2 py-1 text-[11px] font-medium text-indigo-700">
-                      Hall of Fame
-                    </span>
-                  )}
-                </div>
-
-                <p className="mt-1 text-xs text-gray-400">
-                  {formatDate(node.created_at)}
-                </p>
-              </div>
+              <p className="text-[10px] font-bold uppercase tracking-tighter text-neutral-400">
+                {formatDate(node.created_at)}
+              </p>
             </div>
 
-            {hallOfFameCategories.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2">
-                {hallOfFameCategories.map((category) => (
-                  <span
-                    key={category}
-                    className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-700"
-                  >
-                    {getHallOfFameCategoryLabel(category)}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            <p className="whitespace-pre-wrap break-words text-sm text-gray-900 sm:text-[15px]">
+            <p className="whitespace-pre-wrap break-words text-[15px] font-medium leading-relaxed text-neutral-800">
               {node.content}
             </p>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-5 flex flex-wrap items-center gap-2">
               {REACTIONS.map((reaction) => {
                 const isActive = node.viewer_reaction === reaction.value;
 
@@ -281,16 +242,18 @@ function CommentItem({
                     type="button"
                     onClick={() => void onReactionClick(node.id, reaction.value)}
                     disabled={reactingCommentId === node.id}
-                    className={`rounded-full px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+                    className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all active:scale-90 disabled:opacity-50 ${
                       isActive
-                        ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
-                        : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
+                        ? "scale-105 bg-neutral-950 text-white shadow-md"
+                        : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
                     }`}
-                    aria-pressed={isActive}
-                    title={reaction.label}
                   >
-                    <span className="mr-1">{reaction.emoji}</span>
-                    {node.reaction_counts[reaction.countKey]}
+                    <span>{reaction.emoji}</span>
+                    <span
+                      className={isActive ? "text-white" : "text-neutral-900"}
+                    >
+                      {node.reaction_counts[reaction.countKey]}
+                    </span>
                   </button>
                 );
               })}
@@ -298,67 +261,47 @@ function CommentItem({
               <button
                 type="button"
                 onClick={() => onReplyOpen(node.id)}
-                className="rounded-full bg-white px-3 py-1.5 text-sm text-gray-700 ring-1 ring-gray-200 transition hover:bg-gray-100"
+                className="ml-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-neutral-950"
               >
-                Antworten
+                Reply
               </button>
-
-              {node.can_delete && (
-                <button
-                  type="button"
-                  onClick={() => void onDeleteComment(node.id)}
-                  disabled={deletingCommentId === node.id}
-                  className="rounded-full border border-red-300 bg-white px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                >
-                  {deletingCommentId === node.id ? "Lösche..." : "Löschen"}
-                </button>
-              )}
             </div>
 
-            {replyParentId === node.id && isLoggedIn && (
+            {replyParentId === node.id && (
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
                   await onReplySubmit(node.id);
                 }}
-                className="mt-3 flex flex-col gap-2"
+                className="animate-in slide-in-from-top-2 mt-5 flex flex-col gap-2 border-t border-neutral-50 pt-4 duration-300 fade-in"
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                  <input
-                    type="text"
-                    value={replyContent}
-                    onChange={(e) => onReplyContentChange(e.target.value)}
-                    placeholder={`Antwort an @${
-                      node.author_username ?? "user"
-                    } ...`}
-                    maxLength={200}
-                    disabled={replySubmitting}
-                    className="flex-1 rounded-xl border border-gray-300 px-4 py-2 outline-none"
-                  />
+                <input
+                  type="text"
+                  autoFocus
+                  value={replyContent}
+                  onChange={(e) => onReplyContentChange(e.target.value)}
+                  placeholder={`Reply to @${node.author_username ?? "anonymous"}...`}
+                  maxLength={200}
+                  disabled={replySubmitting}
+                  className="w-full rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition-all focus:border-neutral-950 focus:bg-white"
+                />
 
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      disabled={replySubmitting || !replyContent.trim()}
-                      className="rounded-xl bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
-                    >
-                      {replySubmitting ? "Sende..." : "Antworten"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={onReplyCancel}
-                      disabled={replySubmitting}
-                      className="rounded-xl border border-gray-300 px-4 py-2 text-sm text-gray-700 disabled:opacity-50"
-                    >
-                      Abbrechen
-                    </button>
-                  </div>
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={onReplyCancel}
+                    className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={replySubmitting || !replyContent.trim()}
+                    className="rounded-xl bg-neutral-950 px-5 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 disabled:opacity-20"
+                  >
+                    Send
+                  </button>
                 </div>
-
-                <span className="text-right text-xs text-gray-400">
-                  {200 - replyContent.length} Zeichen übrig
-                </span>
               </form>
             )}
           </div>
@@ -366,7 +309,7 @@ function CommentItem({
       </div>
 
       {node.children.length > 0 && (
-        <div className="mt-3 space-y-3">
+        <div className="space-y-1">
           {node.children.map((child) => (
             <CommentItem
               key={child.id}
@@ -393,7 +336,7 @@ function CommentItem({
 }
 
 // =====================================================
-// Component
+// Main Section Component
 // =====================================================
 
 export default function CommentsSection({
@@ -402,15 +345,8 @@ export default function CommentsSection({
   onCommentsLoaded,
   isLoggedIn = false,
 }: CommentsSectionProps) {
-  // =====================================================
-  // Hooks
-  // =====================================================
-
   const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
-
-  // =====================================================
-  // State
-  // =====================================================
+  const pathname = usePathname();
 
   const [comments, setComments] = useState<FeedComment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -426,16 +362,8 @@ export default function CommentsSection({
   const [replyContent, setReplyContent] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
 
-  // =====================================================
-  // Derived Values
-  // =====================================================
-
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const commentTree = useMemo(() => buildCommentTree(comments), [comments]);
-
-  // =====================================================
-  // Effects
-  // =====================================================
 
   useEffect(() => {
     let active = true;
@@ -449,9 +377,7 @@ export default function CommentsSection({
           cache: "no-store",
         });
 
-        if (!res.ok) {
-          throw new Error("Kommentare konnten nicht geladen werden.");
-        }
+        if (!res.ok) throw new Error();
 
         const data: FeedComment[] = await res.json();
 
@@ -461,9 +387,7 @@ export default function CommentsSection({
       } catch (error) {
         console.error(error);
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
@@ -475,24 +399,11 @@ export default function CommentsSection({
   }, [postId]);
 
   useEffect(() => {
-    if (loading) return;
     onCommentsLoaded?.(comments.length);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comments.length, loading]);
+  }, [comments.length, onCommentsLoaded]);
 
-  useEffect(() => {
-    if (!effectiveIsLoggedIn && replyParentId !== null) {
-      setReplyParentId(null);
-      setReplyContent("");
-    }
-  }, [effectiveIsLoggedIn, replyParentId]);
-
-  // =====================================================
-  // Actions
-  // =====================================================
-
-  async function createComment() {
-    const trimmed = content.trim();
+  async function createComment(textToSubmit?: string) {
+    const trimmed = (textToSubmit || content).trim();
     if (!trimmed || submitting) return;
 
     setSubmitting(true);
@@ -500,67 +411,31 @@ export default function CommentsSection({
     try {
       const res = await fetch(`/api/posts/${postId}/comments`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: trimmed }),
       });
 
       if (res.status === 401 || res.status === 403) {
-        requireLoginAndResume(() => {
-          void createComment();
-        }, getResumePath());
+        requireLoginAndResume(() => void createComment(trimmed), pathname);
         return;
       }
 
-      if (!res.ok) {
-        throw new Error("Kommentar konnte nicht gespeichert werden.");
-      }
+      if (!res.ok) throw new Error();
 
       const newComment: FeedComment = await res.json();
 
       setComments((prev) => [newComment, ...prev]);
       setContent("");
       onCommentCreated();
-    } catch (error) {
-      console.error(error);
-      alert("Kommentar konnte nicht gespeichert werden.");
+    } catch {
+      alert("Error saving comment.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => {
-        void createComment();
-      }, getResumePath());
-      return;
-    }
-
-    await createComment();
-  }
-
-  function openReply(commentId: number) {
-    setReplyParentId(commentId);
-    setReplyContent("");
-  }
-
-  function handleReplyOpen(commentId: number) {
-    if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => {
-        openReply(commentId);
-      }, getResumePath());
-      return;
-    }
-
-    openReply(commentId);
-  }
-
-  async function createReply(parentId: number) {
-    const trimmed = replyContent.trim();
+  async function createReply(parentId: number, textToSubmit?: string) {
+    const trimmed = (textToSubmit || replyContent).trim();
     if (!trimmed || replySubmitting) return;
 
     setReplySubmitting(true);
@@ -568,25 +443,16 @@ export default function CommentsSection({
     try {
       const res = await fetch(`/api/posts/${postId}/comments`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          content: trimmed,
-          parentId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: trimmed, parentId }),
       });
 
       if (res.status === 401 || res.status === 403) {
-        requireLoginAndResume(() => {
-          void createReply(parentId);
-        }, getResumePath());
+        requireLoginAndResume(() => void createReply(parentId, trimmed), pathname);
         return;
       }
 
-      if (!res.ok) {
-        throw new Error("Antwort konnte nicht gespeichert werden.");
-      }
+      if (!res.ok) throw new Error();
 
       const newComment: FeedComment = await res.json();
 
@@ -594,232 +460,147 @@ export default function CommentsSection({
       setReplyContent("");
       setReplyParentId(null);
       onCommentCreated();
-    } catch (error) {
-      console.error(error);
-      alert("Antwort konnte nicht gespeichert werden.");
+    } catch {
+      alert("Error saving reply.");
     } finally {
       setReplySubmitting(false);
     }
   }
 
-  async function handleReplySubmit(parentId: number) {
-    if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => {
-        void createReply(parentId);
-      }, getResumePath());
-      return;
-    }
-
-    await createReply(parentId);
-  }
-
-  async function deleteComment(commentId: number) {
-    if (deletingCommentId !== null) return;
-
-    setDeletingCommentId(commentId);
-
-    try {
-      const res = await fetch(`/api/comments/${commentId}`, {
-        method: "DELETE",
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        requireLoginAndResume(() => {
-          void deleteComment(commentId);
-        }, getResumePath());
-        return;
-      }
-
-      if (!res.ok) {
-        const message = await res.text();
-        throw new Error(message || "Kommentar konnte nicht gelöscht werden.");
-      }
-
-      const idsToRemove = collectCommentIdsToRemove(commentId, comments);
-
-      setComments((prev) =>
-        prev.filter((comment) => !idsToRemove.has(comment.id))
-      );
-
-      if (replyParentId !== null && idsToRemove.has(replyParentId)) {
-        setReplyParentId(null);
-        setReplyContent("");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Kommentar konnte nicht gelöscht werden.");
-    } finally {
-      setDeletingCommentId(null);
-    }
-  }
-
-  async function handleDeleteComment(commentId: number) {
-    if (deletingCommentId !== null) return;
-
-    if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => {
-        void handleDeleteComment(commentId);
-      }, getResumePath());
-      return;
-    }
-
-    const confirmed = window.confirm("Diesen Kommentar wirklich löschen?");
-    if (!confirmed) return;
-
-    await deleteComment(commentId);
-  }
-
   async function submitReaction(commentId: number, reaction: ReactionType) {
     if (reactingCommentId !== null) return;
 
-    const existingComment = comments.find((comment) => comment.id === commentId);
-    if (!existingComment) return;
+    const existing = comments.find((c) => c.id === commentId);
+    if (!existing) return;
 
-    const previousReaction = existingComment.viewer_reaction;
-    const nextReaction = previousReaction === reaction ? null : reaction;
+    const nextReaction = existing.viewer_reaction === reaction ? null : reaction;
 
     setReactingCommentId(commentId);
     setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === commentId
-          ? applyReactionUpdate(comment, nextReaction)
-          : comment
+      prev.map((c) =>
+        c.id === commentId ? applyReactionUpdate(c, nextReaction) : c
       )
     );
 
     try {
       const res = await fetch(`/api/comments/${commentId}/like`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reaction: nextReaction }),
       });
 
       if (res.status === 401 || res.status === 403) {
         setComments((prev) =>
-          prev.map((comment) =>
-            comment.id === commentId
-              ? {
-                  ...comment,
-                  viewer_reaction: existingComment.viewer_reaction,
-                  reaction_counts: { ...existingComment.reaction_counts },
-                  reactions_count: existingComment.reactions_count,
-                }
-              : comment
-          )
+          prev.map((c) => (c.id === commentId ? existing : c))
         );
-
-        requireLoginAndResume(() => {
-          void submitReaction(commentId, reaction);
-        }, getResumePath());
-
+        requireLoginAndResume(
+          () => void submitReaction(commentId, reaction),
+          pathname
+        );
         return;
       }
 
       if (!res.ok) {
-        throw new Error("Kommentar-Reaktion konnte nicht gespeichert werden.");
+        throw new Error();
       }
-
-      const data = (await res.json()) as {
-        success: boolean;
-        reaction: ReactionType | null;
-      };
-
+    } catch {
       setComments((prev) =>
-        prev.map((comment) =>
-          comment.id === commentId
-            ? applyReactionUpdate(comment, data.reaction)
-            : comment
-        )
+        prev.map((c) => (c.id === commentId ? existing : c))
       );
-    } catch (error) {
-      console.error(error);
-
-      setComments((prev) =>
-        prev.map((comment) =>
-          comment.id === commentId
-            ? {
-                ...comment,
-                viewer_reaction: existingComment.viewer_reaction,
-                reaction_counts: { ...existingComment.reaction_counts },
-                reactions_count: existingComment.reactions_count,
-              }
-            : comment
-        )
-      );
-
-      alert("Kommentar-Reaktion konnte nicht gespeichert werden.");
     } finally {
       setReactingCommentId(null);
     }
   }
 
-  async function handleReactionClick(
-    commentId: number,
-    reaction: ReactionType
-  ) {
-    if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => {
-        void submitReaction(commentId, reaction);
-      }, getResumePath());
-      return;
+  async function handleDeleteComment(commentId: number) {
+    if (!window.confirm("Delete this comment?")) return;
+    if (deletingCommentId !== null) return;
+
+    const previousComments = comments;
+    const idsToRemove = getCommentSubtreeIds(previousComments, commentId);
+
+    setDeletingCommentId(commentId);
+    setComments((prev) =>
+      prev.filter((comment) => !idsToRemove.has(comment.id))
+    );
+
+    if (replyParentId !== null && idsToRemove.has(replyParentId)) {
+      setReplyParentId(null);
+      setReplyContent("");
     }
 
-    await submitReaction(commentId, reaction);
-  }
+    try {
+      const res = await fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+      });
 
-  function handleReplyCancel() {
-    setReplyParentId(null);
-    setReplyContent("");
-  }
+      if (!res.ok) {
+        throw new Error();
+      }
 
-  // =====================================================
-  // Render
-  // =====================================================
+      onCommentCreated();
+    } catch {
+      setComments(previousComments);
+      alert("Error deleting comment.");
+    } finally {
+      setDeletingCommentId(null);
+    }
+  }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-base font-medium text-gray-900">
-          Kommentare ({comments.length})
+    <section className="rounded-[32px] border border-neutral-100 bg-neutral-50/50 p-5 sm:p-8">
+      <div className="mb-8 flex items-center justify-between">
+        <h3 className="text-xs font-black uppercase tracking-[0.25em] text-neutral-900">
+          Comments ({comments.length})
         </h3>
       </div>
 
-      <form onSubmit={handleSubmit} className="mb-4 flex flex-col gap-2">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+
+          if (!effectiveIsLoggedIn) {
+            requireLoginAndResume(() => void createComment(content), pathname);
+          } else {
+            void createComment();
+          }
+        }}
+        className="mb-10"
+      >
+        <div className="group relative">
           <input
             type="text"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Kommentar schreiben ..."
+            placeholder="Share a thought..."
             maxLength={200}
             disabled={submitting}
-            className="flex-1 rounded-xl border border-gray-300 px-4 py-2 outline-none"
+            className="w-full rounded-2xl border border-neutral-200 bg-white py-5 pl-6 pr-32 text-[15px] font-medium outline-none transition-all shadow-sm group-hover:border-neutral-300 focus:border-neutral-950"
           />
-
           <button
             type="submit"
             disabled={submitting || !content.trim()}
-            className="rounded-xl bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
+            className="absolute right-2.5 top-2.5 rounded-xl bg-neutral-950 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 disabled:opacity-20"
           >
-            {submitting ? "Sende..." : "Kommentieren"}
+            {submitting ? "..." : "Post"}
           </button>
         </div>
 
-        <span className="text-right text-xs text-gray-400">
-          {200 - content.length} Zeichen übrig
-        </span>
+        <p className="mt-3 text-right text-[10px] font-bold uppercase tracking-widest text-neutral-400">
+          {200 - content.length} chars left
+        </p>
       </form>
 
       {loading ? (
-        <p className="mb-4 text-sm text-gray-500">Kommentare werden geladen ...</p>
+        <div className="animate-pulse py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-300">
+          Loading comments...
+        </div>
       ) : comments.length === 0 ? (
-        <p className="mb-4 text-sm text-gray-500">
-          Sei der Erste, der kommentiert.
-        </p>
+        <div className="py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-300">
+          No comments yet.
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {commentTree.map((comment) => (
             <CommentItem
               key={comment.id}
@@ -831,12 +612,18 @@ export default function CommentsSection({
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
-              onReplyOpen={handleReplyOpen}
-              onReplyCancel={handleReplyCancel}
+              onReplyOpen={(id) => {
+                setReplyParentId(id);
+                setReplyContent("");
+              }}
+              onReplyCancel={() => {
+                setReplyParentId(null);
+                setReplyContent("");
+              }}
               onReplyContentChange={setReplyContent}
-              onReplySubmit={handleReplySubmit}
+              onReplySubmit={(id) => createReply(id)}
               onDeleteComment={handleDeleteComment}
-              onReactionClick={handleReactionClick}
+              onReactionClick={submitReaction}
             />
           ))}
         </div>

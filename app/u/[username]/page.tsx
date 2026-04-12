@@ -237,7 +237,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
-                    @{profile.username}
+                    @ {profile.username}
                   </h1>
                   
                   <div className="flex gap-2">
@@ -256,7 +256,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
                 
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">
-                  Arena Legacy started · {new Date(profile.created_at).toLocaleDateString("en-GB", { month: 'long', year: 'numeric' })}
+                  Legacy started · {new Date(profile.created_at).toLocaleDateString("en-GB", { month: 'long', year: 'numeric' })}
                 </p>
               </div>
 

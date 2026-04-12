@@ -16,6 +16,12 @@ export default async function FollowersPage({ params }: FollowersPageProps) {
   const { username } = await params;
   const usernameFromUrl = decodeURIComponent(username).trim().toLowerCase();
 
+  const {
+    data: { user: currentUser },
+  } = await supabase.auth.getUser();
+
+  const currentUserId = currentUser?.id ?? null;
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("id, username")
@@ -35,7 +41,7 @@ export default async function FollowersPage({ params }: FollowersPageProps) {
     );
   }
 
-  const followers = await getFollowersList(supabase, profile.id);
+  const followers = await getFollowersList(supabase, profile.id, currentUserId);
 
   return (
     <>

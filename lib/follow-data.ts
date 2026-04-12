@@ -1,10 +1,11 @@
 import "server-only";
 
-type ProfileSummary = {
+export type ProfileSummary = {
   id: string;
   username: string | null;
   avatar_url: string | null;
   bio: string | null;
+  isCurrentUser: boolean;
 };
 
 export async function getFollowCounts(supabase: any, userId: string) {
@@ -42,7 +43,11 @@ export async function isFollowingUser(
   return !!data;
 }
 
-export async function getFollowersList(supabase: any, userId: string) {
+export async function getFollowersList(
+  supabase: any,
+  userId: string,
+  viewerId?: string | null
+) {
   const { data: follows, error } = await supabase
     .from("follows")
     .select("follower_id, created_at")
@@ -51,7 +56,7 @@ export async function getFollowersList(supabase: any, userId: string) {
 
   if (error) throw new Error(error.message);
 
-  const ids = (follows ?? []).map((row: any) => row.follower_id);
+  const ids = (follows ?? []).map((row: any) => row.follower_id as string);
 
   if (ids.length === 0) return [] as ProfileSummary[];
 
@@ -63,7 +68,18 @@ export async function getFollowersList(supabase: any, userId: string) {
   if (profilesError) throw new Error(profilesError.message);
 
   const profileMap = new Map(
-    ((profiles ?? []) as ProfileSummary[]).map((profile) => [profile.id, profile])
+    ((profiles ?? []) as Array<{
+      id: string;
+      username: string | null;
+      avatar_url: string | null;
+      bio: string | null;
+    }>).map((profile) => [
+      profile.id,
+      {
+        ...profile,
+        isCurrentUser: profile.id === viewerId,
+      } satisfies ProfileSummary,
+    ])
   );
 
   return ids
@@ -71,7 +87,11 @@ export async function getFollowersList(supabase: any, userId: string) {
     .filter(Boolean) as ProfileSummary[];
 }
 
-export async function getFollowingList(supabase: any, userId: string) {
+export async function getFollowingList(
+  supabase: any,
+  userId: string,
+  viewerId?: string | null
+) {
   const { data: follows, error } = await supabase
     .from("follows")
     .select("following_id, created_at")
@@ -80,7 +100,7 @@ export async function getFollowingList(supabase: any, userId: string) {
 
   if (error) throw new Error(error.message);
 
-  const ids = (follows ?? []).map((row: any) => row.following_id);
+  const ids = (follows ?? []).map((row: any) => row.following_id as string);
 
   if (ids.length === 0) return [] as ProfileSummary[];
 
@@ -92,7 +112,18 @@ export async function getFollowingList(supabase: any, userId: string) {
   if (profilesError) throw new Error(profilesError.message);
 
   const profileMap = new Map(
-    ((profiles ?? []) as ProfileSummary[]).map((profile) => [profile.id, profile])
+    ((profiles ?? []) as Array<{
+      id: string;
+      username: string | null;
+      avatar_url: string | null;
+      bio: string | null;
+    }>).map((profile) => [
+      profile.id,
+      {
+        ...profile,
+        isCurrentUser: profile.id === viewerId,
+      } satisfies ProfileSummary,
+    ])
   );
 
   return ids

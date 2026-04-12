@@ -129,13 +129,21 @@ export async function addFeatureRequestComment(formData: FormData) {
   const requestId = Number(formData.get("request_id"));
   const content = String(formData.get("content") ?? "").trim();
 
+  const rawParentId = formData.get("parent_id");
+  const parentId =
+    rawParentId === null || String(rawParentId).trim() === ""
+      ? null
+      : Number(rawParentId);
+
   if (!user || !requestId || content.length < 1 || content.length > 500) return;
+  if (parentId !== null && !Number.isFinite(parentId)) return;
 
   await supabase.from("feature_request_comments").insert([
     {
       feature_request_id: requestId,
       user_id: user.id,
       content,
+      parent_id: parentId,
     },
   ]);
 

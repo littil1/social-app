@@ -15,10 +15,13 @@ export default function GlobalPostModal({ isLoggedIn, currentUserProfile }: any)
     return () => window.removeEventListener("open-create-post", handleOpen);
   }, []);
 
-  // Wenn gepostet wurde: Modal schließen und zum Live-Feed leiten,
-  // damit der User seinen Impact sofort sieht.
-  const handlePostCreated = (newPost: any) => {
+  const handlePostCreated = () => {
     setIsOpen(false);
+    
+    // Erzwingt den Daten-Refresh vom Server
+    router.refresh(); 
+
+    // Falls man nicht auf dem Leaderboard ist, dorthin leiten
     if (pathname !== "/leaderboard") {
       router.push("/leaderboard");
     }

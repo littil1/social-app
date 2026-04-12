@@ -5,17 +5,11 @@ import { memo, useEffect, useMemo, useState } from "react";
 import type { FeedPost, ReactionType } from "@/types/feed";
 import CommentsSection from "@/app/components/posts/CommentsSection";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
-
-// =====================================================
-// Types
-// =====================================================
+import { useRouter } from "next/navigation";
 
 type PostCardProps = {
   post: FeedPost;
-  onReactionUpdated: (
-    postId: number,
-    nextReaction: ReactionType | null
-  ) => void;
+  onReactionUpdated: (postId: number, nextReaction: ReactionType | null) => void;
   onCommentCreated?: (postId: number) => void;
   onCommentsCountChange?: (postId: number, count: number) => void;
   onPostDeleted: (postId: number) => void;
@@ -30,78 +24,30 @@ const REACTIONS: Array<{
   label: string;
   countKey: keyof NonNullable<FeedPost["reaction_counts"]>;
 }> = [
-  { value: "like", emoji: "❤️", label: "Gefällt mir", countKey: "like" },
-  { value: "funny", emoji: "😂", label: "Lustig", countKey: "funny" },
-  { value: "wow", emoji: "🤯", label: "Mindblowing", countKey: "wow" },
-  { value: "fire", emoji: "🔥", label: "Stark", countKey: "fire" },
+  { value: "like", emoji: "❤️", label: "Impact", countKey: "like" },
+  { value: "funny", emoji: "😂", label: "Funny", countKey: "funny" },
+  { value: "wow", emoji: "🤯", label: "Wow", countKey: "wow" },
+  { value: "fire", emoji: "🔥", label: "Strong", countKey: "fire" },
 ];
 
-// =====================================================
-// Helpers
-// =====================================================
-
-function formatDate(dateString: string) {
+function formatRelativeTime(dateString: string) {
   const date = new Date(dateString);
-
-  return new Intl.DateTimeFormat("de-CH", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffInSeconds < 60) return "Just now";
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  return new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "2-digit" }).format(date);
 }
 
 function getRankStyles(dailyRank?: 1 | 2 | 3) {
-  if (dailyRank === 1) {
-    return {
-      articleClass:
-        "border border-amber-300/80 bg-gradient-to-br from-amber-50 via-white to-white shadow-[0_10px_24px_rgba(245,158,11,0.08)]",
-      badgeClass:
-        "border border-amber-200 bg-amber-100/80 text-amber-800",
-      badgeText: "🏆 #1 heute",
-      accentClass: "bg-amber-400",
-    };
-  }
-
-  if (dailyRank === 2) {
-    return {
-      articleClass:
-        "border border-slate-300 bg-gradient-to-br from-slate-50 via-white to-white shadow-[0_10px_20px_rgba(100,116,139,0.07)]",
-      badgeClass:
-        "border border-slate-200 bg-slate-100 text-slate-700",
-      badgeText: "✨ #2 heute",
-      accentClass: "bg-slate-400",
-    };
-  }
-
-  if (dailyRank === 3) {
-    return {
-      articleClass:
-        "border border-orange-300/80 bg-gradient-to-br from-orange-50 via-white to-white shadow-[0_10px_20px_rgba(249,115,22,0.07)]",
-      badgeClass:
-        "border border-orange-200 bg-orange-100/80 text-orange-800",
-      badgeText: "🔥 #3 heute",
-      accentClass: "bg-orange-400",
-    };
-  }
-
-  return {
-    articleClass: "border border-gray-100 bg-white shadow-sm",
-    badgeClass: "",
-    badgeText: "",
-    accentClass: "bg-transparent",
-  };
+  if (dailyRank === 1) return { articleClass: "border-amber-200 bg-white shadow-[0_8px_30px_rgb(251,191,36,0.08)]", badgeClass: "bg-amber-100 text-amber-900 border-amber-200", badgeText: "🏆 Winner", accentClass: "bg-amber-400" };
+  if (dailyRank === 2) return { articleClass: "border-slate-200 bg-white shadow-[0_8px_30px_rgb(148,163,184,0.06)]", badgeClass: "bg-slate-100 text-slate-900 border-slate-200", badgeText: "✨ Runner Up", accentClass: "bg-slate-400" };
+  if (dailyRank === 3) return { articleClass: "border-orange-200 bg-white shadow-[0_8px_30px_rgb(251,146,60,0.06)]", badgeClass: "bg-orange-100 text-orange-900 border-orange-200", badgeText: "🔥 Third", accentClass: "bg-orange-400" };
+  return { articleClass: "border-neutral-100 bg-white shadow-sm", badgeClass: "hidden", badgeText: "", accentClass: "hidden" };
 }
-
-function getResumePath() {
-  if (typeof window === "undefined") return "/";
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
-}
-
-// =====================================================
-// Component
-// =====================================================
 
 function PostCardComponent({
   post,
@@ -114,26 +60,14 @@ function PostCardComponent({
   isLoggedIn = false,
 }: PostCardProps) {
   const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
-
+  const router = useRouter();
   const [reactionLoading, setReactionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [localCommentsCount, setLocalCommentsCount] = useState(
-    post.comments_count
-  );
+  const [localCommentsCount, setLocalCommentsCount] = useState(post.comments_count);
 
-  const effectiveIsLoggedIn = useMemo(() => {
-    return authReady ? isAuthenticated : isLoggedIn;
-  }, [authReady, isAuthenticated, isLoggedIn]);
-
+  const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const rankStyles = getRankStyles(dailyRank);
-
-  const reactionCounts = {
-    like: post.reaction_counts?.like ?? 0,
-    funny: post.reaction_counts?.funny ?? 0,
-    wow: post.reaction_counts?.wow ?? 0,
-    fire: post.reaction_counts?.fire ?? 0,
-  };
 
   useEffect(() => {
     setLocalCommentsCount(post.comments_count);
@@ -141,7 +75,6 @@ function PostCardComponent({
 
   async function submitReaction(reaction: ReactionType) {
     if (reactionLoading) return;
-
     const previousReaction = post.viewer_reaction;
     const nextReaction = previousReaction === reaction ? null : reaction;
 
@@ -151,211 +84,101 @@ function PostCardComponent({
     try {
       const res = await fetch(`/api/posts/${post.id}/like`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reaction: nextReaction }),
       });
 
       if (res.status === 401 || res.status === 403) {
         onReactionUpdated(post.id, previousReaction);
-
-        requireLoginAndResume(() => {
-          void submitReaction(reaction);
-        }, getResumePath());
+        requireLoginAndResume(() => submitReaction(reaction), window.location.pathname);
         return;
       }
-
-      if (!res.ok) {
-        throw new Error("Reaktion konnte nicht gespeichert werden.");
+      
+      if (!showComments) {
+        router.refresh();
       }
-
-      const data = (await res.json()) as {
-        success: boolean;
-        reaction: ReactionType | null;
-      };
-
-      onReactionUpdated(post.id, data.reaction);
     } catch (error) {
-      console.error(error);
       onReactionUpdated(post.id, previousReaction);
-      alert("Reaktion konnte nicht gespeichert werden.");
     } finally {
       setReactionLoading(false);
     }
   }
 
-  async function handleReactionClick(reaction: ReactionType) {
-    if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => {
-        void submitReaction(reaction);
-      }, getResumePath());
-      return;
-    }
-
-    await submitReaction(reaction);
-  }
-
-  async function deletePost() {
-    if (deleteLoading) return;
-
+  async function handleDeletePost() {
+    if (!window.confirm("Delete this thought?")) return;
     setDeleteLoading(true);
-
     try {
-      const res = await fetch(`/api/posts/${post.id}`, {
-        method: "DELETE",
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        requireLoginAndResume(() => {
-          void deletePost();
-        }, getResumePath());
-        return;
+      const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
+      if (res.ok) {
+        onPostDeleted(post.id);
+        router.refresh();
       }
-
-      if (!res.ok) {
-        const message = await res.text();
-        throw new Error(message || "Beitrag konnte nicht gelöscht werden.");
-      }
-
-      onPostDeleted(post.id);
     } catch (error) {
-      console.error(error);
-      alert("Beitrag konnte nicht gelöscht werden.");
+      alert("Error.");
     } finally {
       setDeleteLoading(false);
     }
   }
 
-  async function handleDeletePost() {
-    if (deleteLoading) return;
-
-    if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => {
-        void handleDeletePost();
-      }, getResumePath());
-      return;
-    }
-
-    const confirmed = window.confirm("Diesen Beitrag wirklich löschen?");
-    if (!confirmed) return;
-
-    await deletePost();
-  }
-
-  function handleCommentCreatedLocal() {
-    onCommentCreated?.(post.id);
-  }
-
-  function handleCommentsLoaded(count: number) {
-    setLocalCommentsCount(count);
-    onCommentsCountChange?.(post.id, count);
-  }
-
   return (
-    <article
-      className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 ${rankStyles.articleClass}`}
-    >
-      {dailyRank && (
-        <div
-          className={`absolute inset-y-0 left-0 w-1.5 ${rankStyles.accentClass}`}
-          aria-hidden="true"
-        />
-      )}
-
-      <div className="mb-3 flex items-start justify-between gap-3 sm:mb-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            {dailyRank && (
-              <span
-                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${rankStyles.badgeClass}`}
-              >
-                {rankStyles.badgeText}
-              </span>
-            )}
-
-            <p className="text-xs text-gray-400">{formatDate(post.created_at)}</p>
-          </div>
+    <article className={`group relative overflow-hidden rounded-[32px] border p-6 transition-all duration-300 hover:shadow-md ${rankStyles.articleClass}`}>
+      {dailyRank && <div className={`absolute inset-y-0 left-0 w-1 ${rankStyles.accentClass}`} />}
+      <div className="mb-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {dailyRank && <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${rankStyles.badgeClass}`}>{rankStyles.badgeText}</span>}
+          <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">{formatRelativeTime(post.created_at)}</span>
         </div>
-
         {post.can_delete && (
-          <button
-            type="button"
-            onClick={() => void handleDeletePost()}
-            disabled={deleteLoading}
-            className="inline-flex shrink-0 items-center justify-center rounded-xl border border-red-300 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-          >
-            {deleteLoading ? "Lösche..." : "Löschen"}
+          <button onClick={handleDeletePost} disabled={deleteLoading} className="text-[10px] font-black uppercase tracking-widest text-neutral-300 transition hover:text-red-500 disabled:opacity-30">
+            {deleteLoading ? "Removing..." : "Delete"}
           </button>
         )}
       </div>
 
-      <div className="mb-4 sm:mb-5">
+      <div className="mb-6">
         {detailHref ? (
-          <Link
-            href={detailHref}
-            className="block rounded-xl transition hover:opacity-90"
-          >
-            <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[16px] sm:leading-7">
-              {post.content}
-            </p>
+          <Link href={detailHref} className="block transition-opacity hover:opacity-70">
+            <p className="whitespace-pre-wrap break-words text-lg font-medium leading-relaxed tracking-tight text-neutral-900 sm:text-xl">{post.content}</p>
           </Link>
         ) : (
-          <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-gray-900 sm:text-[16px] sm:leading-7">
-            {post.content}
-          </p>
+          <p className="whitespace-pre-wrap break-words text-lg font-medium leading-relaxed tracking-tight text-neutral-900 sm:text-xl">{post.content}</p>
         )}
       </div>
 
-      <div className="mb-3 overflow-x-auto">
-        <div className="flex min-w-max items-center gap-2">
-          {REACTIONS.map((reaction) => {
-            const isActive = post.viewer_reaction === reaction.value;
-
-            return (
-              <button
-                key={reaction.value}
-                type="button"
-                onClick={() => void handleReactionClick(reaction.value)}
-                disabled={reactionLoading}
-                className={`inline-flex min-h-[34px] shrink-0 items-center justify-center rounded-full px-3 py-1 text-sm transition disabled:opacity-50 ${
-                  isActive
-                    ? "border border-amber-200 bg-amber-50 text-amber-800 ring-1 ring-amber-200"
-                    : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
-                }`}
-                aria-pressed={isActive}
-                title={reaction.label}
-              >
-                <span className="mr-1.5">{reaction.emoji}</span>
-                <span className="font-medium">
-                  {reactionCounts[reaction.countKey]}
-                </span>
-              </button>
-            );
-          })}
-
-          <button
-            type="button"
-            onClick={() => setShowComments((prev) => !prev)}
-            className={`inline-flex min-h-[34px] shrink-0 items-center justify-center rounded-full px-3 py-1 text-sm transition ${
-              showComments
-                ? "border border-gray-300 bg-gray-100 text-gray-900 ring-1 ring-gray-300"
-                : "bg-white text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100"
-            }`}
-          >
-            <span className="mr-1.5">💬</span>
-            <span className="font-medium">{localCommentsCount}</span>
-          </button>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {REACTIONS.map((reaction) => {
+          const isActive = post.viewer_reaction === reaction.value;
+          const count = post.reaction_counts?.[reaction.countKey] ?? 0;
+          return (
+            <button
+              key={reaction.value}
+              onClick={() => submitReaction(reaction.value)}
+              disabled={reactionLoading}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-90 ${isActive ? "bg-neutral-950 text-white shadow-lg" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+            >
+              <span>{reaction.emoji}</span>
+              <span className={isActive ? "text-white" : "text-neutral-900"}>{count}</span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setShowComments(!showComments)}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+        >
+          <span>💬</span>
+          <span className="text-neutral-900">{localCommentsCount}</span>
+        </button>
       </div>
 
       {showComments && (
-        <CommentsSection
-          postId={post.id}
-          onCommentCreated={handleCommentCreatedLocal}
-          onCommentsLoaded={handleCommentsLoaded}
-          isLoggedIn={effectiveIsLoggedIn}
-        />
+        <div className="mt-2 border-t border-neutral-100 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <CommentsSection
+            postId={post.id}
+            onCommentCreated={() => { setLocalCommentsCount(prev => prev + 1); onCommentCreated?.(post.id); }}
+            onCommentsLoaded={(count) => { setLocalCommentsCount(count); onCommentsCountChange?.(post.id, count); }}
+            isLoggedIn={effectiveIsLoggedIn}
+          />
+        </div>
       )}
     </article>
   );

@@ -9,7 +9,6 @@ import { createClient } from "@/lib/supabase-server";
 export default async function VibePage() {
   const supabase = await createClient();
   
-  // User-Daten abrufen für die NavBar
   const { data: { user } } = await supabase.auth.getUser();
   let navUser = null;
 
@@ -41,17 +40,16 @@ export default async function VibePage() {
       <div className="relative mx-auto max-w-5xl px-6 py-12 lg:py-20">
         
         {/* Header Section */}
-        <section className="mb-20 text-center">
-          <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-900 shadow-sm">
+        <section className="mb-32 text-center">
+          <span className="inline-flex rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 shadow-sm">
             The Manifesto
           </span>
-          <h1 className="mt-8 text-5xl font-black tracking-tighter text-neutral-950 sm:text-7xl lg:text-8xl">
-            Content is King.<br />
-            <span className="text-neutral-400">Identity is Earned.</span>
+          <h1 className="mt-10 text-6xl font-black tracking-tighter text-neutral-950 sm:text-8xl">
+            Impact over <br />
+            <span className="text-neutral-400">Fame.</span>
           </h1>
-          <p className="mx-auto mt-8 max-w-2xl text-lg font-medium leading-relaxed text-neutral-600 sm:text-xl">
-            APP isn’t just another digital playground. It’s an arena for the sharpest minds. 
-            Your name doesn't matter here — your impact does.
+          <p className="mx-auto mt-10 max-w-xl text-lg font-medium leading-relaxed text-neutral-500">
+            APP is a sanctuary for substance. A perfect place where resonance outweighs reputation and quality is the only currency.
           </p>
         </section>
 
@@ -70,7 +68,7 @@ export default async function VibePage() {
           <FeatureCard 
             badge="03"
             title="The Legend Badge"
-            text="Only the daily champion is revealed and awarded the Legend badge."
+            text="Only the daily champion is revealed and awarded the Legend badge. Your moment to flex your status."
           />
         </div>
 
@@ -96,7 +94,7 @@ export default async function VibePage() {
                 </li>
                 <li className="flex items-center gap-3 font-semibold text-neutral-800">
                   <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-amber-600 text-xs">✓</span>
-                  Ultimate flex
+                  Ultimate digital flex
                 </li>
               </ul>
             </div>
@@ -111,17 +109,41 @@ export default async function VibePage() {
           </div>
         </section>
 
-        {/* Standards Section */}
-        <section className="mt-24">
-          <h2 className="text-center text-3xl font-black tracking-tight text-neutral-950 sm:text-5xl">
-            Survival of the Fittest.
-          </h2>
-          <div className="mt-12 grid gap-6 md:grid-cols-2">
-            <div className="rounded-[32px] bg-neutral-950 p-8 text-white shadow-2xl">
+        {/* How to Contribute Section */}
+        <section className="mt-24 mb-20 grid gap-8 lg:grid-cols-2">
+          <div className="rounded-[32px] border border-neutral-200 bg-white p-10 shadow-sm">
+            <h2 className="text-2xl font-black tracking-tight text-neutral-950">How to contribute</h2>
+            <div className="mt-8 space-y-4">
+              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+                <span className="text-xl">🎯</span>
+                <div>
+                  <p className="font-bold text-neutral-900">Be Specific</p>
+                  <p className="text-sm text-neutral-500">Vague ideas are hard to build. Describe the problem, then the solution.</p>
+                </div>
+              </div>
+              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+                <span className="text-xl">🤝</span>
+                <div>
+                  <p className="font-bold text-neutral-900">Upvote Relevancy</p>
+                  <p className="text-sm text-neutral-500">Support ideas that benefit the entire community, not just yourself.</p>
+                </div>
+              </div>
+              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+                <span className="text-xl">🎨</span>
+                <div>
+                  <p className="font-bold text-neutral-900">Be Creative</p>
+                  <p className="text-sm text-neutral-500">Tell us about your dream. We are here to listen and build the future together.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-6">
+            <div className="rounded-[32px] bg-neutral-950 p-8 text-white shadow-2xl flex-1">
               <h3 className="text-xl font-bold text-amber-400">What Rises</h3>
               <p className="mt-4 text-neutral-400">Raw insights, radical honesty, life-changing advice, or perspectives that challenge the status quo.</p>
             </div>
-            <div className="rounded-[32px] border border-neutral-200 bg-white p-8">
+            <div className="rounded-[32px] border border-neutral-200 bg-white p-8 flex-1">
               <h3 className="text-xl font-bold text-neutral-950">What Fades</h3>
               <p className="mt-4 text-neutral-500">Superficial small talk, AI-generated spam, blatant self-promotion, or meaningless one-liners.</p>
             </div>
@@ -151,10 +173,6 @@ export default async function VibePage() {
     </main>
   );
 }
-
-// =====================================================
-// Helper Component
-// =====================================================
 
 function FeatureCard({ badge, title, text }: { badge: string; title: string; text: string }) {
   return (

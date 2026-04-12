@@ -1,14 +1,26 @@
 import "server-only";
 
+export type FeedbackReactionType = "like" | "funny" | "wow" | "fire";
+
+export type FeedbackReactionCounts = {
+  like: number;
+  funny: number;
+  wow: number;
+  fire: number;
+};
+
 export type FeedbackComment = {
   id: number;
   feature_request_id: number;
   user_id: string;
+  parent_id: number | null;
   content: string;
   created_at: string;
   username: string | null;
   avatar_url: string | null;
   isOwnComment: boolean;
+  viewer_reaction: FeedbackReactionType | null;
+  reaction_counts: FeedbackReactionCounts;
 };
 
 export type FeedbackItem = {
@@ -54,9 +66,27 @@ type FeatureRequestCommentRow = {
   id: number;
   feature_request_id: number;
   user_id: string;
+  parent_id: number | null;
   content: string;
   created_at: string;
 };
+
+type FeatureRequestCommentReactionRow = {
+  id: number;
+  comment_id: number;
+  user_id: string;
+  reaction: FeedbackReactionType;
+  created_at: string;
+};
+
+function emptyReactionCounts(): FeedbackReactionCounts {
+  return {
+    like: 0,
+    funny: 0,
+    wow: 0,
+    fire: 0,
+  };
+}
 
 export async function getFeedbackBundle(
   supabase: any,
@@ -83,30 +113,59 @@ export async function getFeedbackBundle(
 
   const { data: comments, error: commentsError } = await supabase
     .from("feature_request_comments")
-    .select("id, feature_request_id, user_id, content, created_at")
+    .select("id, feature_request_id, user_id, parent_id, content, created_at")
     .order("created_at", { ascending: true });
 
   if (commentsError) throw new Error(commentsError.message);
+
+  const { data: commentReactions, error: commentReactionsError } = await supabase
+    .from("feature_request_comment_reactions")
+    .select("id, comment_id, user_id, reaction, created_at");
+
+  if (commentReactionsError) throw new Error(commentReactionsError.message);
 
   const typedRequests = (requests ?? []) as FeatureRequestRow[];
   const typedProfiles = (profiles ?? []) as ProfileRow[];
   const typedLikes = (likes ?? []) as FeatureRequestLikeRow[];
   const typedComments = (comments ?? []) as FeatureRequestCommentRow[];
+  const typedCommentReactions =
+    (commentReactions ?? []) as FeatureRequestCommentReactionRow[];
 
   const profileMap = new Map<string, ProfileRow>(
     typedProfiles.map((profile) => [profile.id, profile])
   );
 
+  const reactionsByCommentId = new Map<number, FeatureRequestCommentReactionRow[]>();
+
+  for (const reaction of typedCommentReactions) {
+    const existing = reactionsByCommentId.get(reaction.comment_id) ?? [];
+    existing.push(reaction);
+    reactionsByCommentId.set(reaction.comment_id, existing);
+  }
+
   const commentsByRequest = new Map<number, FeedbackComment[]>();
 
   for (const comment of typedComments) {
     const profile = profileMap.get(comment.user_id);
+    const commentReactionsForComment = reactionsByCommentId.get(comment.id) ?? [];
+
+    const reactionCounts = emptyReactionCounts();
+
+    for (const reaction of commentReactionsForComment) {
+      reactionCounts[reaction.reaction] += 1;
+    }
+
+    const viewerReaction =
+      commentReactionsForComment.find((reaction) => reaction.user_id === viewerId)
+        ?.reaction ?? null;
 
     const enrichedComment: FeedbackComment = {
       ...comment,
       username: profile?.username ?? null,
       avatar_url: profile?.avatar_url ?? null,
       isOwnComment: comment.user_id === viewerId,
+      viewer_reaction: viewerReaction,
+      reaction_counts: reactionCounts,
     };
 
     const existing = commentsByRequest.get(comment.feature_request_id) ?? [];

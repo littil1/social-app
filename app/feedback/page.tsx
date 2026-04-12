@@ -6,6 +6,13 @@ import { getFeedbackBundle } from "@/lib/feedback-data";
 
 export const dynamic = "force-dynamic";
 
+// Helper für die Echo-Berechnung (analog zur Arena)
+function getEchoScore(item: any) {
+  const likes = item.likeCount || 0;
+  const comments = item.commentCount || 0;
+  return likes + (comments * 2);
+}
+
 export default async function FeedbackPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,8 +28,15 @@ export default async function FeedbackPage() {
     viewerProfile = data;
   }
 
-  const openIdeas = feedback.filter((item) => item.status === "open");
-  const implementedIdeas = feedback.filter((item) => item.status === "implemented");
+  // 1. Filtern und SORTIEREN nach Echo-Score (Absteigend)
+  const openIdeas = feedback
+    .filter((item) => item.status === "open")
+    .sort((a, b) => getEchoScore(b) - getEchoScore(a));
+
+  const implementedIdeas = feedback
+    .filter((item) => item.status === "implemented")
+    .sort((a, b) => getEchoScore(b) - getEchoScore(a));
+
   const totalSupporters = feedback.reduce((sum, item) => sum + item.likeCount, 0);
 
   return (
@@ -77,9 +91,7 @@ export default async function FeedbackPage() {
         <section className="mb-20 grid gap-8 lg:grid-cols-2">
           <div className="rounded-[32px] border border-neutral-200 bg-white p-8 shadow-sm">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">How to contribute</h2>
-            
             <div className="mt-8 space-y-4">
-
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🎨</span>
                 <div>
@@ -87,7 +99,6 @@ export default async function FeedbackPage() {
                   <p className="text-sm text-neutral-500">Tell us about your dream. We are here to listen and build the future together.</p>
                 </div>
               </div>
-
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🎯</span>
                 <div>
@@ -95,7 +106,6 @@ export default async function FeedbackPage() {
                   <p className="text-sm text-neutral-500">Vague ideas are hard to build. Describe the problem, then the solution.</p>
                 </div>
               </div>
-
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🤝</span>
                 <div>
@@ -144,6 +154,7 @@ export default async function FeedbackPage() {
 
         {/* FEEDBACK BOARD */}
         <div className="grid gap-12 xl:grid-cols-2">
+          {/* UP FOR VOTE */}
           <section>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-black tracking-tight text-neutral-950">Up for Vote</h2>
@@ -162,6 +173,7 @@ export default async function FeedbackPage() {
             </div>
           </section>
 
+          {/* DEPLOYED */}
           <section>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-black tracking-tight text-neutral-950">Deployed</h2>
@@ -187,7 +199,7 @@ export default async function FeedbackPage() {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-[28px] border border-neutral-100 bg-white p-12 text-center text-neutral-400 shadow-sm font-medium">
+    <div className="rounded-[32px] border border-neutral-100 bg-white p-12 text-center text-neutral-400 shadow-sm font-medium">
       {text}
     </div>
   );

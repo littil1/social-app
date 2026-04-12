@@ -63,7 +63,10 @@ export default function CreatePostForm({
   }, [content]);
 
   async function submitPost(skipLoginCheck = false) {
+    // FIX: Wenn nicht eingeloggt, Fenster schließen bevor das Login-Modal kommt
     if (!skipLoginCheck && !effectiveIsLoggedIn) {
+      onClose?.(); // Schließt das Post-Fenster sofort
+      
       requireLoginAndResume(() => {
         void submitPost(true);
       }, window.location.pathname);
@@ -84,6 +87,7 @@ export default function CreatePostForm({
       });
 
       if (res.status === 401 || res.status === 403) {
+        onClose?.(); // Auch hier zur Sicherheit schließen
         requireLoginAndResume(() => {
           void submitPost(true);
         }, window.location.pathname);
