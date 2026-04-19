@@ -266,7 +266,7 @@ export default function LeaderboardLiveHeader({
             LIVE
           </div>
 
-          <h1 className="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-gray-950 sm:text-4xl lg:text-5xl">
+          <h1 className="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-gray-950 sm:text-4xl lg:text-7xl">
             Race in progress.
           </h1>
 

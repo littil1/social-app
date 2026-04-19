@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase-server";
+import { recomputeUserBadgeFamilies } from "@/lib/badges";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -56,12 +57,13 @@ export async function POST(request: Request, context: RouteContext) {
       return new NextResponse("Post nicht gefunden.", { status: 404 });
     }
 
-    const { data: existingReaction, error: existingReactionError } = await supabase
-      .from("post_reactions")
-      .select("id, reaction")
-      .eq("post_id", postId)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data: existingReaction, error: existingReactionError } =
+      await supabase
+        .from("post_reactions")
+        .select("id, reaction")
+        .eq("post_id", postId)
+        .eq("user_id", user.id)
+        .maybeSingle();
 
     if (existingReactionError) {
       return new NextResponse(existingReactionError.message, { status: 500 });
@@ -83,6 +85,18 @@ export async function POST(request: Request, context: RouteContext) {
       authorUsername = authorProfile?.username ?? null;
     }
 
+    const recomputeBadges = async () => {
+      await recomputeUserBadgeFamilies(supabase as any, user.id, [
+        "top_reactor",
+      ]);
+
+      if (post.user_id) {
+        await recomputeUserBadgeFamilies(supabase as any, post.user_id, [
+          "most_reacted",
+        ]);
+      }
+    };
+
     if (reaction === null) {
       if (!existingReaction) {
         return NextResponse.json({
@@ -99,6 +113,8 @@ export async function POST(request: Request, context: RouteContext) {
       if (deleteError) {
         return new NextResponse(deleteError.message, { status: 500 });
       }
+
+      await recomputeBadges();
 
       revalidatePath("/");
       revalidatePath("/explore");
@@ -122,6 +138,8 @@ export async function POST(request: Request, context: RouteContext) {
         return new NextResponse(updateError.message, { status: 500 });
       }
 
+      await recomputeBadges();
+
       revalidatePath("/");
       revalidatePath("/explore");
       if (authorUsername) {
@@ -143,6 +161,8 @@ export async function POST(request: Request, context: RouteContext) {
     if (insertError) {
       return new NextResponse(insertError.message, { status: 500 });
     }
+
+    await recomputeBadges();
 
     revalidatePath("/");
     revalidatePath("/explore");

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
-import type { FeedComment, ReactionCounts, ReactionType } from "@/types/feed";
+import type {
+  FeedComment,
+  FeedCommentBadge,
+  ReactionCounts,
+  ReactionType,
+} from "@/types/feed";
+import { getUserBadges } from "@/lib/badges/getUserBadges";
 
 // =====================================================
 // Types
@@ -13,8 +19,6 @@ type RouteContext = {
 
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
-type HallOfFameRow =
-  Database["public"]["Tables"]["weekly_post_hall_of_fame"]["Row"];
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
 type CommentReactionRow =
   Database["public"]["Tables"]["comment_reactions"]["Row"];
@@ -44,6 +48,23 @@ function createEmptyReactionCounts(): ReactionCounts {
 
 function getReactionsCount(counts: ReactionCounts) {
   return counts.like + counts.funny + counts.wow + counts.fire;
+}
+
+function toFeedCommentBadges(
+  badges: Awaited<ReturnType<typeof getUserBadges>> extends Map<
+    string,
+    infer T
+  >
+    ? T
+    : never
+): FeedCommentBadge[] {
+  return (badges ?? []).map((badge) => ({
+    key: badge.key,
+    label: badge.label,
+    icon: badge.icon,
+    description: badge.description,
+    className: badge.className,
+  }));
 }
 
 // =====================================================
@@ -103,13 +124,6 @@ export async function GET(_: NextRequest, context: RouteContext) {
     );
 
     let profilesById = new Map<string, ProfileRow>();
-    const hallOfFameStatsByAuthorId = new Map<
-      string,
-      {
-        count: number;
-        categories: string[];
-      }
-    >();
 
     if (authorIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
@@ -123,37 +137,6 @@ export async function GET(_: NextRequest, context: RouteContext) {
 
       const profiles = (profilesData ?? []) as ProfileRow[];
       profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
-
-      const { data: hallOfFameData, error: hallOfFameError } = await supabase
-        .from("weekly_post_hall_of_fame")
-        .select("author_id, category")
-        .in("author_id", authorIds);
-
-      if (hallOfFameError) {
-        return new NextResponse(hallOfFameError.message, { status: 500 });
-      }
-
-      const hallOfFameEntries = (hallOfFameData ?? []) as Pick<
-        HallOfFameRow,
-        "author_id" | "category"
-      >[];
-
-      for (const entry of hallOfFameEntries) {
-        if (!entry.author_id) continue;
-
-        const existing = hallOfFameStatsByAuthorId.get(entry.author_id) ?? {
-          count: 0,
-          categories: [],
-        };
-
-        existing.count += 1;
-
-        if (!existing.categories.includes(entry.category)) {
-          existing.categories.push(entry.category);
-        }
-
-        hallOfFameStatsByAuthorId.set(entry.author_id, existing);
-      }
     }
 
     const reactionCountsByCommentId = new Map<number, ReactionCounts>();
@@ -170,7 +153,8 @@ export async function GET(_: NextRequest, context: RouteContext) {
         return new NextResponse(commentReactionsError.message, { status: 500 });
       }
 
-      const commentReactions = (commentReactionsData ?? []) as CommentReactionListRow[];
+      const commentReactions =
+        (commentReactionsData ?? []) as CommentReactionListRow[];
 
       for (const reaction of commentReactions) {
         const counts =
@@ -189,15 +173,18 @@ export async function GET(_: NextRequest, context: RouteContext) {
       }
     }
 
+    const badgesMap = await getUserBadges(authorIds, { limitPerUser: 3 });
+
     const comments: FeedComment[] = commentRows.map((comment) => {
       const profile =
         comment.user_id ? profilesById.get(comment.user_id) ?? null : null;
-      const hallOfFameStats =
-        comment.user_id
-          ? hallOfFameStatsByAuthorId.get(comment.user_id) ?? null
-          : null;
+
       const reactionCounts =
         reactionCountsByCommentId.get(comment.id) ?? createEmptyReactionCounts();
+
+      const authorBadges = comment.user_id
+        ? toFeedCommentBadges(badgesMap.get(comment.user_id) ?? [])
+        : [];
 
       return {
         id: comment.id,
@@ -210,8 +197,13 @@ export async function GET(_: NextRequest, context: RouteContext) {
         can_delete: !!user && (comment.user_id === user.id || viewerIsAdmin),
         author_username: profile?.username ?? null,
         author_avatar_url: profile?.avatar_url ?? null,
-        author_hall_of_fame_count: hallOfFameStats?.count ?? 0,
-        author_hall_of_fame_categories: hallOfFameStats?.categories ?? [],
+
+        // Legacy safe
+        author_hall_of_fame_count: 0,
+        author_hall_of_fame_categories: [],
+
+        // New badge system
+        author_badges: authorBadges,
       };
     });
 
@@ -344,7 +336,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { data: profileData, error: profileError } = await supabase
       .from("profiles")
-      .select("id, username, avatar_url, bio, created_at, updated_at, is_admin")
+      .select("id, username, avatar_url")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -352,25 +344,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new NextResponse(profileError.message, { status: 500 });
     }
 
-    const profile = (profileData ?? null) as ProfileRow | null;
-
-    const { data: hallOfFameData, error: hallOfFameError } = await supabase
-      .from("weekly_post_hall_of_fame")
-      .select("author_id, category")
-      .eq("author_id", user.id);
-
-    if (hallOfFameError) {
-      return new NextResponse(hallOfFameError.message, { status: 500 });
-    }
-
-    const hallOfFameEntries = (hallOfFameData ?? []) as Pick<
-      HallOfFameRow,
-      "author_id" | "category"
-    >[];
-
-    const authorHallOfFameCategories = Array.from(
-      new Set(hallOfFameEntries.map((entry) => entry.category))
-    );
+    const badgesMap = await getUserBadges([user.id], { limitPerUser: 3 });
+    const authorBadges = toFeedCommentBadges(badgesMap.get(user.id) ?? []);
 
     const response: FeedComment = {
       id: insertedComment.id,
@@ -381,10 +356,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       reaction_counts: createEmptyReactionCounts(),
       viewer_reaction: null,
       can_delete: true,
-      author_username: profile?.username ?? null,
-      author_avatar_url: profile?.avatar_url ?? null,
-      author_hall_of_fame_count: hallOfFameEntries.length,
-      author_hall_of_fame_categories: authorHallOfFameCategories,
+      author_username: profileData?.username ?? null,
+      author_avatar_url: profileData?.avatar_url ?? null,
+
+      // New badge system
+      author_badges: authorBadges,
+
+      // Legacy safe
+      author_hall_of_fame_count: 0,
+      author_hall_of_fame_categories: [],
     };
 
     return NextResponse.json(response);

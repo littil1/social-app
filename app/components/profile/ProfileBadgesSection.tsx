@@ -1,56 +1,32 @@
-"use client";
-
-import { useState } from "react";
-import AdminBadgeManager from "@/app/components/profile/AdminBadgeManager";
-import { getProfileBadge } from "@/lib/profile-badges";
+import { type UserBadgeDisplay } from "@/lib/profile-badges";
 
 type ProfileBadgesSectionProps = {
-  targetUserId: string;
-  initialBadges: string[];
-  viewerIsAdmin: boolean;
+  badges: UserBadgeDisplay[];
 };
 
 export default function ProfileBadgesSection({
-  targetUserId,
-  initialBadges,
-  viewerIsAdmin,
+  badges,
 }: ProfileBadgesSectionProps) {
-  const [badges, setBadges] = useState<string[]>(initialBadges);
-
-  const visibleBadges = badges.filter(
-    (value): value is string => typeof value === "string"
-  );
+  if (badges.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
+        Noch keine Badges.
+      </div>
+    );
+  }
 
   return (
-    <>
-      {visibleBadges.length > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {visibleBadges.map((badgeKey) => {
-            const badge = getProfileBadge(badgeKey);
-
-            if (!badge) return null;
-
-            return (
-              <button
-                key={badge.key}
-                type="button"
-                className={`cursor-default rounded-full px-3 py-1 text-xs font-medium ${badge.className}`}
-                title={badge.description}
-              >
-                {badge.emoji} {badge.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {viewerIsAdmin && (
-        <AdminBadgeManager
-          targetUserId={targetUserId}
-          currentBadges={visibleBadges}
-          onBadgesChange={setBadges}
-        />
-      )}
-    </>
+    <div className="flex flex-wrap gap-2">
+      {badges.map((badge) => (
+        <span
+          key={badge.key}
+          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold shadow-sm ${badge.className}`}
+          title={badge.description}
+        >
+          <span aria-hidden="true">{badge.icon}</span>
+          <span>{badge.label}</span>
+        </span>
+      ))}
+    </div>
   );
 }

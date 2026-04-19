@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import type { ReactionType } from "@/types/feed";
+import { recomputeUserBadgeFamilies } from "@/lib/badges";
 
 // =====================================================
 // Types
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { data: comment, error: commentError } = await supabase
       .from("comments")
-      .select("id")
+      .select("id, user_id")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -67,16 +68,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new NextResponse("Kommentar nicht gefunden.", { status: 404 });
     }
 
-    const { data: existingReaction, error: existingReactionError } = await supabase
-      .from("comment_reactions")
-      .select("id, reaction")
-      .eq("comment_id", commentId)
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data: existingReaction, error: existingReactionError } =
+      await supabase
+        .from("comment_reactions")
+        .select("id, reaction")
+        .eq("comment_id", commentId)
+        .eq("user_id", user.id)
+        .maybeSingle();
 
     if (existingReactionError) {
       return new NextResponse(existingReactionError.message, { status: 500 });
     }
+
+    const recomputeBadges = async () => {
+      await recomputeUserBadgeFamilies(supabase as any, user.id, [
+        "top_reactor",
+      ]);
+
+      if (comment.user_id) {
+        await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+          "most_reacted",
+        ]);
+      }
+    };
 
     if (reaction === null) {
       if (!existingReaction) {
@@ -95,6 +109,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return new NextResponse(deleteError.message, { status: 500 });
       }
 
+      await recomputeBadges();
+
       return NextResponse.json({
         success: true,
         reaction: null,
@@ -110,6 +126,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (updateError) {
         return new NextResponse(updateError.message, { status: 500 });
       }
+
+      await recomputeBadges();
 
       return NextResponse.json({
         success: true,
@@ -129,14 +147,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new NextResponse(insertError.message, { status: 500 });
     }
 
+    await recomputeBadges();
+
     return NextResponse.json({
       success: true,
       reaction,
     });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Kommentar-Reaction konnte nicht gespeichert werden.", {
-      status: 500,
-    });
+    return new NextResponse(
+      "Kommentar-Reaction konnte nicht gespeichert werden.",
+      {
+        status: 500,
+      }
+    );
   }
 }

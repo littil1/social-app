@@ -5,9 +5,14 @@ import FollowButton from "@/app/components/profile/FollowButton";
 import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
 import { getImplementedIdeaCountByUserId } from "@/lib/feedback-data";
 import type { FeedPost, ReactionType } from "@/types/feed";
-import type { Database } from "@/types/database";
 import UserProfileContent from "@/app/components/profile/UserProfileContent";
 import ProfileBadgesSection from "@/app/components/profile/ProfileBadgesSection";
+import {
+  mapBadgeToDisplay,
+  type BadgeDefinitionRow,
+  type UserBadgeDisplay,
+  type UserBadgeRow,
+} from "@/lib/profile-badges";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +40,19 @@ type PostReactionRow = {
   reaction: ReactionType;
 };
 
-type HallOfFameRow = Database["public"]["Tables"]["weekly_post_hall_of_fame"]["Row"];
+type ProfileRow = {
+  id: string;
+  username: string;
+  bio: string | null;
+  avatar_url: string | null;
+  created_at: string;
+};
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   let navUser: {
     username: string;
@@ -82,7 +95,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, username, bio, avatar_url, created_at, badges")
+    .select("id, username, bio, avatar_url, created_at")
     .eq("username", usernameFromUrl)
     .maybeSingle();
 
@@ -91,18 +104,22 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       <>
         <NavBar user={navUser} />
         <main className="mx-auto max-w-2xl p-6">
-          <div className="rounded-[32px] bg-white p-12 text-center border border-neutral-200 shadow-sm">
-            <h1 className="text-2xl font-black tracking-tight text-neutral-950">Profile not found</h1>
+          <div className="rounded-[32px] border border-neutral-200 bg-white p-12 text-center shadow-sm">
+            <h1 className="text-2xl font-black tracking-tight text-neutral-950">
+              Profile not found
+            </h1>
           </div>
         </main>
       </>
     );
   }
 
+  const typedProfile = profile as ProfileRow;
+
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
     .select("id, content, created_at, user_id, comments_count")
-    .eq("user_id", profile.id)
+    .eq("user_id", typedProfile.id)
     .order("created_at", { ascending: false });
 
   if (postsError) throw new Error(postsError.message);
@@ -121,11 +138,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
     for (const comment of (commentsData ?? []) as CommentRow[]) {
       if (typeof comment.post_id !== "number") continue;
-      commentCountMap.set(comment.post_id, (commentCountMap.get(comment.post_id) ?? 0) + 1);
+      commentCountMap.set(
+        comment.post_id,
+        (commentCountMap.get(comment.post_id) ?? 0) + 1
+      );
     }
   }
 
-  const reactionCountMap = new Map<number, { like: number; funny: number; wow: number; fire: number; }>();
+  const reactionCountMap = new Map<
+    number,
+    { like: number; funny: number; wow: number; fire: number }
+  >();
   const viewerReactionMap = new Map<number, ReactionType | null>();
 
   if (postIds.length > 0) {
@@ -137,11 +160,18 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     if (reactionsError) throw new Error(reactionsError.message);
 
     for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
-      const current = reactionCountMap.get(reaction.post_id) ?? { like: 0, funny: 0, wow: 0, fire: 0 };
+      const current = reactionCountMap.get(reaction.post_id) ?? {
+        like: 0,
+        funny: 0,
+        wow: 0,
+        fire: 0,
+      };
+
       if (reaction.reaction === "like") current.like += 1;
       if (reaction.reaction === "funny") current.funny += 1;
       if (reaction.reaction === "wow") current.wow += 1;
       if (reaction.reaction === "fire") current.fire += 1;
+
       reactionCountMap.set(reaction.post_id, current);
 
       if (user && reaction.user_id === user.id) {
@@ -151,48 +181,116 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   const posts: FeedPost[] = typedPosts.map((post) => {
-    const reactionCounts = reactionCountMap.get(post.id) ?? { like: 0, funny: 0, wow: 0, fire: 0 };
+    const reactionCounts = reactionCountMap.get(post.id) ?? {
+      like: 0,
+      funny: 0,
+      wow: 0,
+      fire: 0,
+    };
+
     return {
       id: post.id,
       content: post.content ?? "",
       created_at: post.created_at,
       comments_count: commentCountMap.get(post.id) ?? post.comments_count ?? 0,
-      reactions_count: reactionCounts.like + reactionCounts.funny + reactionCounts.wow + reactionCounts.fire,
+      reactions_count:
+        reactionCounts.like +
+        reactionCounts.funny +
+        reactionCounts.wow +
+        reactionCounts.fire,
       reaction_counts: reactionCounts,
       viewer_reaction: viewerReactionMap.get(post.id) ?? null,
       can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
-      author_username: profile.username,
-      author_avatar_url: profile.avatar_url ?? null,
+      author_username: typedProfile.username,
+      author_avatar_url: typedProfile.avatar_url ?? null,
     };
   });
 
-  const { followersCount, followingCount } = await getFollowCounts(supabase, profile.id);
-  const isFollowing = await isFollowingUser(supabase, user?.id ?? null, profile.id);
-  const implementedIdeaCount = await getImplementedIdeaCountByUserId(supabase, profile.id);
+  const { followersCount, followingCount } = await getFollowCounts(
+    supabase,
+    typedProfile.id
+  );
+  const isFollowing = await isFollowingUser(
+    supabase,
+    user?.id ?? null,
+    typedProfile.id
+  );
+  const implementedIdeaCount = await getImplementedIdeaCountByUserId(
+    supabase,
+    typedProfile.id
+  );
 
   const { data: hallOfFameData, error: hallOfFameError } = await supabase
     .from("weekly_post_hall_of_fame")
     .select("*")
-    .eq("author_id", profile.id)
+    .eq("author_id", typedProfile.id)
     .order("week_start", { ascending: false });
 
   if (hallOfFameError) throw new Error(hallOfFameError.message);
   const hallOfFameCount = (hallOfFameData ?? []).length;
 
-  const isOwnProfile = user?.id === profile.id;
-  const profileBadges = Array.isArray(profile.badges)
-    ? profile.badges.filter((value): value is string => typeof value === "string")
-    : [];
+  const isOwnProfile = user?.id === typedProfile.id;
+
+  // =====================================================
+  // New badge system
+  // Note:
+  // badges + user_badges are already in DB, but local generated TS types
+  // may not include them yet. Therefore these two queries are intentionally
+  // isolated behind `as any` to avoid breaking the rest of the typed client.
+  // =====================================================
+
+  const badgeClient = supabase as any;
+
+  const { data: userBadgesData, error: userBadgesError } = await badgeClient
+    .from("user_badges")
+    .select("badge_id, family, awarded_at, progress_value")
+    .eq("user_id", typedProfile.id);
+
+  if (userBadgesError) throw new Error(userBadgesError.message);
+
+  const typedUserBadges = (userBadgesData ?? []) as UserBadgeRow[];
+  const badgeIds = typedUserBadges.map((item) => item.badge_id);
+
+  let profileBadges: UserBadgeDisplay[] = [];
+
+  if (badgeIds.length > 0) {
+    const { data: badgeDefinitionsData, error: badgeDefinitionsError } =
+      await badgeClient
+        .from("badges")
+        .select(
+          "id, key, family, level, threshold, name, short_label, description, icon, color_token, sort_order"
+        )
+        .in("id", badgeIds)
+        .eq("is_active", true);
+
+    if (badgeDefinitionsError) throw new Error(badgeDefinitionsError.message);
+
+    const badgeDefinitionMap = new Map<number, BadgeDefinitionRow>(
+      ((badgeDefinitionsData ?? []) as BadgeDefinitionRow[]).map((badge) => [
+        badge.id,
+        badge,
+      ])
+    );
+
+    profileBadges = typedUserBadges
+      .map((userBadge) => {
+        const badge = badgeDefinitionMap.get(userBadge.badge_id);
+        if (!badge) return null;
+        return mapBadgeToDisplay(badge, userBadge);
+      })
+      .filter((badge): badge is UserBadgeDisplay => badge !== null)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <NavBar user={navUser} />
       <main className="mx-auto max-w-2xl px-4 py-8 sm:py-16">
         <div className="mb-8 overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
-          <div className="h-32 bg-neutral-950 relative overflow-hidden">
-             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
-             <div className="absolute left-0 bottom-0 h-full w-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_40%)]" />
-             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+          <div className="relative h-32 overflow-hidden bg-neutral-950">
+            <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
+            <div className="absolute bottom-0 left-0 h-full w-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_40%)]" />
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
           </div>
 
           <div className="relative px-6 pb-10 sm:px-10">
@@ -200,14 +298,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <div className="relative">
                 <div className="absolute inset-0 rounded-[32px] bg-amber-400/20 blur-2xl" />
                 <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border-[6px] border-white bg-neutral-100 text-4xl font-black text-neutral-400 shadow-xl sm:h-36 sm:w-36">
-                  {profile.avatar_url ? (
+                  {typedProfile.avatar_url ? (
                     <img
-                      src={profile.avatar_url}
-                      alt={`${profile.username} avatar`}
+                      src={typedProfile.avatar_url}
+                      alt={`${typedProfile.username} avatar`}
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    profile.username.charAt(0).toUpperCase()
+                    typedProfile.username.charAt(0).toUpperCase()
                   )}
                 </div>
               </div>
@@ -221,12 +319,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                     Edit Profile
                   </Link>
                 ) : user ? (
-                  <div className="scale-110 origin-bottom-right">
+                  <div className="origin-bottom-right scale-110">
                     <FollowButton
                       isFollowing={isFollowing}
-                      targetUserId={profile.id}
-                      targetUsername={profile.username}
-                      path={`/u/${profile.username}`}
+                      targetUserId={typedProfile.id}
+                      targetUsername={typedProfile.username}
+                      path={`/u/${typedProfile.username}`}
                     />
                   </div>
                 ) : null}
@@ -237,26 +335,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
-                    @ {profile.username}
+                    @ {typedProfile.username}
                   </h1>
-                  
-                  <div className="flex gap-2">
-                    {implementedIdeaCount > 0 && (
-                      <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-amber-700 shadow-sm">
-                        Contributor
-                      </span>
-                    )}
-
-                    {hallOfFameCount > 0 && (
-                      <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-indigo-700 shadow-sm">
-                        Legend
-                      </span>
-                    )}
-                  </div>
                 </div>
-                
+
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">
-                  Legacy started · {new Date(profile.created_at).toLocaleDateString("en-GB", { month: 'long', year: 'numeric' })}
+                  Legacy started ·{" "}
+                  {new Date(typedProfile.created_at).toLocaleDateString(
+                    "en-GB",
+                    {
+                      month: "long",
+                      year: "numeric",
+                    }
+                  )}
                 </p>
               </div>
 
@@ -264,22 +355,31 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   {implementedIdeaCount > 0 && (
                     <div className="group flex flex-col rounded-3xl border border-amber-100 bg-amber-50/30 p-4 transition-colors hover:bg-amber-50">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-600/60">Community Impact</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-600/60">
+                        Community Impact
+                      </span>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-xl">💡</span>
                         <span className="text-xl font-black text-amber-900">
-                          {implementedIdeaCount} {implementedIdeaCount === 1 ? "Idea" : "Ideas"}
+                          {implementedIdeaCount}{" "}
+                          {implementedIdeaCount === 1 ? "Idea" : "Ideas"}
                         </span>
                       </div>
                     </div>
                   )}
+
                   {hallOfFameCount > 0 && (
                     <div className="group flex flex-col rounded-3xl border border-indigo-100 bg-indigo-50/30 p-4 transition-colors hover:bg-indigo-50">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600/60">Victories</span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600/60">
+                        Victories
+                      </span>
                       <div className="mt-1 flex items-center gap-2">
                         <span className="text-xl">🏆</span>
                         <span className="text-xl font-black text-indigo-900">
-                          {hallOfFameCount} {hallOfFameCount === 1 ? "Legendary Win" : "Legendary Wins"}
+                          {hallOfFameCount}{" "}
+                          {hallOfFameCount === 1
+                            ? "Legendary Win"
+                            : "Legendary Wins"}
                         </span>
                       </div>
                     </div>
@@ -287,13 +387,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               )}
 
-              <div className="pt-6 border-t border-neutral-100">
-                <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Earned Badges</p>
-                <ProfileBadgesSection
-                  targetUserId={profile.id}
-                  initialBadges={profileBadges}
-                  viewerIsAdmin={viewerIsAdmin}
-                />
+              <div className="border-t border-neutral-100 pt-6">
+                <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                  Earned Badges
+                </p>
+
+                <ProfileBadgesSection badges={profileBadges} />
               </div>
             </div>
           </div>
@@ -304,7 +403,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             initialPosts={posts}
             followersCount={followersCount}
             followingCount={followingCount}
-            username={profile.username}
+            username={typedProfile.username}
           />
         </div>
       </main>

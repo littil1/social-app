@@ -208,7 +208,7 @@ function CommentItem({
 
           <div className="min-w-0 flex-1">
             <div className="mb-2">
-              <div className="flex items-center gap-2 pr-12">
+              <div className="flex flex-wrap items-center gap-2 pr-12">
                 <Link
                   href={`/u/${encodeURIComponent(node.author_username ?? "")}`}
                   className="truncate text-sm font-black text-neutral-950 hover:underline"
@@ -216,11 +216,18 @@ function CommentItem({
                   @{node.author_username ?? "anonymous"}
                 </Link>
 
-                {(node.author_hall_of_fame_count ?? 0) > 0 && (
-                  <span className="rounded-full border border-amber-100/50 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-600">
-                    Legend
+                {(node.author_badges ?? []).map((badge) => (
+                  <span
+                    key={badge.key}
+                    className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest shadow-sm ${badge.className}`}
+                    title={badge.description}
+                  >
+                    <span aria-hidden="true" className="mr-1">
+                      {badge.icon}
+                    </span>
+                    {badge.label}
                   </span>
-                )}
+                ))}
               </div>
 
               <p className="text-[10px] font-bold uppercase tracking-tighter text-neutral-400">

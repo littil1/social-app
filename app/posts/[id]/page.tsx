@@ -184,6 +184,8 @@ export default async function PostDetailPage({ params }: PageProps) {
     viewer_reaction: viewerReaction,
     comments_count: commentsCount,
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
+    author_username: null,
+    author_avatar_url: null,
   };
 
   // =====================================================

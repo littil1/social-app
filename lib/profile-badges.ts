@@ -1,98 +1,117 @@
-export type ProfileBadgeKey =
-  | "founding_voice"
-  | "helpful_mind"
-  | "daily_winner"
-  | "hall_of_fame"
-  | "idea_creator"
-  | "platform_builder"
-  | "community_supporter"
-  | "quality_poster"
-  | "constructive_voice"
-  | "top_contributor";
+export type BadgeColorToken =
+  | "neutral"
+  | "slate"
+  | "amber"
+  | "emerald"
+  | "indigo"
+  | "rose"
+  | "violet"
+  | "sky"
+  | "teal";
 
-export type ProfileBadgeDefinition = {
-  key: ProfileBadgeKey;
-  label: string;
-  emoji: string;
-  description: string;
-  className: string;
+export type BadgeDefinitionRow = {
+  id: number;
+  key: string;
+  family: string;
+  level: number;
+  threshold: number;
+  name: string;
+  short_label: string;
+  description: string | null;
+  icon: string | null;
+  color_token: string;
+  sort_order: number;
 };
 
-export const PROFILE_BADGES: ProfileBadgeDefinition[] = [
-  {
-    key: "founding_voice",
-    label: "Frühe Stimme",
-    emoji: "🌱",
-    description: "Früh dabei und Teil der ersten Community.",
-    className: "bg-emerald-50 text-emerald-700",
-  },
-  {
-    key: "helpful_mind",
-    label: "Hilfreicher Denker",
-    emoji: "💡",
-    description: "Hilfreiche Beiträge mit echtem Mehrwert.",
-    className: "bg-yellow-50 text-yellow-700",
-  },
-  {
-    key: "daily_winner",
-    label: "Tagessieger",
-    emoji: "🏆",
-    description: "Ein Beitrag hat es auf das Tagespodest geschafft.",
-    className: "bg-amber-100 text-amber-800",
-  },
-  {
-    key: "hall_of_fame",
-    label: "Hall of Fame",
-    emoji: "👑",
-    description: "Dauerhaft ausgezeichnet in der Hall of Fame.",
-    className: "bg-indigo-100 text-indigo-700",
-  },
-  {
-    key: "idea_creator",
-    label: "Ideenstarter",
-    emoji: "🛠️",
-    description: "Hat wertvolle Verbesserungswünsche eingebracht.",
-    className: "bg-orange-50 text-orange-700",
-  },
-  {
-    key: "platform_builder",
-    label: "Plattform-Mitgestalter",
-    emoji: "🚀",
-    description: "Hat die Plattform spürbar weitergebracht.",
-    className: "bg-sky-50 text-sky-700",
-  },
-  {
-    key: "community_supporter",
-    label: "Community Supporter",
-    emoji: "🤝",
-    description: "Stärkt die Community durch konstante Aktivität.",
-    className: "bg-teal-50 text-teal-700",
-  },
-  {
-    key: "quality_poster",
-    label: "Qualitätsbeitrag",
-    emoji: "✨",
-    description: "Steht für besonders starke Beiträge.",
-    className: "bg-violet-50 text-violet-700",
-  },
-  {
-    key: "constructive_voice",
-    label: "Konstruktive Stimme",
-    emoji: "🧭",
-    description: "Sorgt für sachliche und konstruktive Diskussionen.",
-    className: "bg-cyan-50 text-cyan-700",
-  },
-  {
-    key: "top_contributor",
-    label: "Top Contributor",
-    emoji: "🔥",
-    description: "Besonders starker Gesamtbeitrag zur Plattform.",
-    className: "bg-rose-50 text-rose-700",
-  },
-];
+export type UserBadgeRow = {
+  badge_id: number;
+  family: string;
+  awarded_at: string;
+  progress_value: number | null;
+};
 
-export const PROFILE_BADGE_KEYS = PROFILE_BADGES.map((badge) => badge.key);
+export type UserBadgeDisplay = {
+  id: number;
+  key: string;
+  family: string;
+  level: number;
+  threshold: number;
+  label: string;
+  description: string;
+  icon: string;
+  colorToken: BadgeColorToken;
+  className: string;
+  sortOrder: number;
+  awardedAt: string;
+  progressValue: number | null;
+};
 
-export function getProfileBadge(key: string) {
-  return PROFILE_BADGES.find((badge) => badge.key === key) ?? null;
+function isBadgeColorToken(value: string): value is BadgeColorToken {
+  return (
+    value === "neutral" ||
+    value === "slate" ||
+    value === "amber" ||
+    value === "emerald" ||
+    value === "indigo" ||
+    value === "rose" ||
+    value === "violet" ||
+    value === "sky" ||
+    value === "teal"
+  );
+}
+
+function getBadgeClassName(colorToken: BadgeColorToken, level: number) {
+  const levelAccent =
+    level >= 6
+      ? "ring-2 ring-offset-1"
+      : level >= 4
+      ? "ring-1 ring-offset-1"
+      : "";
+
+  switch (colorToken) {
+    case "amber":
+      return `border-amber-200 bg-amber-50 text-amber-800 ${levelAccent}`.trim();
+    case "emerald":
+      return `border-emerald-200 bg-emerald-50 text-emerald-800 ${levelAccent}`.trim();
+    case "indigo":
+      return `border-indigo-200 bg-indigo-50 text-indigo-800 ${levelAccent}`.trim();
+    case "rose":
+      return `border-rose-200 bg-rose-50 text-rose-800 ${levelAccent}`.trim();
+    case "violet":
+      return `border-violet-200 bg-violet-50 text-violet-800 ${levelAccent}`.trim();
+    case "sky":
+      return `border-sky-200 bg-sky-50 text-sky-800 ${levelAccent}`.trim();
+    case "teal":
+      return `border-teal-200 bg-teal-50 text-teal-800 ${levelAccent}`.trim();
+    case "slate":
+      return `border-slate-200 bg-slate-50 text-slate-800 ${levelAccent}`.trim();
+    case "neutral":
+    default:
+      return `border-neutral-200 bg-neutral-50 text-neutral-800 ${levelAccent}`.trim();
+  }
+}
+
+export function mapBadgeToDisplay(
+  badge: BadgeDefinitionRow,
+  userBadge: UserBadgeRow
+): UserBadgeDisplay {
+  const colorToken = isBadgeColorToken(badge.color_token)
+    ? badge.color_token
+    : "neutral";
+
+  return {
+    id: badge.id,
+    key: badge.key,
+    family: badge.family,
+    level: badge.level,
+    threshold: badge.threshold,
+    label: badge.short_label,
+    description: badge.description ?? badge.name,
+    icon: badge.icon ?? "🏅",
+    colorToken,
+    className: getBadgeClassName(colorToken, badge.level),
+    sortOrder: badge.sort_order,
+    awardedAt: userBadge.awarded_at,
+    progressValue: userBadge.progress_value ?? null,
+  };
 }

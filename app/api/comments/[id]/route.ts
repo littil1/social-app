@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
 import type { Database } from "@/types/database";
+import { recomputeUserBadgeFamilies } from "@/lib/badges";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -9,7 +10,10 @@ type RouteContext = {
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 
-type CommentTreeRow = Pick<CommentRow, "id" | "post_id" | "user_id" | "parent_id">;
+type CommentTreeRow = Pick<
+  CommentRow,
+  "id" | "post_id" | "user_id" | "parent_id"
+>;
 
 function collectCommentIdsToDelete(
   rootCommentId: number,
@@ -87,6 +91,14 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       return new NextResponse("Keine Berechtigung.", { status: 403 });
     }
 
+    const { data: postAuthorData } = await supabase
+      .from("posts")
+      .select("user_id")
+      .eq("id", comment.post_id)
+      .maybeSingle();
+
+    const postAuthorId = postAuthorData?.user_id ?? null;
+
     const { data: postCommentsData, error: postCommentsError } = await supabase
       .from("comments")
       .select("id, post_id, user_id, parent_id")
@@ -133,6 +145,18 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       if (updateError) {
         return new NextResponse(updateError.message, { status: 500 });
       }
+    }
+
+    if (comment.user_id) {
+      await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+        "top_commentator",
+      ]);
+    }
+
+    if (postAuthorId) {
+      await recomputeUserBadgeFamilies(supabase as any, postAuthorId, [
+        "most_discussed",
+      ]);
     }
 
     return new NextResponse("OK", { status: 200 });
