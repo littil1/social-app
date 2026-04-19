@@ -14,9 +14,8 @@ export const revalidate = 0;
 
 type PostRow = Pick<
   Database["public"]["Tables"]["posts"]["Row"],
-  "id" | "content" | "created_at" | "user_id"
+  "id" | "content" | "created_at" | "user_id" | "comments_count"
 >;
-type CommentRow = Pick<Database["public"]["Tables"]["comments"]["Row"], "post_id">;
 type PostReactionRow = Pick<
   Database["public"]["Tables"]["post_reactions"]["Row"],
   "post_id" | "user_id" | "reaction"
@@ -108,7 +107,7 @@ export default async function LeaderboardPage() {
 
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
-    .select("id, content, created_at, user_id")
+    .select("id, content, created_at, user_id, comments_count")
     .gte("created_at", startIso)
     .lt("created_at", endIso)
     .order("created_at", { ascending: false });
@@ -118,33 +117,27 @@ export default async function LeaderboardPage() {
   const todaysPosts = (postsData ?? []) as PostRow[];
   const hasPostsToday = todaysPosts.length > 0;
   const postIds = todaysPosts.map((post) => post.id);
-  
+
   const reactionCountsByPostId = new Map<number, ReactionCounts>();
   const viewerReactionByPostId = new Map<number, ReactionType>();
-  const commentCountByPostId = new Map<number, number>();
 
   if (postIds.length > 0) {
-    const [{ data: reactionsData }, { data: commentsData }] = await Promise.all([
+    const [{ data: reactionsData }] = await Promise.all([
       supabase.from("post_reactions").select("post_id, user_id, reaction").in("post_id", postIds),
-      supabase.from("comments").select("post_id").in("post_id", postIds),
     ]);
 
-    (reactionsData ?? []).forEach((reaction: any) => {
+    ((reactionsData ?? []) as PostReactionRow[]).forEach((reaction) => {
       const counts = reactionCountsByPostId.get(reaction.post_id) ?? createEmptyReactionCounts();
       counts[reaction.reaction as keyof ReactionCounts] += 1;
       reactionCountsByPostId.set(reaction.post_id, counts);
       if (user && reaction.user_id === user.id) viewerReactionByPostId.set(reaction.post_id, reaction.reaction);
-    });
-
-    (commentsData ?? []).forEach((comment: any) => {
-      commentCountByPostId.set(comment.post_id, (commentCountByPostId.get(comment.post_id) ?? 0) + 1);
     });
   }
 
   const baseRankedPosts = todaysPosts.map((post) => {
     const reactionCounts = reactionCountsByPostId.get(post.id) ?? createEmptyReactionCounts();
     const reactionsCount = getReactionsCount(reactionCounts);
-    const commentsCount = commentCountByPostId.get(post.id) ?? 0;
+    const commentsCount = Math.max(0, post.comments_count ?? 0);
     return {
       id: post.id,
       post_content: post.content ?? "",

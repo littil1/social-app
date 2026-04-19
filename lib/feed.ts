@@ -5,11 +5,6 @@ import type { Database } from "@/types/database";
 export const FEED_PAGE_SIZE = 10;
 
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
-type CommentRow = Pick<
-  Database["public"]["Tables"]["comments"]["Row"],
-  "id" | "post_id"
->;
-
 type FollowRow = Pick<
   Database["public"]["Tables"]["follows"]["Row"],
   "following_id"
@@ -264,15 +259,10 @@ export async function getFeedPage(
 
   const [
     { data: reactionsData, error: reactionsError },
-    { data: commentsData, error: commentsError },
   ] = await Promise.all([
     supabase
       .from("post_reactions")
       .select("post_id, user_id, reaction")
-      .in("post_id", recentPostIds),
-    supabase
-      .from("comments")
-      .select("id, post_id")
       .in("post_id", recentPostIds),
   ]);
 
@@ -280,16 +270,10 @@ export async function getFeedPage(
     throw new Error(reactionsError.message);
   }
 
-  if (commentsError) {
-    throw new Error(commentsError.message);
-  }
-
   const reactions = (reactionsData ?? []) as PostReactionRow[];
-  const comments = (commentsData ?? []) as CommentRow[];
 
   const reactionCountsMap = new Map<number, ReactionCounts>();
   const viewerReactionMap = new Map<number, ReactionType>();
-  const commentCountMap = new Map<number, number>();
 
   for (const reaction of reactions) {
     const counts =
@@ -303,20 +287,13 @@ export async function getFeedPage(
     }
   }
 
-  for (const comment of comments) {
-    if (typeof comment.post_id !== "number") continue;
-
-    commentCountMap.set(
-      comment.post_id,
-      (commentCountMap.get(comment.post_id) ?? 0) + 1
-    );
-  }
-
   const orderedFeedIds = buildOrderedFeedIds({
     posts: recentPosts,
     followingUserIds,
     reactionCountsMap,
-    commentCountMap,
+    commentCountMap: new Map(
+      recentPosts.map((post) => [post.id, Math.max(0, post.comments_count ?? 0)])
+    ),
     targetCount,
   });
 
@@ -347,7 +324,7 @@ export async function getFeedPage(
       reactions_count: getTotalReactions(reactionCounts),
       reaction_counts: reactionCounts,
       viewer_reaction: viewerReactionMap.get(post.id) ?? null,
-      comments_count: commentCountMap.get(post.id) ?? 0,
+      comments_count: Math.max(0, post.comments_count ?? 0),
       can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
       author_username: null,
       author_avatar_url: null,

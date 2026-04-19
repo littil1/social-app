@@ -9,6 +9,21 @@ export type BadgeColorToken =
   | "sky"
   | "teal";
 
+export const PROFILE_BADGES = [
+  {
+    key: "daily_winner",
+    label: "Daily Winner",
+    emoji: "🏆",
+    className: "border-amber-200 bg-amber-50 text-amber-800",
+  },
+] as const;
+
+export type ProfileBadgeKey = (typeof PROFILE_BADGES)[number]["key"];
+
+export const PROFILE_BADGE_KEYS: ProfileBadgeKey[] = PROFILE_BADGES.map(
+  (badge) => badge.key
+);
+
 export type BadgeDefinitionRow = {
   id: number;
   key: string;
@@ -45,6 +60,10 @@ export type UserBadgeDisplay = {
   awardedAt: string;
   progressValue: number | null;
 };
+
+export function getProfileBadge(key: string) {
+  return PROFILE_BADGES.find((badge) => badge.key === key) ?? null;
+}
 
 function isBadgeColorToken(value: string): value is BadgeColorToken {
   return (

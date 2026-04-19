@@ -21,6 +21,7 @@ type PostRow = {
   content: string | null;
   created_at: string;
   user_id: string | null;
+  comments_count: number | null;
 };
 
 type ProfileRow = {
@@ -28,10 +29,6 @@ type ProfileRow = {
   username: string | null;
   avatar_url: string | null;
   is_admin?: boolean | null;
-};
-
-type CommentRow = {
-  post_id: number | null;
 };
 
 type PostReactionRow = {
@@ -121,7 +118,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   const { data: postData, error: postError } = await supabase
     .from("posts")
-    .select("id, content, created_at, user_id")
+    .select("id, content, created_at, user_id, comments_count")
     .eq("id", postId)
     .maybeSingle();
 
@@ -159,18 +156,6 @@ export default async function PostDetailPage({ params }: PageProps) {
     }
   }
 
-  const { data: commentsData, error: commentsError } = await supabase
-    .from("comments")
-    .select("post_id")
-    .eq("post_id", postId);
-
-  if (commentsError) {
-    throw new Error(commentsError.message);
-  }
-
-  const comments = (commentsData ?? []) as CommentRow[];
-  const commentsCount = comments.length;
-
   // =====================================================
   // Build Feed Post
   // =====================================================
@@ -182,7 +167,7 @@ export default async function PostDetailPage({ params }: PageProps) {
     reactions_count: getReactionsCount(reactionCounts),
     reaction_counts: reactionCounts,
     viewer_reaction: viewerReaction,
-    comments_count: commentsCount,
+    comments_count: Math.max(0, post.comments_count ?? 0),
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
     author_username: null,
     author_avatar_url: null,

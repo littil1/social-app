@@ -8,7 +8,11 @@ import type { ReactionCounts } from "@/types/feed";
 export const dynamic = "force-dynamic";
 
 type DailyWinnerRow = Database["public"]["Tables"]["daily_post_winners"]["Row"];
-type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
+type DailyWinnerSnapshotRow = DailyWinnerRow & {
+  funny_count: number | null;
+  wow_count: number | null;
+  fire_count: number | null;
+};
 
 type FrozenWinnerPost = {
   id: number;
@@ -82,33 +86,17 @@ export default async function HallOfFamePage() {
   if (error) throw new Error(error.message);
 
   const todayKey = getZurichDayKey(new Date());
-  const winnerRows: DailyWinnerRow[] = (data ?? []).filter(
+  const winnerRows: DailyWinnerSnapshotRow[] = ((data ?? []) as DailyWinnerSnapshotRow[]).filter(
     (item) => item.winner_date !== todayKey && item.rank_position === 1
   );
-
-  const winnerPostIds = Array.from(new Set(winnerRows.map((item) => item.post_id)));
-  const commentsCountMap = new Map<number, number>();
-
-  if (winnerPostIds.length > 0) {
-    const { data: commentsData, error: commentsError } = await supabase
-      .from("comments")
-      .select("post_id")
-      .in("post_id", winnerPostIds);
-
-    if (commentsError) throw new Error(commentsError.message);
-    for (const comment of (commentsData ?? []) as Pick<CommentRow, "post_id">[]) {
-      const postId = comment.post_id;
-      commentsCountMap.set(postId, (commentsCountMap.get(postId) ?? 0) + 1);
-    }
-  }
 
   const dailyWinners: DailyWinnerEntry[] = winnerRows
     .map((item) => {
       const reactionCounts: ReactionCounts = {
         like: Number(item.likes_count ?? 0),
-        funny: Number((item as any).funny_count ?? 0),
-        wow: Number((item as any).wow_count ?? 0),
-        fire: Number((item as any).fire_count ?? 0),
+        funny: Number(item.funny_count ?? 0),
+        wow: Number(item.wow_count ?? 0),
+        fire: Number(item.fire_count ?? 0),
       };
       return {
         dayKey: item.winner_date,
@@ -117,7 +105,7 @@ export default async function HallOfFamePage() {
           id: item.post_id,
           post_content: item.post_content ?? "",
           post_created_at: item.post_created_at,
-          comments_count: commentsCountMap.get(item.post_id) ?? 0,
+          comments_count: Math.max(0, Number(item.comments_count ?? 0)),
           relevance_score: Number(item.relevance_score ?? 0),
           author_username: item.author_username ?? null,
           reactions_count: countTotalReactions(reactionCounts),

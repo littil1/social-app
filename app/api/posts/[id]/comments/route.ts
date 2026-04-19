@@ -17,7 +17,6 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
 type CommentReactionRow =
@@ -306,32 +305,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
           status: 500,
         }
       );
-    }
-
-    const { data: postData, error: postError } = await supabase
-      .from("posts")
-      .select("*")
-      .eq("id", postId)
-      .single();
-
-    if (postError || !postData) {
-      return new NextResponse(postError?.message ?? "Post nicht gefunden.", {
-        status: 500,
-      });
-    }
-
-    const post = postData as PostRow;
-    const currentCount = post.comments_count ?? 0;
-
-    const { error: updateError } = await supabase
-      .from("posts")
-      .update({
-        comments_count: currentCount + 1,
-      })
-      .eq("id", postId);
-
-    if (updateError) {
-      return new NextResponse(updateError.message, { status: 500 });
     }
 
     const { data: profileData, error: profileError } = await supabase
