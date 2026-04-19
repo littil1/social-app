@@ -108,7 +108,7 @@ export default function CreatePostForm({
       }
 
       if (!res.ok) {
-        throw new Error("Beitrag konnte nicht erstellt werden.");
+        throw new Error("Post could not be created.");
       }
 
       const newPost: FeedPost = await res.json();
@@ -123,9 +123,9 @@ export default function CreatePostForm({
         error instanceof Error &&
         error.message === "AUTH_NOT_READY_AFTER_LOGIN"
       ) {
-        alert("Bitte versuche es jetzt noch einmal.");
+        alert("Please try again.");
       } else {
-        alert("Beitrag konnte nicht erstellt werden.");
+        alert("Post could not be saved.");
       }
     } finally {
       setLoading(false);
@@ -168,8 +168,8 @@ export default function CreatePostForm({
               }}
               placeholder={
                 effectiveIsLoggedIn
-                  ? "Was denkst du gerade?"
-                  : "Melde dich an, um etwas zu posten"
+                  ? "What’s actually on your mind?"
+                  : "You need to be logged in to post"
               }
               rows={4}
               disabled={loading}
@@ -191,7 +191,7 @@ export default function CreatePostForm({
           disabled={!canSubmit || loading}
           className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-white"
         >
-          {loading ? "Postet..." : "Posten"}
+          {loading ? "Posting..." : "Post"}
         </button>
       </div>
     </form>

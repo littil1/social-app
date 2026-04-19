@@ -7,6 +7,7 @@ import type {
   ReactionCounts,
   ReactionType,
 } from "@/types/feed";
+import { recomputeUserBadgeFamilies } from "@/lib/badges";
 import { getUserBadges } from "@/lib/badges/getUserBadges";
 
 // =====================================================
@@ -287,6 +288,20 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     }
 
+    const { data: postData, error: postError } = await supabase
+      .from("posts")
+      .select("user_id")
+      .eq("id", postId)
+      .maybeSingle();
+
+    if (postError) {
+      return new NextResponse(postError.message, { status: 500 });
+    }
+
+    if (!postData) {
+      return new NextResponse("Post nicht gefunden.", { status: 404 });
+    }
+
     const { data: insertedComment, error: insertError } = await supabase
       .from("comments")
       .insert({
@@ -339,6 +354,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       author_hall_of_fame_count: 0,
       author_hall_of_fame_categories: [],
     };
+
+    await recomputeUserBadgeFamilies(supabase as any, user.id, [
+      "top_commentator",
+    ]);
+
+    if (postData.user_id) {
+      await recomputeUserBadgeFamilies(supabase as any, postData.user_id, [
+        "most_discussed",
+      ]);
+    }
 
     return NextResponse.json(response);
   } catch (error) {

@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import HallOfFameFrozenPostCard from "@/app/components/hall-of-fame/HallOfFameFrozenPostCard";
+import type { UserBadgeDisplay } from "@/lib/profile-badges";
 import type { ReactionCounts } from "@/types/feed";
 
 type CarouselWinnerPost = {
@@ -10,6 +11,7 @@ type CarouselWinnerPost = {
   post_created_at: string;
   comments_count: number;
   relevance_score: number;
+  author_badges: UserBadgeDisplay[];
   author_username: string | null;
   reactions_count: number;
   reaction_counts: ReactionCounts;

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import NavBar from "@/app/components/layout/navbar";
 import SinglePostView from "@/app/components/posts/SinglePostView";
+import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
 import { createClient } from "@/lib/supabase-server";
 import type { FeedPost, ReactionCounts, ReactionType } from "@/types/feed";
 
@@ -131,6 +132,7 @@ export default async function PostDetailPage({ params }: PageProps) {
   }
 
   const post = postData as PostRow;
+  const commentCountMap = await resolvePostCommentCounts(supabase, [post]);
 
   // =====================================================
   // Load Reactions / Comments
@@ -167,7 +169,7 @@ export default async function PostDetailPage({ params }: PageProps) {
     reactions_count: getReactionsCount(reactionCounts),
     reaction_counts: reactionCounts,
     viewer_reaction: viewerReaction,
-    comments_count: Math.max(0, post.comments_count ?? 0),
+    comments_count: commentCountMap.get(post.id) ?? 0,
     can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
     author_username: null,
     author_avatar_url: null,

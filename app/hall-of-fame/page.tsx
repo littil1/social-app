@@ -1,4 +1,7 @@
 import NavBar from "@/app/components/layout/navbar";
+import { getUserBadges } from "@/lib/badges/getUserBadges";
+import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
+import type { UserBadgeDisplay } from "@/lib/profile-badges";
 import { createClient } from "@/lib/supabase-server";
 import HallOfFameFrozenPostCard from "@/app/components/hall-of-fame/HallOfFameFrozenPostCard";
 import HallOfFameWinnersCarousel from "@/app/components/hall-of-fame/HallOfFameWinnersCarousel";
@@ -20,6 +23,7 @@ type FrozenWinnerPost = {
   post_created_at: string;
   comments_count: number;
   relevance_score: number;
+  author_badges: UserBadgeDisplay[];
   author_username: string | null;
   reactions_count: number;
   reaction_counts: ReactionCounts;
@@ -89,6 +93,37 @@ export default async function HallOfFamePage() {
   const winnerRows: DailyWinnerSnapshotRow[] = ((data ?? []) as DailyWinnerSnapshotRow[]).filter(
     (item) => item.winner_date !== todayKey && item.rank_position === 1
   );
+  const winnerAuthorIds = Array.from(
+    new Set(
+      winnerRows
+        .map((item) => item.author_id)
+        .filter((authorId): authorId is string => typeof authorId === "string")
+    )
+  );
+
+  const winnerPostIds = Array.from(new Set(winnerRows.map((item) => item.post_id)));
+  const currentCommentsCountByPostId = new Map<number, number>();
+  const badgesByAuthorId =
+    winnerAuthorIds.length > 0
+      ? await getUserBadges(winnerAuthorIds, { limitPerUser: 3 })
+      : new Map<string, UserBadgeDisplay[]>();
+
+  if (winnerPostIds.length > 0) {
+    const { data: postsData, error: postsError } = await supabase
+      .from("posts")
+      .select("id, comments_count")
+      .in("id", winnerPostIds);
+
+    if (postsError) throw new Error(postsError.message);
+    const resolvedCounts = await resolvePostCommentCounts(
+      supabase,
+      (postsData ?? []) as Array<{ id: number; comments_count: number | null }>
+    );
+
+    for (const [postId, count] of resolvedCounts.entries()) {
+      currentCommentsCountByPostId.set(postId, count);
+    }
+  }
 
   const dailyWinners: DailyWinnerEntry[] = winnerRows
     .map((item) => {
@@ -105,8 +140,13 @@ export default async function HallOfFamePage() {
           id: item.post_id,
           post_content: item.post_content ?? "",
           post_created_at: item.post_created_at,
-          comments_count: Math.max(0, Number(item.comments_count ?? 0)),
+          comments_count:
+            currentCommentsCountByPostId.get(item.post_id) ??
+            Math.max(0, Number(item.comments_count ?? 0)),
           relevance_score: Number(item.relevance_score ?? 0),
+          author_badges: item.author_id
+            ? badgesByAuthorId.get(item.author_id) ?? []
+            : [],
           author_username: item.author_username ?? null,
           reactions_count: countTotalReactions(reactionCounts),
           reaction_counts: reactionCounts,

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase-server";
+import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
 import type { FeedPost, ReactionCounts, ReactionType } from "@/types/feed";
 import type { Database } from "@/types/database";
 
@@ -274,6 +275,7 @@ export async function getFeedPage(
 
   const reactionCountsMap = new Map<number, ReactionCounts>();
   const viewerReactionMap = new Map<number, ReactionType>();
+  const commentCountMap = await resolvePostCommentCounts(supabase, recentPosts);
 
   for (const reaction of reactions) {
     const counts =
@@ -291,9 +293,7 @@ export async function getFeedPage(
     posts: recentPosts,
     followingUserIds,
     reactionCountsMap,
-    commentCountMap: new Map(
-      recentPosts.map((post) => [post.id, Math.max(0, post.comments_count ?? 0)])
-    ),
+    commentCountMap,
     targetCount,
   });
 
@@ -324,7 +324,7 @@ export async function getFeedPage(
       reactions_count: getTotalReactions(reactionCounts),
       reaction_counts: reactionCounts,
       viewer_reaction: viewerReactionMap.get(post.id) ?? null,
-      comments_count: Math.max(0, post.comments_count ?? 0),
+      comments_count: commentCountMap.get(post.id) ?? 0,
       can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
       author_username: null,
       author_avatar_url: null,

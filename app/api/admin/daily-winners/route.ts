@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
 import { createClient } from "@/lib/supabase-server";
+import { recomputeUserBadgeFamilies } from "@/lib/badges";
 
 type PostRow = {
   id: number;
@@ -13,7 +15,6 @@ type PostRow = {
 type ProfileRow = {
   id: string;
   username: string;
-  badges: string[];
 };
 
 type RankedPost = PostRow & {
@@ -133,6 +134,24 @@ export async function POST(request: NextRequest) {
 
     const { winnerDate, startIso, endIso } = dateRange;
 
+    const { data: existingWinnerRows, error: existingWinnersError } =
+      await supabase
+        .from("daily_post_winners")
+        .select("author_id")
+        .eq("winner_date", winnerDate);
+
+    if (existingWinnersError) {
+      return new NextResponse(existingWinnersError.message, { status: 500 });
+    }
+
+    const previousWinnerUserIds = Array.from(
+      new Set(
+        ((existingWinnerRows ?? []) as Array<{ author_id: string | null }>)
+          .map((row) => row.author_id)
+          .filter((value): value is string => typeof value === "string")
+      )
+    );
+
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
       .select("id, content, created_at, user_id, likes_count, comments_count")
@@ -151,12 +170,23 @@ export async function POST(request: NextRequest) {
         .delete()
         .eq("winner_date", winnerDate);
 
+      for (const previousWinnerUserId of previousWinnerUserIds) {
+        await recomputeUserBadgeFamilies(supabase as any, previousWinnerUserId, [
+          "legend",
+        ]);
+      }
+
       return NextResponse.json({
         winnerDate,
         winners: [],
         message: "Keine Posts für diesen Tag gefunden.",
       });
     }
+
+    const resolvedCommentCounts = await resolvePostCommentCounts(
+      supabase,
+      posts
+    );
 
     const userIds = Array.from(
       new Set(
@@ -171,7 +201,7 @@ export async function POST(request: NextRequest) {
     if (userIds.length > 0) {
       const { data: profilesData, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, username, badges")
+        .select("id, username")
         .in("id", userIds);
 
       if (profilesError) {
@@ -183,13 +213,21 @@ export async function POST(request: NextRequest) {
     }
 
     const rankedPosts = rankPosts(
-      posts.map((post) => ({
-        ...post,
-        relevance_score: getRelevanceScore(post),
-        author_username: post.user_id
-          ? profileMap.get(post.user_id)?.username ?? null
-          : null,
-      }))
+      posts.map((post) => {
+        const commentsCount = resolvedCommentCounts.get(post.id) ?? 0;
+
+        return {
+          ...post,
+          comments_count: commentsCount,
+          relevance_score: getRelevanceScore({
+            likes_count: post.likes_count,
+            comments_count: commentsCount,
+          }),
+          author_username: post.user_id
+            ? profileMap.get(post.user_id)?.username ?? null
+            : null,
+        };
+      })
     ).slice(0, 3);
 
     await supabase
@@ -228,31 +266,14 @@ export async function POST(request: NextRequest) {
       )
     );
 
-    for (const winnerUserId of winnerUserIds) {
-      const profile = profileMap.get(winnerUserId);
+    const affectedWinnerUserIds = Array.from(
+      new Set([...previousWinnerUserIds, ...winnerUserIds])
+    );
 
-      if (!profile) continue;
-
-      const currentBadges = Array.isArray(profile.badges)
-        ? profile.badges.filter(
-            (value): value is string => typeof value === "string"
-          )
-        : [];
-
-      if (currentBadges.includes("daily_winner")) {
-        continue;
-      }
-
-      const nextBadges = [...currentBadges, "daily_winner"];
-
-      const { error: badgeUpdateError } = await supabase
-        .from("profiles")
-        .update({ badges: nextBadges })
-        .eq("id", winnerUserId);
-
-      if (badgeUpdateError) {
-        return new NextResponse(badgeUpdateError.message, { status: 500 });
-      }
+    for (const affectedWinnerUserId of affectedWinnerUserIds) {
+      await recomputeUserBadgeFamilies(supabase as any, affectedWinnerUserId, [
+        "legend",
+      ]);
     }
 
     return NextResponse.json({

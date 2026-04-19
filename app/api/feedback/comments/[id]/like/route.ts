@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase-server";
+import { recomputeUserBadgeFamilies } from "@/lib/badges";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -43,7 +44,7 @@ export async function POST(request: Request, context: RouteContext) {
 
     const { data: comment, error: commentError } = await supabase
       .from("feature_request_comments")
-      .select("id")
+      .select("id, user_id")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -78,6 +79,16 @@ export async function POST(request: Request, context: RouteContext) {
           return new NextResponse(deleteError.message, { status: 500 });
         }
 
+        await recomputeUserBadgeFamilies(supabase as any, user.id, [
+          "top_reactor",
+        ]);
+
+        if (comment.user_id) {
+          await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+            "most_reacted",
+          ]);
+        }
+
         return NextResponse.json({ success: true, viewer_reaction: null });
       }
 
@@ -89,6 +100,16 @@ export async function POST(request: Request, context: RouteContext) {
 
       if (updateError) {
         return new NextResponse(updateError.message, { status: 500 });
+      }
+
+      await recomputeUserBadgeFamilies(supabase as any, user.id, [
+        "top_reactor",
+      ]);
+
+      if (comment.user_id) {
+        await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+          "most_reacted",
+        ]);
       }
 
       return NextResponse.json({ success: true, viewer_reaction: reaction });
@@ -106,6 +127,16 @@ export async function POST(request: Request, context: RouteContext) {
 
     if (insertError) {
       return new NextResponse(insertError.message, { status: 500 });
+    }
+
+    await recomputeUserBadgeFamilies(supabase as any, user.id, [
+      "top_reactor",
+    ]);
+
+    if (comment.user_id) {
+      await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+        "most_reacted",
+      ]);
     }
 
     return NextResponse.json({ success: true, viewer_reaction: reaction });

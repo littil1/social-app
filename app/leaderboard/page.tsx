@@ -1,5 +1,6 @@
 import NavBar from "@/app/components/layout/navbar";
 import { createClient } from "@/lib/supabase-server";
+import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
 import LeaderboardLiveHeader from "@/app/components/leaderboard/LeaderboardLiveHeader";
 import LeaderboardPodiumCard from "@/app/components/leaderboard/LeaderboardPodiumCard";
 import LeaderboardPodiumCarousel from "@/app/components/leaderboard/LeaderboardPodiumCarousel";
@@ -117,6 +118,10 @@ export default async function LeaderboardPage() {
   const todaysPosts = (postsData ?? []) as PostRow[];
   const hasPostsToday = todaysPosts.length > 0;
   const postIds = todaysPosts.map((post) => post.id);
+  const commentCountByPostId = await resolvePostCommentCounts(
+    supabase,
+    todaysPosts
+  );
 
   const reactionCountsByPostId = new Map<number, ReactionCounts>();
   const viewerReactionByPostId = new Map<number, ReactionType>();
@@ -137,7 +142,7 @@ export default async function LeaderboardPage() {
   const baseRankedPosts = todaysPosts.map((post) => {
     const reactionCounts = reactionCountsByPostId.get(post.id) ?? createEmptyReactionCounts();
     const reactionsCount = getReactionsCount(reactionCounts);
-    const commentsCount = Math.max(0, post.comments_count ?? 0);
+    const commentsCount = commentCountByPostId.get(post.id) ?? 0;
     return {
       id: post.id,
       post_content: post.content ?? "",

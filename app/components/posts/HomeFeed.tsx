@@ -177,22 +177,14 @@ export default function HomeFeed({
     return { topPosts: top, regularTodaysPosts: regular, olderPosts: older };
   }, [posts]);
 
-  // Automatisches Archiv bei leerem Tag
+  const todaysPostsCount = topPosts.length + regularTodaysPosts.length;
+
+  // Automatisches Archiv bei wenig Tagesvolumen
   useEffect(() => {
-    if (
-      topPosts.length === 0 &&
-      regularTodaysPosts.length === 0 &&
-      olderPosts.length > 0 &&
-      !showOlderPosts
-    ) {
+    if (todaysPostsCount < 10 && olderPosts.length > 0 && !showOlderPosts) {
       setShowOlderPosts(true);
     }
-  }, [
-    topPosts.length,
-    regularTodaysPosts.length,
-    olderPosts.length,
-    showOlderPosts,
-  ]);
+  }, [todaysPostsCount, olderPosts.length, showOlderPosts]);
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
@@ -233,45 +225,88 @@ export default function HomeFeed({
   }, [loadMore]);
 
   // Handler
-  function handleReactionUpdated(
-    postId: number,
-    nextReaction: ReactionType | null
-  ) {
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId ? applyReactionUpdate(post, nextReaction) : post
-      )
-    );
-    router.refresh();
-  }
+  const handleReactionUpdated = useCallback(
+    (postId: number, nextReaction: ReactionType | null) => {
+      setPosts((prev) => {
+        let changed = false;
 
-  function handleCommentCreated(postId: number) {
-    setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId
-          ? { ...post, comments_count: post.comments_count + 1 }
-          : post
-      )
-    );
-    router.refresh();
-  }
+        const nextPosts = prev.map((post) => {
+          if (post.id !== postId) {
+            return post;
+          }
 
-  function handleCommentsCountChange(postId: number, count: number) {
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id === postId && post.comments_count !== count) {
+          const nextPost = applyReactionUpdate(post, nextReaction);
+
+          if (nextPost !== post) {
+            changed = true;
+          }
+
+          return nextPost;
+        });
+
+        return changed ? nextPosts : prev;
+      });
+      router.refresh();
+    },
+    [router]
+  );
+
+  const handleCommentCreated = useCallback(
+    (postId: number) => {
+      setPosts((prev) => {
+        let changed = false;
+
+        const nextPosts = prev.map((post) => {
+          if (post.id !== postId) {
+            return post;
+          }
+
+          changed = true;
+
+          return {
+            ...post,
+            comments_count: post.comments_count + 1,
+          };
+        });
+
+        return changed ? nextPosts : prev;
+      });
+      router.refresh();
+    },
+    [router]
+  );
+
+  const handleCommentsCountChange = useCallback(
+    (postId: number, count: number) => {
+      setPosts((prev) => {
+        let changed = false;
+
+        const nextPosts = prev.map((post) => {
+          if (post.id !== postId || post.comments_count === count) {
+            return post;
+          }
+
+          changed = true;
+
           return { ...post, comments_count: count };
-        }
+        });
 
-        return post;
-      })
-    );
-  }
+        return changed ? nextPosts : prev;
+      });
+    },
+    []
+  );
 
-  function handlePostDeleted(postId: number) {
-    setPosts((prev) => prev.filter((post) => post.id !== postId));
-    router.refresh();
-  }
+  const handlePostDeleted = useCallback(
+    (postId: number) => {
+      setPosts((prev) => {
+        const nextPosts = prev.filter((post) => post.id !== postId);
+        return nextPosts.length === prev.length ? prev : nextPosts;
+      });
+      router.refresh();
+    },
+    [router]
+  );
 
   return (
     <div className="space-y-12">
@@ -320,7 +355,7 @@ export default function HomeFeed({
 
       {/* STATUS AREA */}
       <div className="rounded-[32px] border border-neutral-200 bg-white p-10 text-center shadow-sm">
-        {topPosts.length + regularTodaysPosts.length > 0 ? (
+        {todaysPostsCount > 0 ? (
           <p className="text-lg font-black text-neutral-950">
             You’re all caught up.
           </p>

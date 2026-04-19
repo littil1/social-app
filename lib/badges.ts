@@ -1,11 +1,14 @@
-type BadgeFamily =
-  | "legend"
-  | "contributor"
-  | "builder"
-  | "top_reactor"
-  | "most_reacted"
-  | "top_commentator"
-  | "most_discussed";
+export const ALL_BADGE_FAMILIES = [
+  "legend",
+  "contributor",
+  "builder",
+  "top_reactor",
+  "most_reacted",
+  "top_commentator",
+  "most_discussed",
+] as const;
+
+export type BadgeFamily = (typeof ALL_BADGE_FAMILIES)[number];
 
 type UserBadgeRecord = {
   id: number;
@@ -151,8 +154,9 @@ async function upsertHighestBadgeForFamily(
 async function getLegendCount(supabase: any, userId: string) {
   return getExactCount(
     supabase
-      .from("weekly_post_hall_of_fame")
+      .from("daily_post_winners")
       .select("*", { count: "exact", head: true })
+      .eq("rank_position", 1)
       .eq("author_id", userId)
   );
 }

@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase-server";
+import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
 import NavBar from "@/app/components/layout/navbar";
 import FollowButton from "@/app/components/profile/FollowButton";
 import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
 import { getImplementedIdeaCountByUserId } from "@/lib/feedback-data";
+import { getUserBadges } from "@/lib/badges/getUserBadges";
 import type { FeedPost, ReactionType } from "@/types/feed";
 import UserProfileContent from "@/app/components/profile/UserProfileContent";
 import ProfileBadgesSection from "@/app/components/profile/ProfileBadgesSection";
-import {
-  mapBadgeToDisplay,
-  type BadgeDefinitionRow,
-  type UserBadgeDisplay,
-  type UserBadgeRow,
-} from "@/lib/profile-badges";
+import type { UserBadgeDisplay } from "@/lib/profile-badges";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +25,6 @@ type PostRow = {
   created_at: string;
   user_id: string | null;
   comments_count: number | null;
-};
-
-type CommentRow = {
-  post_id: number;
 };
 
 type PostReactionRow = {
@@ -126,24 +119,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const typedPosts = (postsData ?? []) as PostRow[];
   const postIds = typedPosts.map((post) => post.id);
-
-  const commentCountMap = new Map<number, number>();
-  if (postIds.length > 0) {
-    const { data: commentsData, error: commentsError } = await supabase
-      .from("comments")
-      .select("post_id")
-      .in("post_id", postIds);
-
-    if (commentsError) throw new Error(commentsError.message);
-
-    for (const comment of (commentsData ?? []) as CommentRow[]) {
-      if (typeof comment.post_id !== "number") continue;
-      commentCountMap.set(
-        comment.post_id,
-        (commentCountMap.get(comment.post_id) ?? 0) + 1
-      );
-    }
-  }
+  const commentCountMap = await resolvePostCommentCounts(supabase, typedPosts);
 
   const reactionCountMap = new Map<
     number,
@@ -192,7 +168,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       id: post.id,
       content: post.content ?? "",
       created_at: post.created_at,
-      comments_count: commentCountMap.get(post.id) ?? post.comments_count ?? 0,
+      comments_count: commentCountMap.get(post.id) ?? 0,
       reactions_count:
         reactionCounts.like +
         reactionCounts.funny +
@@ -231,56 +207,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const isOwnProfile = user?.id === typedProfile.id;
 
-  // =====================================================
-  // New badge system
-  // Note:
-  // badges + user_badges are already in DB, but local generated TS types
-  // may not include them yet. Therefore these two queries are intentionally
-  // isolated behind `as any` to avoid breaking the rest of the typed client.
-  // =====================================================
-
-  const badgeClient = supabase as any;
-
-  const { data: userBadgesData, error: userBadgesError } = await badgeClient
-    .from("user_badges")
-    .select("badge_id, family, awarded_at, progress_value")
-    .eq("user_id", typedProfile.id);
-
-  if (userBadgesError) throw new Error(userBadgesError.message);
-
-  const typedUserBadges = (userBadgesData ?? []) as UserBadgeRow[];
-  const badgeIds = typedUserBadges.map((item) => item.badge_id);
-
-  let profileBadges: UserBadgeDisplay[] = [];
-
-  if (badgeIds.length > 0) {
-    const { data: badgeDefinitionsData, error: badgeDefinitionsError } =
-      await badgeClient
-        .from("badges")
-        .select(
-          "id, key, family, level, threshold, name, short_label, description, icon, color_token, sort_order"
-        )
-        .in("id", badgeIds)
-        .eq("is_active", true);
-
-    if (badgeDefinitionsError) throw new Error(badgeDefinitionsError.message);
-
-    const badgeDefinitionMap = new Map<number, BadgeDefinitionRow>(
-      ((badgeDefinitionsData ?? []) as BadgeDefinitionRow[]).map((badge) => [
-        badge.id,
-        badge,
-      ])
-    );
-
-    profileBadges = typedUserBadges
-      .map((userBadge) => {
-        const badge = badgeDefinitionMap.get(userBadge.badge_id);
-        if (!badge) return null;
-        return mapBadgeToDisplay(badge, userBadge);
-      })
-      .filter((badge): badge is UserBadgeDisplay => badge !== null)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-  }
+  const profileBadges: UserBadgeDisplay[] =
+    (await getUserBadges([typedProfile.id])).get(typedProfile.id) ?? [];
 
   return (
     <div className="min-h-screen bg-[#fafafa]">

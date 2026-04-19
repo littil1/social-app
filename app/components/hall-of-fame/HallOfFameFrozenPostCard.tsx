@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { UserBadgeDisplay } from "@/lib/profile-badges";
 import type { ReactionCounts } from "@/types/feed";
 import CommentsSection from "@/app/components/posts/CommentsSection";
 
@@ -11,6 +12,7 @@ type FrozenHallOfFamePost = {
   post_created_at: string;
   comments_count: number;
   relevance_score: number;
+  author_badges: UserBadgeDisplay[];
   author_username: string | null;
   reactions_count: number;
   reaction_counts: ReactionCounts;
@@ -29,7 +31,6 @@ function getCardStyles(variant: "featured" | "archive") {
       outer:
         "border-yellow-300/80 bg-gradient-to-br from-yellow-50 via-amber-50 to-white shadow-[0_28px_90px_-42px_rgba(245,158,11,0.42)]",
       accentText: "text-amber-700",
-      badge: "border-yellow-200 bg-white/90 text-yellow-950",
       authorBox: "border-yellow-200/80 bg-white/90",
       contentBox: "border-yellow-100 bg-white/95",
       reactionPill: "border-yellow-100 bg-white/90",
@@ -42,7 +43,6 @@ function getCardStyles(variant: "featured" | "archive") {
     outer:
       "border-gray-200 bg-white shadow-[0_20px_55px_-40px_rgba(15,23,42,0.24)]",
     accentText: "text-amber-700",
-    badge: "border-amber-200 bg-amber-50 text-amber-950",
     authorBox: "border-gray-200 bg-white",
     contentBox: "border-gray-100 bg-white",
     reactionPill: "border-gray-100 bg-white",
@@ -126,23 +126,11 @@ export default function HallOfFameFrozenPostCard({
               {archiveLabel ?? "Champion of the day"}
             </h3>
           </div>
-
-          <span
-            className={`shrink-0 rounded-full border px-3 py-1 text-xs font-semibold sm:px-4 sm:text-sm ${styles.badge}`}
-          >
-            Legend
-          </span>
         </div>
 
         <div
-          className={`mt-5 inline-flex w-fit max-w-full items-center gap-3 rounded-2xl border px-4 py-3 ${styles.authorBox}`}
+          className={`mt-5 inline-flex max-w-full flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 ${styles.authorBox}`}
         >
-          <span
-            className={`text-xs font-semibold uppercase tracking-[0.18em] ${styles.accentText}`}
-          >
-            Legend
-          </span>
-
           {post.author_username ? (
             <Link
               href={`/u/${encodeURIComponent(post.author_username)}`}
@@ -153,6 +141,19 @@ export default function HallOfFameFrozenPostCard({
           ) : (
             <span className="text-xl font-bold text-gray-950">Unknown</span>
           )}
+
+          {post.author_badges.map((badge) => (
+            <span
+              key={badge.id}
+              className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-widest shadow-sm ${badge.className}`}
+              title={badge.description}
+            >
+              <span aria-hidden="true" className="mr-1">
+                {badge.icon}
+              </span>
+              {badge.label}
+            </span>
+          ))}
         </div>
 
         <div

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import type { FeedPost, ReactionType } from "@/types/feed";
 import CommentsSection from "@/app/components/posts/CommentsSection";
+import PostReportButton from "@/app/components/posts/PostReportButton";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
 import { useRouter } from "next/navigation";
 
@@ -73,6 +74,19 @@ function PostCardComponent({
     setLocalCommentsCount(post.comments_count);
   }, [post.comments_count]);
 
+  const handleCommentCreated = useCallback(() => {
+    setLocalCommentsCount((prev) => prev + 1);
+    onCommentCreated?.(post.id);
+  }, [onCommentCreated, post.id]);
+
+  const handleCommentsLoaded = useCallback(
+    (count: number) => {
+      setLocalCommentsCount((prev) => (prev === count ? prev : count));
+      onCommentsCountChange?.(post.id, count);
+    },
+    [onCommentsCountChange, post.id]
+  );
+
   async function submitReaction(reaction: ReactionType) {
     if (reactionLoading) return;
     const previousReaction = post.viewer_reaction;
@@ -128,11 +142,16 @@ function PostCardComponent({
           {dailyRank && <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${rankStyles.badgeClass}`}>{rankStyles.badgeText}</span>}
           <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">{formatRelativeTime(post.created_at)}</span>
         </div>
-        {post.can_delete && (
-          <button onClick={handleDeletePost} disabled={deleteLoading} className="text-[10px] font-black uppercase tracking-widest text-neutral-300 transition hover:text-red-500 disabled:opacity-30">
-            {deleteLoading ? "Removing..." : "Delete"}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {effectiveIsLoggedIn && !post.can_delete && (
+            <PostReportButton postId={post.id} />
+          )}
+          {post.can_delete && (
+            <button onClick={handleDeletePost} disabled={deleteLoading} className="text-[10px] font-black uppercase tracking-widest text-neutral-300 transition hover:text-red-500 disabled:opacity-30">
+              {deleteLoading ? "Removing..." : "Delete"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="mb-6">
@@ -174,8 +193,8 @@ function PostCardComponent({
         <div className="mt-2 border-t border-neutral-100 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
           <CommentsSection
             postId={post.id}
-            onCommentCreated={() => { setLocalCommentsCount(prev => prev + 1); onCommentCreated?.(post.id); }}
-            onCommentsLoaded={(count) => { setLocalCommentsCount(count); onCommentsCountChange?.(post.id, count); }}
+            onCommentCreated={handleCommentCreated}
+            onCommentsLoaded={handleCommentsLoaded}
             isLoggedIn={effectiveIsLoggedIn}
           />
         </div>

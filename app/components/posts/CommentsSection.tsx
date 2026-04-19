@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FeedComment, ReactionType } from "@/types/feed";
 import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
+import CommentReportButton from "@/app/components/posts/CommentReportButton";
 
 // =====================================================
 // Types & Constants
@@ -216,18 +217,17 @@ function CommentItem({
                   @{node.author_username ?? "anonymous"}
                 </Link>
 
-                {(node.author_badges ?? []).map((badge) => (
+                {node.author_badges?.[0] && (
                   <span
-                    key={badge.key}
-                    className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest shadow-sm ${badge.className}`}
-                    title={badge.description}
+                    className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest shadow-sm ${node.author_badges[0].className}`}
+                    title={node.author_badges[0].description}
                   >
                     <span aria-hidden="true" className="mr-1">
-                      {badge.icon}
+                      {node.author_badges[0].icon}
                     </span>
-                    {badge.label}
+                    {node.author_badges[0].label}
                   </span>
-                ))}
+                )}
               </div>
 
               <p className="text-[10px] font-bold uppercase tracking-tighter text-neutral-400">
@@ -272,6 +272,10 @@ function CommentItem({
               >
                 Reply
               </button>
+
+              {isLoggedIn && !node.can_delete && (
+                <CommentReportButton commentId={node.id} />
+              )}
             </div>
 
             {replyParentId === node.id && (
@@ -544,8 +548,6 @@ export default function CommentsSection({
       if (!res.ok) {
         throw new Error();
       }
-
-      onCommentCreated();
     } catch {
       setComments(previousComments);
       alert("Error deleting comment.");

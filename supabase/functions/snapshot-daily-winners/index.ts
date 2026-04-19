@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recomputeUserBadgeFamilies } from "../../../lib/badges.ts";
 
 type ReactionType = "like" | "funny" | "wow" | "fire";
 
@@ -336,6 +337,20 @@ Deno.serve(async () => {
       .insert(rows);
 
     if (insertError) throw insertError;
+
+    const winnerAuthorIds = Array.from(
+      new Set(
+        ranked
+          .map((entry) => entry.authorId)
+          .filter((value): value is string => typeof value === "string"),
+      ),
+    );
+
+    for (const winnerAuthorId of winnerAuthorIds) {
+      await recomputeUserBadgeFamilies(supabase as any, winnerAuthorId, [
+        "legend",
+      ]);
+    }
 
     return new Response("Snapshot saved.", { status: 200 });
   } catch (error) {
