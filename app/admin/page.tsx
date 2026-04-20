@@ -235,19 +235,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     selectedUserBadges.map((badge) => badge.family)
   ).size;
 
-  // `post_reports` is queried via the live database schema before generated types are extended.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const reportClient = supabase as any;
-  const { data: postReportsData, error: postReportsError } = await reportClient
+  const { data: postReportsData, error: postReportsError } = await supabase
     .from("post_reports")
     .select("*")
     .limit(100);
 
-  // `comment_reports` is queried via the live database schema before generated types are extended.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const commentReportClient = supabase as any;
   const { data: commentReportsData, error: commentReportsError } =
-    await commentReportClient.from("comment_reports").select("*").limit(100);
+    await supabase.from("comment_reports").select("*").limit(100);
 
   const postReportsReady = !postReportsError;
   const commentReportsReady =

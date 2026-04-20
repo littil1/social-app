@@ -25,9 +25,8 @@ export async function getUserBadges(
   }
 
   const supabase = await createClient();
-  const badgeClient = supabase as any;
 
-  const { data: userBadgesData, error: userBadgesError } = await badgeClient
+  const { data: userBadgesData, error: userBadgesError } = await supabase
     .from("user_badges")
     .select("user_id, badge_id, family, awarded_at, progress_value")
     .in("user_id", uniqueUserIds);
@@ -53,7 +52,7 @@ export async function getUserBadges(
   }
 
   const { data: badgeDefinitionsData, error: badgeDefinitionsError } =
-    await badgeClient
+    await supabase
       .from("badges")
       .select(
         "id, key, family, level, threshold, name, short_label, description, icon, color_token, sort_order"

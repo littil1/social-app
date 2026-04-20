@@ -66,10 +66,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       return new NextResponse("Ungültiger Status.", { status: 400 });
     }
 
-    // `comment_reports` is queried via the live database schema before generated types are extended.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const reportClient = supabase as any;
-    const { data, error } = await reportClient
+    const { data, error } = await supabase
       .from("comment_reports")
       .update({
         status,

@@ -66,11 +66,8 @@ export async function updatePostReportReview(formData: FormData) {
   }
 
   const { supabase, reviewerId } = await requireAdmin();
-  // `post_reports` is queried via the live database schema before generated types are extended.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const reportClient = supabase as any;
 
-  const { error } = await reportClient
+  const { error } = await supabase
     .from("post_reports")
     .update({
       status,

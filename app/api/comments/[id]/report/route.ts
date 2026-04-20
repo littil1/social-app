@@ -80,10 +80,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
-    // `comment_reports` is queried via the live database schema before generated types are extended.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const reportClient = supabase as any;
-    const { error: insertError } = await reportClient
+    const { error: insertError } = await supabase
       .from("comment_reports")
       .insert({
         comment_id: commentId,
