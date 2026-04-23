@@ -1,4 +1,3 @@
-import type { PostgrestFilterBuilder } from "@supabase/postgrest-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 
@@ -19,13 +18,12 @@ type UserBadgeRecord = {
   badge_id: number;
 };
 
-async function getExactCount(
-  query: PostgrestFilterBuilder<any, any, { count: number | null }, unknown>
-) {
+async function getExactCount(query: any): Promise<number> {
   const { count, error } = await query;
 
   if (error) {
-    throw new Error(error.message);
+    console.error("Count error:", error);
+    return 0;
   }
 
   return count ?? 0;
