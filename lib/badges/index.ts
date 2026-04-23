@@ -30,17 +30,16 @@ async function getExactCount(query: any): Promise<number> {
 }
 
 async function getNumberIds(
-  query: Promise<{ data: Array<{ id: number }> | null; error: { message: string } | null }>
-) {
+  query: any
+): Promise<number[]> {
   const { data, error } = await query;
 
   if (error) {
-    throw new Error(error.message);
+    console.error("getNumberIds error:", error);
+    return [];
   }
 
-  return (data ?? [])
-    .map((row) => row.id)
-    .filter((value): value is number => typeof value === "number");
+  return (data ?? []).map((row: any) => row.id).filter(Boolean);
 }
 
 async function getHighestBadgeForProgress(
