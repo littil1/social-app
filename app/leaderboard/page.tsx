@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import NavBar from "@/components/layout/navbar";
 import { createClient } from "@/lib/supabase/server";
 import { getLiveScore, getZurichDayRange } from "@/lib/winners/daily-ranking";
@@ -5,8 +6,17 @@ import LeaderboardLiveHeader from "@/components/leaderboard/LeaderboardLiveHeade
 import LeaderboardPodiumSection from "@/components/leaderboard/LeaderboardPodiumSection";
 import HomeFeed from "@/components/posts/HomeFeed";
 import LoginCta from "@/components/auth/LoginCta";
-import { FEED_PAGE_SIZE, getHomeFeedData } from "@/lib/feed";
-import type { FeedPost, ReactionCounts, ReactionType } from "@/types/feed";
+import {
+  FEED_PAGE_SIZE,
+  getHomeFeedData,
+  getLeaderboardTopThreeData,
+} from "@/lib/feed";
+import type {
+  FeedPost,
+  HomeFeedData,
+  ReactionCounts,
+  ReactionType,
+} from "@/types/feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -67,11 +77,37 @@ function toRankedPost(post: FeedPost): RankedPost {
   };
 }
 
+async function LeaderboardFeedSection({
+  homeFeedDataPromise,
+  isLoggedIn,
+}: {
+  homeFeedDataPromise: Promise<HomeFeedData>;
+  isLoggedIn: boolean;
+}) {
+  const homeFeedData = await homeFeedDataPromise;
+
+  return (
+    <section className="mx-auto w-full max-w-5xl">
+      <HomeFeed
+        initialTopThreeToday={homeFeedData.topThreeToday}
+        initialTodayFeed={homeFeedData.todayFeed}
+        initialOlderFeed={homeFeedData.olderFeed}
+        initialOlderHasMore={homeFeedData.olderHasMore}
+        pageSize={FEED_PAGE_SIZE}
+        isLoggedIn={isLoggedIn}
+        showTopSection={false}
+      />
+    </section>
+  );
+}
+
 export default async function LeaderboardPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const leaderboardTopThreePromise = getLeaderboardTopThreeData();
+  const homeFeedDataPromise = getHomeFeedData(0, FEED_PAGE_SIZE);
 
   let navUser = null;
   if (user) {
@@ -90,9 +126,9 @@ export default async function LeaderboardPage() {
   }
 
   const { dayKey: todayKey } = getZurichDayRange(new Date());
-  const homeFeedData = await getHomeFeedData(0, FEED_PAGE_SIZE);
-  const hasPostsToday = homeFeedData.topThreeToday.length > 0;
-  const baseRankedPosts = homeFeedData.topThreeToday.map((post) =>
+  const topThreeToday = await leaderboardTopThreePromise;
+  const hasPostsToday = topThreeToday.length > 0;
+  const baseRankedPosts = topThreeToday.map((post) =>
     toRankedPost(post)
   );
   const rankedPosts: RankedPost[] = baseRankedPosts.map((post, index, array) => {
@@ -147,17 +183,12 @@ export default async function LeaderboardPage() {
           </div>
         )}
 
-        <section className="mx-auto w-full max-w-5xl">
-          <HomeFeed
-            initialTopThreeToday={homeFeedData.topThreeToday}
-            initialTodayFeed={homeFeedData.todayFeed}
-            initialOlderFeed={homeFeedData.olderFeed}
-            initialOlderHasMore={homeFeedData.olderHasMore}
-            pageSize={FEED_PAGE_SIZE}
+        <Suspense fallback={<section className="mx-auto w-full max-w-5xl" />}>
+          <LeaderboardFeedSection
+            homeFeedDataPromise={homeFeedDataPromise}
             isLoggedIn={!!user}
-            showTopSection={false}
           />
-        </section>
+        </Suspense>
       </main>
     </>
   );

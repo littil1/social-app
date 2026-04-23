@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   LIVE_LEADERBOARD_SIZE,
   compareDailyHistoricalRank,
@@ -24,9 +25,13 @@ const OLDER_FEED_CANDIDATE_POOL_MIN = 120;
 const OLDER_FEED_CANDIDATE_POOL_MULTIPLIER = 8;
 
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
-type PostReactionRow = {
+type FeedPostRow = Pick<PostRow, "id" | "content" | "created_at" | "user_id">;
+type PostReactionCountRow = {
   post_id: number;
-  user_id: string;
+  reaction: ReactionType;
+};
+type ViewerReactionRow = {
+  post_id: number;
   reaction: ReactionType;
 };
 type FeedCandidatePost = FeedPost & {
@@ -37,6 +42,8 @@ type FeedUserContext = {
   userId: string | null;
   viewerIsAdmin: boolean;
 };
+
+const FEED_POST_SELECT = "id, content, created_at, user_id";
 
 function stripCandidateScores(post: FeedCandidatePost) {
   return {
@@ -122,13 +129,8 @@ function buildOlderFeed(
   };
 }
 
-function mapReactions(params: {
-  userId: string | null;
-  reactions: PostReactionRow[];
-}) {
-  const { userId, reactions } = params;
+function mapReactionCounts(reactions: PostReactionCountRow[]) {
   const reactionCountsMap = new Map<number, ReactionCounts>();
-  const viewerReactionMap = new Map<number, ReactionType>();
 
   for (const reaction of reactions) {
     const counts =
@@ -136,17 +138,69 @@ function mapReactions(params: {
 
     counts[reaction.reaction] += 1;
     reactionCountsMap.set(reaction.post_id, counts);
-
-    if (userId && reaction.user_id === userId) {
-      viewerReactionMap.set(reaction.post_id, reaction.reaction);
-    }
   }
 
-  return { reactionCountsMap, viewerReactionMap };
+  return reactionCountsMap;
+}
+
+function mapViewerReactions(reactions: ViewerReactionRow[]) {
+  const viewerReactionMap = new Map<number, ReactionType>();
+
+  for (const reaction of reactions) {
+    viewerReactionMap.set(reaction.post_id, reaction.reaction);
+  }
+
+  return viewerReactionMap;
+}
+
+async function loadReactionCountsMap(
+  supabase: SupabaseClient<Database>,
+  postIds: number[]
+) {
+  if (postIds.length === 0) {
+    return new Map<number, ReactionCounts>();
+  }
+
+  const reactionCountsResult = await supabase
+    .from("post_reactions")
+    .select("post_id, reaction")
+    .in("post_id", postIds);
+
+  if (reactionCountsResult.error) {
+    throw new Error(reactionCountsResult.error.message);
+  }
+
+  return mapReactionCounts(
+    (reactionCountsResult.data ?? []) as PostReactionCountRow[]
+  );
+}
+
+async function loadViewerReactionMap(
+  supabase: SupabaseClient<Database>,
+  postIds: number[],
+  userId: string | null
+) {
+  if (!userId || postIds.length === 0) {
+    return new Map<number, ReactionType>();
+  }
+
+  const viewerReactionsResult = await supabase
+    .from("post_reactions")
+    .select("post_id, reaction")
+    .in("post_id", postIds)
+    .eq("user_id", userId);
+
+  if (viewerReactionsResult.error) {
+    throw new Error(viewerReactionsResult.error.message);
+  }
+
+  return mapViewerReactions(
+    (viewerReactionsResult.data ?? []) as ViewerReactionRow[]
+  );
 }
 
 function toFeedCandidatePost(
-  post: PostRow,
+  post: FeedPostRow,
   userId: string | null,
   viewerIsAdmin: boolean,
   reactionCountsMap: Map<number, ReactionCounts>,
@@ -181,8 +235,9 @@ function toFeedCandidatePost(
   };
 }
 
-async function getFeedUserContext(): Promise<FeedUserContext> {
-  const supabase = await createClient();
+async function getFeedUserContext(
+  supabase: SupabaseClient<Database>
+): Promise<FeedUserContext> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -210,8 +265,11 @@ async function getFeedUserContext(): Promise<FeedUserContext> {
   };
 }
 
-async function loadFeedCandidates(olderOffset: number, olderLimit: number) {
-  const supabase = await createClient();
+async function loadFeedCandidates(
+  supabase: SupabaseClient<Database>,
+  olderOffset: number,
+  olderLimit: number
+) {
   const { startIso } = getZurichDayRange(new Date());
   const olderCandidatePoolSize = Math.max(
     (olderOffset + olderLimit) * OLDER_FEED_CANDIDATE_POOL_MULTIPLIER,
@@ -223,12 +281,12 @@ async function loadFeedCandidates(olderOffset: number, olderLimit: number) {
   ] = await Promise.all([
     supabase
       .from("posts")
-      .select("*")
+      .select(FEED_POST_SELECT)
       .gte("created_at", startIso)
       .order("created_at", { ascending: false }),
     supabase
       .from("posts")
-      .select("*")
+      .select(FEED_POST_SELECT)
       .lt("created_at", startIso)
       .order("created_at", { ascending: false })
       .range(0, olderCandidatePoolSize - 1),
@@ -242,41 +300,79 @@ async function loadFeedCandidates(olderOffset: number, olderLimit: number) {
     throw new Error(olderPostsError.message);
   }
 
-  const todaysPosts = (todaysPostsData ?? []) as PostRow[];
-  const olderPosts = (olderPostsData ?? []) as PostRow[];
+  const todaysPosts = (todaysPostsData ?? []) as FeedPostRow[];
+  const olderPosts = (olderPostsData ?? []) as FeedPostRow[];
   const allCandidates = [...todaysPosts, ...olderPosts];
 
   if (allCandidates.length === 0) {
     return {
       todaysPosts,
       olderPosts,
-      reactions: [] as PostReactionRow[],
+      postIds: [] as number[],
+      reactionCountsMap: new Map<number, ReactionCounts>(),
       commentCountMap: new Map<number, number>(),
     };
   }
 
   const postIds = allCandidates.map((post) => post.id);
-  const [{ data: reactionsData, error: reactionsError }] = await Promise.all([
-    supabase
-      .from("post_reactions")
-      .select("post_id, user_id, reaction")
-      .in("post_id", postIds),
+  const [reactionCountsMap, commentCountMap] = await Promise.all([
+    loadReactionCountsMap(supabase, postIds),
+    resolvePostCommentCounts(supabase, allCandidates),
   ]);
-
-  if (reactionsError) {
-    throw new Error(reactionsError.message);
-  }
 
   return {
     todaysPosts,
     olderPosts,
-    reactions: (reactionsData ?? []) as PostReactionRow[],
-    commentCountMap: await resolvePostCommentCounts(supabase, allCandidates),
+    postIds,
+    reactionCountsMap,
+    commentCountMap,
   };
 }
 
-async function loadOlderFeedCandidates(olderOffset: number, olderLimit: number) {
-  const supabase = await createClient();
+async function loadTodayFeedCandidates(
+  supabase: SupabaseClient<Database>
+) {
+  const { startIso } = getZurichDayRange(new Date());
+  const { data: todaysPostsData, error: todaysPostsError } = await supabase
+    .from("posts")
+    .select(FEED_POST_SELECT)
+    .gte("created_at", startIso)
+    .order("created_at", { ascending: false });
+
+  if (todaysPostsError) {
+    throw new Error(todaysPostsError.message);
+  }
+
+  const todaysPosts = (todaysPostsData ?? []) as FeedPostRow[];
+
+  if (todaysPosts.length === 0) {
+    return {
+      todaysPosts,
+      postIds: [] as number[],
+      reactionCountsMap: new Map<number, ReactionCounts>(),
+      commentCountMap: new Map<number, number>(),
+    };
+  }
+
+  const postIds = todaysPosts.map((post) => post.id);
+  const [reactionCountsMap, commentCountMap] = await Promise.all([
+    loadReactionCountsMap(supabase, postIds),
+    resolvePostCommentCounts(supabase, todaysPosts),
+  ]);
+
+  return {
+    todaysPosts,
+    postIds,
+    reactionCountsMap,
+    commentCountMap,
+  };
+}
+
+async function loadOlderFeedCandidates(
+  supabase: SupabaseClient<Database>,
+  olderOffset: number,
+  olderLimit: number
+) {
   const { startIso } = getZurichDayRange(new Date());
   const olderCandidatePoolSize = Math.max(
     (olderOffset + olderLimit) * OLDER_FEED_CANDIDATE_POOL_MULTIPLIER,
@@ -284,7 +380,7 @@ async function loadOlderFeedCandidates(olderOffset: number, olderLimit: number) 
   );
   const { data: olderPostsData, error: olderPostsError } = await supabase
     .from("posts")
-    .select("*")
+    .select(FEED_POST_SELECT)
     .lt("created_at", startIso)
     .order("created_at", { ascending: false })
     .range(0, olderCandidatePoolSize - 1);
@@ -293,30 +389,28 @@ async function loadOlderFeedCandidates(olderOffset: number, olderLimit: number) 
     throw new Error(olderPostsError.message);
   }
 
-  const olderPosts = (olderPostsData ?? []) as PostRow[];
+  const olderPosts = (olderPostsData ?? []) as FeedPostRow[];
 
   if (olderPosts.length === 0) {
     return {
       olderPosts,
-      reactions: [] as PostReactionRow[],
+      postIds: [] as number[],
+      reactionCountsMap: new Map<number, ReactionCounts>(),
       commentCountMap: new Map<number, number>(),
     };
   }
 
   const postIds = olderPosts.map((post) => post.id);
-  const { data: reactionsData, error: reactionsError } = await supabase
-    .from("post_reactions")
-    .select("post_id, user_id, reaction")
-    .in("post_id", postIds);
-
-  if (reactionsError) {
-    throw new Error(reactionsError.message);
-  }
+  const [reactionCountsMap, commentCountMap] = await Promise.all([
+    loadReactionCountsMap(supabase, postIds),
+    resolvePostCommentCounts(supabase, olderPosts),
+  ]);
 
   return {
     olderPosts,
-    reactions: (reactionsData ?? []) as PostReactionRow[],
-    commentCountMap: await resolvePostCommentCounts(supabase, olderPosts),
+    postIds,
+    reactionCountsMap,
+    commentCountMap,
   };
 }
 
@@ -324,20 +418,22 @@ export async function getHomeFeedData(
   olderOffset = 0,
   olderLimit = FEED_PAGE_SIZE
 ): Promise<HomeFeedData> {
+  const supabase = await createClient();
   const [{ userId, viewerIsAdmin }, candidates] = await Promise.all([
-    getFeedUserContext(),
-    loadFeedCandidates(olderOffset, olderLimit),
+    getFeedUserContext(supabase),
+    loadFeedCandidates(supabase, olderOffset, olderLimit),
   ]);
-  const { reactionCountsMap, viewerReactionMap } = mapReactions({
-    userId,
-    reactions: candidates.reactions,
-  });
+  const viewerReactionMap = await loadViewerReactionMap(
+    supabase,
+    candidates.postIds,
+    userId
+  );
   const todayCandidates = candidates.todaysPosts.map((post) =>
     toFeedCandidatePost(
       post,
       userId,
       viewerIsAdmin,
-      reactionCountsMap,
+      candidates.reactionCountsMap,
       viewerReactionMap,
       candidates.commentCountMap
     )
@@ -347,7 +443,7 @@ export async function getHomeFeedData(
       post,
       userId,
       viewerIsAdmin,
-      reactionCountsMap,
+      candidates.reactionCountsMap,
       viewerReactionMap,
       candidates.commentCountMap
     )
@@ -369,24 +465,52 @@ export async function getHomeFeedData(
   };
 }
 
+export async function getLeaderboardTopThreeData(): Promise<FeedPost[]> {
+  const supabase = await createClient();
+  const [{ userId, viewerIsAdmin }, candidates] = await Promise.all([
+    getFeedUserContext(supabase),
+    loadTodayFeedCandidates(supabase),
+  ]);
+  const viewerReactionMap = await loadViewerReactionMap(
+    supabase,
+    candidates.postIds,
+    userId
+  );
+  const todayCandidates = candidates.todaysPosts.map((post) =>
+    toFeedCandidatePost(
+      post,
+      userId,
+      viewerIsAdmin,
+      candidates.reactionCountsMap,
+      viewerReactionMap,
+      candidates.commentCountMap
+    )
+  );
+  const todaySection = buildTodayFeed(todayCandidates);
+
+  return todaySection.topThreeToday.map(stripCandidateScores);
+}
+
 export async function getOlderFeedPage(
   offset = 0,
   limit = FEED_PAGE_SIZE
 ): Promise<FeedResponse> {
+  const supabase = await createClient();
   const [{ userId, viewerIsAdmin }, candidates] = await Promise.all([
-    getFeedUserContext(),
-    loadOlderFeedCandidates(offset, limit),
+    getFeedUserContext(supabase),
+    loadOlderFeedCandidates(supabase, offset, limit),
   ]);
-  const { reactionCountsMap, viewerReactionMap } = mapReactions({
-    userId,
-    reactions: candidates.reactions,
-  });
+  const viewerReactionMap = await loadViewerReactionMap(
+    supabase,
+    candidates.postIds,
+    userId
+  );
   const olderCandidates = candidates.olderPosts.map((post) =>
     toFeedCandidatePost(
       post,
       userId,
       viewerIsAdmin,
-      reactionCountsMap,
+      candidates.reactionCountsMap,
       viewerReactionMap,
       candidates.commentCountMap
     )
