@@ -1,14 +1,14 @@
-import NavBar from "@/components/layout/navbar";
+import NavBar from "@/shared/components/layout/navbar";
 import {
   ARCHIVED_DAILY_WINNER_RANK,
   getZurichDayKey,
-} from "@/lib/winners/daily-ranking";
-import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
+} from "@/features/winners/lib/daily-ranking";
+import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
 import { createClient } from "@/lib/supabase/server";
-import HallOfFameFrozenPostCard from "@/components/hall-of-fame/HallOfFameFrozenPostCard";
-import HallOfFameWinnersCarousel from "@/components/hall-of-fame/HallOfFameWinnersCarousel";
-import type { Database } from "@/types/database";
-import type { ReactionCounts } from "@/types/feed";
+import HallOfFameFrozenPostCard from "@/features/hall-of-fame/components/HallOfFameFrozenPostCard";
+import HallOfFameWinnersCarousel from "@/features/hall-of-fame/components/HallOfFameWinnersCarousel";
+import type { Database } from "@/shared/types/database";
+import type { ReactionCounts } from "@/shared/types/feed";
 
 export const dynamic = "force-dynamic";
 
@@ -257,4 +257,5 @@ export default async function HallOfFamePage() {
     </div>
   );
 }
+
 

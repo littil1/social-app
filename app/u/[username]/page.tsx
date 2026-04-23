@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
-import NavBar from "@/components/layout/navbar";
-import FollowButton from "@/components/profile/FollowButton";
+import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
+import NavBar from "@/shared/components/layout/navbar";
+import FollowButton from "@/features/profile/components/FollowButton";
 import {
   ARCHIVED_DAILY_WINNER_RANK,
   getCurrentZurichDayStartIso,
-} from "@/lib/winners/daily-ranking";
-import { getFollowCounts, isFollowingUser } from "@/lib/profile/follow-data";
-import { getImplementedIdeaCountByUserId } from "@/lib/comments/feedback-data";
-import { getUserBadges } from "@/lib/badges/getUserBadges";
-import type { FeedPost, ReactionType } from "@/types/feed";
-import UserProfileContent from "@/components/profile/UserProfileContent";
-import ProfileBadgesSection from "@/components/profile/ProfileBadgesSection";
-import type { UserBadgeDisplay } from "@/lib/badges/profile-badges";
+} from "@/features/winners/lib/daily-ranking";
+import { getFollowCounts, isFollowingUser } from "@/features/profile/lib/follow-data";
+import { getImplementedIdeaCountByUserId } from "@/features/feedback/lib/feedback-data";
+import { getUserBadges } from "@/features/badges/lib/getUserBadges";
+import type { FeedPost, ReactionType } from "@/shared/types/feed";
+import UserProfileContent from "@/features/profile/components/UserProfileContent";
+import ProfileBadgesSection from "@/features/profile/components/ProfileBadgesSection";
+import type { UserBadgeDisplay } from "@/features/badges/lib/profile-badges";
 
 export const dynamic = "force-dynamic";
 
@@ -354,4 +354,5 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     </div>
   );
 }
+
 

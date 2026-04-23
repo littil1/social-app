@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthModal } from "@/components/auth/AuthModalProvider";
+import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 
 // =====================================================
 // Inner Component (mit useSearchParams)
@@ -34,3 +34,4 @@ export default function LoginPage() {
     </Suspense>
   );
 }
+

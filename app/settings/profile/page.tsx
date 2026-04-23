@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import NavBar from "@/components/layout/navbar";
+import NavBar from "@/shared/components/layout/navbar";
 import ProfileForm from "./profile-form";
 
 export const dynamic = "force-dynamic";
@@ -81,3 +81,4 @@ export default async function ProfileSettingsPage() {
     </div>
   );
 }
+

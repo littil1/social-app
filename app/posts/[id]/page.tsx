@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import NavBar from "@/components/layout/navbar";
-import SinglePostView from "@/components/posts/SinglePostView";
-import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
+import NavBar from "@/shared/components/layout/navbar";
+import SinglePostView from "@/features/posts/components/SinglePostView";
+import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
 import { createClient } from "@/lib/supabase/server";
-import type { FeedPost, ReactionCounts, ReactionType } from "@/types/feed";
+import type { FeedPost, ReactionCounts, ReactionType } from "@/shared/types/feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -203,4 +203,5 @@ export default async function PostDetailPage({ params }: PageProps) {
     </>
   );
 }
+
 

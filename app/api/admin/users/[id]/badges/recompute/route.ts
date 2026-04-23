@@ -3,8 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import {
   ALL_BADGE_FAMILIES,
   recomputeUserBadgeFamilies,
-} from "@/lib/badges";
-import { getUserBadges } from "@/lib/badges/getUserBadges";
+} from "@/features/badges/lib";
+import { getUserBadges } from "@/features/badges/lib/getUserBadges";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -98,4 +98,5 @@ export async function POST(request: Request, context: RouteContext) {
     });
   }
 }
+
 

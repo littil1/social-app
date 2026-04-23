@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { recomputeUserBadgeFamilies } from "@/lib/badges";
+import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
 
 function revalidateMany(paths: Array<string | null | undefined>) {
   const uniquePaths = [...new Set(paths.filter(Boolean))] as string[];
@@ -296,3 +296,4 @@ export async function updateFeatureRequestStatus(formData: FormData) {
     authorUsername ? `/u/${authorUsername}` : null,
   ]);
 }
+

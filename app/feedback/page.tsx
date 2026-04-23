@@ -1,8 +1,8 @@
-import NavBar from "@/components/layout/navbar";
-import FeedbackCard from "@/components/feedback/FeedbackCard";
+import NavBar from "@/shared/components/layout/navbar";
+import FeedbackCard from "@/features/feedback/components/FeedbackCard";
 import { addFeatureRequest } from "@/app/actions/feedback";
 import { createClient } from "@/lib/supabase/server";
-import { getFeedbackBundle } from "@/lib/comments/feedback-data";
+import { getFeedbackBundle } from "@/features/feedback/lib/feedback-data";
 
 export const dynamic = "force-dynamic";
 
@@ -204,3 +204,4 @@ function EmptyState({ text }: { text: string }) {
     </div>
   );
 }
+

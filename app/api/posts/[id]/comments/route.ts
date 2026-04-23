@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database";
+import type { Database } from "@/shared/types/database";
 import type {
   FeedComment,
   FeedCommentBadge,
   ReactionCounts,
   ReactionType,
-} from "@/types/feed";
-import { recomputeUserBadgeFamilies } from "@/lib/badges";
-import { getUserBadges } from "@/lib/badges/getUserBadges";
+} from "@/shared/types/feed";
+import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import { getUserBadges } from "@/features/badges/lib/getUserBadges";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -387,4 +387,5 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
   }
 }
+
 

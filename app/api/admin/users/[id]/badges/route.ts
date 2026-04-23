@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   PROFILE_BADGE_KEYS,
   type ProfileBadgeKey,
-} from "@/lib/badges/profile-badges";
+} from "@/features/badges/lib/profile-badges";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -118,3 +118,4 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
   }
 }
+

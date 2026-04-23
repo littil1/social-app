@@ -4,7 +4,7 @@ import {
   FEED_SESSION_COOKIE,
   FEED_SESSION_MAX_AGE,
   hasFeedSessionCookie,
-} from "@/lib/feed/session";
+} from "@/features/feed/lib/session";
 
 function isPrefetchRequest(request: NextRequest) {
   return (
@@ -39,4 +39,5 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: ["/", "/leaderboard"],
 };
+
 

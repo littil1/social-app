@@ -3,7 +3,7 @@ import {
   FEED_PAGE_SIZE,
   MAX_FEED_PAGE_SIZE,
   getOlderFeedPage,
-} from "@/lib/feed";
+} from "@/features/feed/lib";
 
 function parsePaginationParam(value: string | null, fallback: number) {
   if (value === null) {
@@ -48,3 +48,4 @@ export async function GET(request: NextRequest) {
     });
   }
 }
+

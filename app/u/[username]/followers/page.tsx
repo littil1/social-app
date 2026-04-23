@@ -1,7 +1,7 @@
-import NavBar from "@/components/layout/navbar";
-import UserListItem from "@/components/profile/UserListItem";
+import NavBar from "@/shared/components/layout/navbar";
+import UserListItem from "@/features/profile/components/UserListItem";
 import { createClient } from "@/lib/supabase/server";
-import { getFollowersList } from "@/lib/profile/follow-data";
+import { getFollowersList } from "@/features/profile/lib/follow-data";
 
 export const dynamic = "force-dynamic";
 
@@ -67,3 +67,4 @@ export default async function FollowersPage({ params }: FollowersPageProps) {
     </>
   );
 }
+

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { ReactionType } from "@/types/feed";
-import { recomputeUserBadgeFamilies } from "@/lib/badges";
+import type { ReactionType } from "@/shared/types/feed";
+import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -154,4 +154,5 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
   }
 }
+
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database";
-import { recomputeUserBadgeFamilies } from "@/lib/badges";
+import type { Database } from "@/shared/types/database";
+import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -122,3 +122,4 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
     });
   }
 }
+

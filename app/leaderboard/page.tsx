@@ -1,22 +1,22 @@
 import { Suspense } from "react";
-import NavBar from "@/components/layout/navbar";
+import NavBar from "@/shared/components/layout/navbar";
 import { createClient } from "@/lib/supabase/server";
-import { getLiveScore, getZurichDayRange } from "@/lib/winners/daily-ranking";
-import LeaderboardLiveHeader from "@/components/leaderboard/LeaderboardLiveHeader";
-import LeaderboardPodiumSection from "@/components/leaderboard/LeaderboardPodiumSection";
-import HomeFeed from "@/components/posts/HomeFeed";
-import LoginCta from "@/components/auth/LoginCta";
+import { getLiveScore, getZurichDayRange } from "@/features/winners/lib/daily-ranking";
+import LeaderboardLiveHeader from "@/features/leaderboard/components/LeaderboardLiveHeader";
+import LeaderboardPodiumSection from "@/features/leaderboard/components/LeaderboardPodiumSection";
+import HomeFeed from "@/features/feed/components/HomeFeed";
+import LoginCta from "@/features/auth/components/LoginCta";
 import {
   FEED_PAGE_SIZE,
   getHomeFeedData,
   getLeaderboardTopThreeData,
-} from "@/lib/feed";
+} from "@/features/feed/lib";
 import type {
   FeedPost,
   HomeFeedData,
   ReactionCounts,
   ReactionType,
-} from "@/types/feed";
+} from "@/shared/types/feed";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -193,4 +193,5 @@ export default async function LeaderboardPage() {
     </>
   );
 }
+
 

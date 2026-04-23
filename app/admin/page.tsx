@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import NavBar from "@/components/layout/navbar";
-import AdminRecomputeButton from "@/components/admin/AdminRecomputeButton";
+import NavBar from "@/shared/components/layout/navbar";
+import AdminRecomputeButton from "@/features/admin/components/AdminRecomputeButton";
 import AdminReportsPanel, {
   type ModerationReport,
-} from "@/components/admin/AdminReportsPanel";
-import AdminTabs from "@/components/admin/AdminTabs";
+} from "@/features/admin/components/AdminReportsPanel";
+import AdminTabs from "@/features/admin/components/AdminTabs";
 import { createClient } from "@/lib/supabase/server";
-import { getUserBadges } from "@/lib/badges/getUserBadges";
-import type { UserBadgeDisplay } from "@/lib/badges/profile-badges";
+import { getUserBadges } from "@/features/badges/lib/getUserBadges";
+import type { UserBadgeDisplay } from "@/features/badges/lib/profile-badges";
 
 export const dynamic = "force-dynamic";
 
@@ -693,4 +693,5 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     </>
   );
 }
+
 

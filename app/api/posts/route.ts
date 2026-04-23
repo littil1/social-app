@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { FeedPost, ReactionCounts } from "@/types/feed";
+import type { FeedPost, ReactionCounts } from "@/shared/types/feed";
 
 // =====================================================
 // Helpers
@@ -96,4 +96,5 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
 

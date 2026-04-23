@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { recomputeUserBadgeFamilies } from "@/lib/badges";
+import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
 import {
   ARCHIVED_DAILY_WINNER_LIMIT,
   compareDailyLiveRank,
@@ -8,9 +8,9 @@ import {
   getPreviousZurichDayRange,
   getZurichDayRankingReferenceTime,
   getZurichDayRangeForDayKey,
-} from "@/lib/winners/daily-ranking";
-import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
-import type { ReactionCounts } from "@/types/feed";
+} from "@/features/winners/lib/daily-ranking";
+import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
+import type { ReactionCounts } from "@/shared/types/feed";
 
 type PostRow = {
   id: number;
@@ -318,4 +318,5 @@ export async function POST(request: NextRequest) {
     });
   }
 }
+
 

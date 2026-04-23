@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
-import AuthModalProvider from "@/components/auth/AuthModalProvider";
-import GlobalPostModal from "@/components/posts/GlobalPostModal";
+import AuthModalProvider from "@/features/auth/components/AuthModalProvider";
+import GlobalPostModal from "@/features/posts/components/GlobalPostModal";
 import { createClient } from "@/lib/supabase/server";
 
 // =====================================================
@@ -85,3 +85,4 @@ export default async function RootLayout({
     </html>
   );
 }
+

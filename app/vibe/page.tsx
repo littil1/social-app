@@ -1,5 +1,5 @@
 import Link from "next/link";
-import NavBar from "@/components/layout/navbar";
+import NavBar from "@/shared/components/layout/navbar";
 import { createClient } from "@/lib/supabase/server";
 
 // =====================================================
