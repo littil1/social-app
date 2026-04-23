@@ -86,9 +86,9 @@ export default function LeaderboardPodiumCarousel({
               position={entry.position}
               post={entry.post}
               isLoggedIn={isLoggedIn}
-              isCommentsOpen={entry.post ? entry.post.id === openPostId : false}
+              isCommentsOpen={entry.post?.id === openPostId}
               onToggleComments={
-                entry.post ? () => onToggleComments(entry.post.id) : undefined
+                entry.post ? () => onToggleComments(entry.post!.id) : undefined
               }
             />
           </div>
