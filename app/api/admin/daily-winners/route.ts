@@ -1,14 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import { recomputeUserBadgeFamilies } from "@/lib/badges";
+import {
+  ARCHIVED_DAILY_WINNER_LIMIT,
+  compareDailyLiveRank,
+  getLiveScore,
+  getPreviousZurichDayRange,
+  getZurichDayRankingReferenceTime,
+  getZurichDayRangeForDayKey,
+} from "@/lib/winners/daily-ranking";
+import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
+import type { ReactionCounts } from "@/types/feed";
 
 type PostRow = {
   id: number;
   content: string | null;
   created_at: string;
   user_id: string | null;
-  likes_count: number;
   comments_count: number;
 };
 
@@ -17,84 +25,68 @@ type ProfileRow = {
   username: string;
 };
 
+type PostReactionRow = {
+  post_id: number;
+  reaction: "like" | "funny" | "wow" | "fire";
+};
+
 type RankedPost = PostRow & {
   relevance_score: number;
   author_username: string | null;
+  reaction_counts: ReactionCounts;
 };
 
-function getRelevanceScore(
-  post: Pick<PostRow, "likes_count" | "comments_count">
-) {
-  return (post.likes_count ?? 0) * 0.5 + (post.comments_count ?? 0);
-}
-
-function getZurichDayKey(date: Date) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Zurich",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-
-function getUtcRangeForZurichDay(dayKey: string) {
-  const start = new Date(`${dayKey}T00:00:00+01:00`);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-
+function createEmptyReactionCounts(): ReactionCounts {
   return {
-    startIso: start.toISOString(),
-    endIso: end.toISOString(),
+    like: 0,
+    funny: 0,
+    wow: 0,
+    fire: 0,
   };
 }
 
 function getWinnerDateAndRange(input: string | null) {
   if (input) {
-    const isValid = /^\d{4}-\d{2}-\d{2}$/.test(input);
+    const range = getZurichDayRangeForDayKey(input);
 
-    if (!isValid) {
-      return null;
-    }
-
-    const { startIso, endIso } = getUtcRangeForZurichDay(input);
-
-    return {
-      winnerDate: input,
-      startIso,
-      endIso,
-    };
+    return range
+      ? {
+          winnerDate: input,
+          startIso: range.startIso,
+          endIso: range.endIso,
+        }
+      : null;
   }
 
-  const now = new Date();
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  const winnerDate = getZurichDayKey(yesterday);
-  const { startIso, endIso } = getUtcRangeForZurichDay(winnerDate);
+  const previousRange = getPreviousZurichDayRange(new Date());
+  if (!previousRange) {
+    return null;
+  }
 
   return {
-    winnerDate,
-    startIso,
-    endIso,
+    winnerDate: previousRange.dayKey,
+    startIso: previousRange.startIso,
+    endIso: previousRange.endIso,
   };
 }
 
 function rankPosts(posts: RankedPost[]) {
-  return [...posts].sort((a, b) => {
-    if (b.relevance_score !== a.relevance_score) {
-      return b.relevance_score - a.relevance_score;
-    }
-
-    if ((b.comments_count ?? 0) !== (a.comments_count ?? 0)) {
-      return (b.comments_count ?? 0) - (a.comments_count ?? 0);
-    }
-
-    if ((b.likes_count ?? 0) !== (a.likes_count ?? 0)) {
-      return (b.likes_count ?? 0) - (a.likes_count ?? 0);
-    }
-
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  });
+  return [...posts].sort((a, b) =>
+    compareDailyLiveRank(
+      {
+        id: a.id,
+        created_at: a.created_at,
+        comments_count: a.comments_count,
+        live_score: a.relevance_score,
+      },
+      {
+        id: b.id,
+        created_at: b.created_at,
+        comments_count: b.comments_count,
+        live_score: b.relevance_score,
+      }
+    )
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -106,7 +98,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     const { data: adminProfile, error: adminProfileError } = await supabase
@@ -120,19 +112,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (!adminProfile?.is_admin) {
-      return new NextResponse("Keine Berechtigung.", { status: 403 });
+      return new NextResponse("Forbidden.", { status: 403 });
     }
 
     const requestedDate = request.nextUrl.searchParams.get("date");
     const dateRange = getWinnerDateAndRange(requestedDate);
 
     if (!dateRange) {
-      return new NextResponse("Ungültiges Datum. Erwartet: YYYY-MM-DD", {
+      return new NextResponse("Invalid date. Expected: YYYY-MM-DD.", {
         status: 400,
       });
     }
 
     const { winnerDate, startIso, endIso } = dateRange;
+    const rankingNow = getZurichDayRankingReferenceTime(endIso);
 
     const { data: existingWinnerRows, error: existingWinnersError } =
       await supabase
@@ -154,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
-      .select("id, content, created_at, user_id, likes_count, comments_count")
+      .select("id, content, created_at, user_id, comments_count")
       .gte("created_at", startIso)
       .lt("created_at", endIso);
 
@@ -163,6 +156,7 @@ export async function POST(request: NextRequest) {
     }
 
     const posts = (postsData ?? []) as PostRow[];
+    const postIds = posts.map((post) => post.id);
 
     if (posts.length === 0) {
       await supabase
@@ -171,7 +165,7 @@ export async function POST(request: NextRequest) {
         .eq("winner_date", winnerDate);
 
       for (const previousWinnerUserId of previousWinnerUserIds) {
-        await recomputeUserBadgeFamilies(supabase as any, previousWinnerUserId, [
+        await recomputeUserBadgeFamilies(supabase, previousWinnerUserId, [
           "legend",
         ]);
       }
@@ -179,14 +173,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         winnerDate,
         winners: [],
-        message: "Keine Posts für diesen Tag gefunden.",
+        message: "No posts were found for that day.",
       });
     }
 
-    const resolvedCommentCounts = await resolvePostCommentCounts(
-      supabase,
-      posts
-    );
+    const resolvedCommentCounts = await resolvePostCommentCounts(supabase, posts);
+    const reactionCountsByPostId = new Map<number, ReactionCounts>();
+
+    if (postIds.length > 0) {
+      const { data: reactionsData, error: reactionsError } = await supabase
+        .from("post_reactions")
+        .select("post_id, reaction")
+        .in("post_id", postIds);
+
+      if (reactionsError) {
+        return new NextResponse(reactionsError.message, { status: 500 });
+      }
+
+      for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
+        const counts =
+          reactionCountsByPostId.get(reaction.post_id) ?? createEmptyReactionCounts();
+        counts[reaction.reaction] += 1;
+        reactionCountsByPostId.set(reaction.post_id, counts);
+      }
+    }
 
     const userIds = Array.from(
       new Set(
@@ -215,20 +225,30 @@ export async function POST(request: NextRequest) {
     const rankedPosts = rankPosts(
       posts.map((post) => {
         const commentsCount = resolvedCommentCounts.get(post.id) ?? 0;
+        const reactionCounts =
+          reactionCountsByPostId.get(post.id) ?? createEmptyReactionCounts();
+        const reactionsTotal =
+          reactionCounts.like +
+          reactionCounts.funny +
+          reactionCounts.wow +
+          reactionCounts.fire;
 
         return {
           ...post,
           comments_count: commentsCount,
-          relevance_score: getRelevanceScore({
-            likes_count: post.likes_count,
-            comments_count: commentsCount,
+          reaction_counts: reactionCounts,
+          relevance_score: getLiveScore({
+            reactionsTotal,
+            commentsCount,
+            createdAt: post.created_at,
+            now: rankingNow,
           }),
           author_username: post.user_id
             ? profileMap.get(post.user_id)?.username ?? null
             : null,
         };
       })
-    ).slice(0, 3);
+    ).slice(0, ARCHIVED_DAILY_WINNER_LIMIT);
 
     await supabase
       .from("daily_post_winners")
@@ -244,7 +264,10 @@ export async function POST(request: NextRequest) {
         post_content: post.content ?? "",
         author_id: post.user_id,
         author_username: post.author_username,
-        likes_count: post.likes_count ?? 0,
+        likes_count: post.reaction_counts.like,
+        funny_count: post.reaction_counts.funny,
+        wow_count: post.reaction_counts.wow,
+        fire_count: post.reaction_counts.fire,
         comments_count: post.comments_count ?? 0,
         relevance_score: post.relevance_score,
       }));
@@ -271,7 +294,7 @@ export async function POST(request: NextRequest) {
     );
 
     for (const affectedWinnerUserId of affectedWinnerUserIds) {
-      await recomputeUserBadgeFamilies(supabase as any, affectedWinnerUserId, [
+      await recomputeUserBadgeFamilies(supabase, affectedWinnerUserId, [
         "legend",
       ]);
     }
@@ -283,15 +306,16 @@ export async function POST(request: NextRequest) {
         post_id: post.id,
         author_id: post.user_id,
         author_username: post.author_username,
-        likes_count: post.likes_count ?? 0,
+        likes_count: post.reaction_counts.like,
         comments_count: post.comments_count ?? 0,
         relevance_score: post.relevance_score,
       })),
     });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Daily Winners konnten nicht berechnet werden.", {
+    return new NextResponse("Daily winners could not be computed.", {
       status: 500,
     });
   }
 }
+

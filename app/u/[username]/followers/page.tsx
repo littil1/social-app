@@ -1,7 +1,7 @@
-import NavBar from "@/app/components/layout/navbar";
-import UserListItem from "@/app/components/profile/UserListItem";
-import { createClient } from "@/lib/supabase-server";
-import { getFollowersList } from "@/lib/follow-data";
+import NavBar from "@/components/layout/navbar";
+import UserListItem from "@/components/profile/UserListItem";
+import { createClient } from "@/lib/supabase/server";
+import { getFollowersList } from "@/lib/profile/follow-data";
 
 export const dynamic = "force-dynamic";
 

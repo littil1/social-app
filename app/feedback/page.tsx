@@ -1,8 +1,8 @@
-import NavBar from "@/app/components/layout/navbar";
-import FeedbackCard from "@/app/components/feedback/FeedbackCard";
+import NavBar from "@/components/layout/navbar";
+import FeedbackCard from "@/components/feedback/FeedbackCard";
 import { addFeatureRequest } from "@/app/actions/feedback";
-import { createClient } from "@/lib/supabase-server";
-import { getFeedbackBundle } from "@/lib/feedback-data";
+import { createClient } from "@/lib/supabase/server";
+import { getFeedbackBundle } from "@/lib/comments/feedback-data";
 
 export const dynamic = "force-dynamic";
 
@@ -109,8 +109,8 @@ export default async function FeedbackPage() {
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🤝</span>
                 <div>
-                  <p className="font-bold text-neutral-900">Get supported</p>
-                  <p className="text-sm text-neutral-500">Support ideas that benefit the entire community, not just yourself.</p>
+                  <p className="font-bold text-neutral-900">Get Supported</p>
+                  <p className="text-sm text-neutral-500">Support ideas that benefit the entire community.</p>
                 </div>
               </div>
             </div>

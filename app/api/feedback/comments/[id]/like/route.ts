@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import { recomputeUserBadgeFamilies } from "@/lib/badges";
 
 type RouteContext = {
@@ -146,3 +146,4 @@ export async function POST(request: Request, context: RouteContext) {
     return new NextResponse(message, { status: 500 });
   }
 }
+

@@ -1,10 +1,12 @@
-import NavBar from "@/app/components/layout/navbar";
-import { getUserBadges } from "@/lib/badges/getUserBadges";
-import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
-import type { UserBadgeDisplay } from "@/lib/profile-badges";
-import { createClient } from "@/lib/supabase-server";
-import HallOfFameFrozenPostCard from "@/app/components/hall-of-fame/HallOfFameFrozenPostCard";
-import HallOfFameWinnersCarousel from "@/app/components/hall-of-fame/HallOfFameWinnersCarousel";
+import NavBar from "@/components/layout/navbar";
+import {
+  ARCHIVED_DAILY_WINNER_RANK,
+  getZurichDayKey,
+} from "@/lib/winners/daily-ranking";
+import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
+import { createClient } from "@/lib/supabase/server";
+import HallOfFameFrozenPostCard from "@/components/hall-of-fame/HallOfFameFrozenPostCard";
+import HallOfFameWinnersCarousel from "@/components/hall-of-fame/HallOfFameWinnersCarousel";
 import type { Database } from "@/types/database";
 import type { ReactionCounts } from "@/types/feed";
 
@@ -23,7 +25,6 @@ type FrozenWinnerPost = {
   post_created_at: string;
   comments_count: number;
   relevance_score: number;
-  author_badges: UserBadgeDisplay[];
   author_username: string | null;
   reactions_count: number;
   reaction_counts: ReactionCounts;
@@ -38,31 +39,33 @@ type DailyWinnerEntry = {
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
-  return new Intl.DateTimeFormat("en-GB", { // Auf Englisch umgestellt für Konsistenz
+  return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   }).format(date);
 }
 
-function getZurichDayKey(date: Date | string) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Zurich",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(date));
-}
-
 function countTotalReactions(reactionCounts: ReactionCounts) {
-  return reactionCounts.like + reactionCounts.funny + reactionCounts.wow + reactionCounts.fire;
+  return (
+    reactionCounts.like +
+    reactionCounts.funny +
+    reactionCounts.wow +
+    reactionCounts.fire
+  );
 }
 
 export default async function HallOfFamePage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  let navUser: { username: string; avatar_url: string | null; is_admin: boolean; } | null = null;
+  let navUser: {
+    username: string;
+    avatar_url: string | null;
+    is_admin: boolean;
+  } | null = null;
 
   if (user) {
     const { data: profile, error: profileError } = await supabase
@@ -71,7 +74,10 @@ export default async function HallOfFamePage() {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profileError) throw new Error(profileError.message);
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
+
     if (profile?.username) {
       navUser = {
         username: profile.username,
@@ -87,26 +93,20 @@ export default async function HallOfFamePage() {
     .order("winner_date", { ascending: false })
     .order("rank_position", { ascending: true });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw new Error(error.message);
+  }
 
   const todayKey = getZurichDayKey(new Date());
-  const winnerRows: DailyWinnerSnapshotRow[] = ((data ?? []) as DailyWinnerSnapshotRow[]).filter(
-    (item) => item.winner_date !== todayKey && item.rank_position === 1
+  const winnerRows: DailyWinnerSnapshotRow[] = (
+    (data ?? []) as DailyWinnerSnapshotRow[]
+  ).filter(
+    (item) =>
+      item.winner_date !== todayKey &&
+      item.rank_position === ARCHIVED_DAILY_WINNER_RANK
   );
-  const winnerAuthorIds = Array.from(
-    new Set(
-      winnerRows
-        .map((item) => item.author_id)
-        .filter((authorId): authorId is string => typeof authorId === "string")
-    )
-  );
-
   const winnerPostIds = Array.from(new Set(winnerRows.map((item) => item.post_id)));
   const currentCommentsCountByPostId = new Map<number, number>();
-  const badgesByAuthorId =
-    winnerAuthorIds.length > 0
-      ? await getUserBadges(winnerAuthorIds, { limitPerUser: 3 })
-      : new Map<string, UserBadgeDisplay[]>();
 
   if (winnerPostIds.length > 0) {
     const { data: postsData, error: postsError } = await supabase
@@ -114,7 +114,10 @@ export default async function HallOfFamePage() {
       .select("id, comments_count")
       .in("id", winnerPostIds);
 
-    if (postsError) throw new Error(postsError.message);
+    if (postsError) {
+      throw new Error(postsError.message);
+    }
+
     const resolvedCounts = await resolvePostCommentCounts(
       supabase,
       (postsData ?? []) as Array<{ id: number; comments_count: number | null }>
@@ -133,6 +136,7 @@ export default async function HallOfFamePage() {
         wow: Number(item.wow_count ?? 0),
         fire: Number(item.fire_count ?? 0),
       };
+
       return {
         dayKey: item.winner_date,
         dayLabel: formatDate(`${item.winner_date}T00:00:00`),
@@ -144,9 +148,6 @@ export default async function HallOfFamePage() {
             currentCommentsCountByPostId.get(item.post_id) ??
             Math.max(0, Number(item.comments_count ?? 0)),
           relevance_score: Number(item.relevance_score ?? 0),
-          author_badges: item.author_id
-            ? badgesByAuthorId.get(item.author_id) ?? []
-            : [],
           author_username: item.author_username ?? null,
           reactions_count: countTotalReactions(reactionCounts),
           reaction_counts: reactionCounts,
@@ -166,15 +167,18 @@ export default async function HallOfFamePage() {
       <main className="mx-auto w-full max-w-6xl px-4 py-8 lg:py-16">
         {dailyWinners.length === 0 ? (
           <section className="relative overflow-hidden rounded-[40px] border border-neutral-200 bg-white p-12 text-center shadow-sm">
-             <span className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400">The Hall</span>
-             <h1 className="mt-6 text-4xl font-black tracking-tighter text-neutral-950 sm:text-6xl">
-               No legends yet.
-             </h1>
-             <p className="mt-4 text-neutral-500 font-medium">Every day, the top post secures its legacy here.</p>
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400">
+              The Hall
+            </span>
+            <h1 className="mt-6 text-4xl font-black tracking-tighter text-neutral-950 sm:text-6xl">
+              No legends yet.
+            </h1>
+            <p className="mt-4 font-medium text-neutral-500">
+              Every day, the top post secures its legacy here.
+            </p>
           </section>
         ) : (
           <div className="space-y-20">
-            {/* HERO MANIFEST */}
             <section className="relative overflow-hidden rounded-[40px] bg-neutral-950 px-8 py-16 text-white shadow-2xl lg:px-16 lg:py-20">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-amber-400/10 blur-[120px]" />
@@ -187,15 +191,21 @@ export default async function HallOfFamePage() {
                 </span>
                 <h1 className="mt-8 text-5xl font-black tracking-tighter sm:text-7xl lg:text-8xl">
                   Legends stay <br />
-                  <span className="text-neutral-500 text-glow-neutral">visible forever.</span>
+                  <span className="text-glow-neutral text-neutral-500">
+                    visible forever.
+                  </span>
                 </h1>
                 <p className="mt-8 text-lg font-medium leading-relaxed text-neutral-400 sm:text-xl">
-                  Every day, one post becomes legendary. Secure your badge and join the hall.
+                  Every day, one post becomes legendary. Secure your badge and
+                  join the hall.
                 </p>
 
                 <div className="mt-10 flex flex-wrap gap-3">
                   {["Interesting", "Helpful", "Relevant"].map((label) => (
-                    <span key={label} className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm">
+                    <span
+                      key={label}
+                      className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/80 backdrop-blur-sm"
+                    >
                       {label}
                     </span>
                   ))}
@@ -203,15 +213,18 @@ export default async function HallOfFamePage() {
               </div>
             </section>
 
-            {/* REIGNING CHAMPION */}
             {latestWinner && (
               <section className="space-y-8">
                 <div className="flex items-end justify-between border-b border-neutral-200 pb-6">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Current</span>
-                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">Reigning Champion</h2>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">
+                      Current
+                    </span>
+                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">
+                      Reigning Champion
+                    </h2>
                   </div>
-                  <p className="text-sm font-bold text-neutral-400 uppercase tracking-tighter">
+                  <p className="text-sm font-bold uppercase tracking-tighter text-neutral-400">
                     {latestWinner.dayLabel}
                   </p>
                 </div>
@@ -223,13 +236,16 @@ export default async function HallOfFamePage() {
               </section>
             )}
 
-            {/* ARCHIVE */}
             {olderWinners.length > 0 && (
               <section className="space-y-8">
                 <div className="flex items-end justify-between border-b border-neutral-200 pb-6">
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Archive</span>
-                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">Previous Champions</h2>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                      Archive
+                    </span>
+                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">
+                      Previous Champions
+                    </h2>
                   </div>
                 </div>
                 <HallOfFameWinnersCarousel items={olderWinners} />
@@ -241,3 +257,4 @@ export default async function HallOfFamePage() {
     </div>
   );
 }
+

@@ -1,15 +1,19 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase-server";
-import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
-import NavBar from "@/app/components/layout/navbar";
-import FollowButton from "@/app/components/profile/FollowButton";
-import { getFollowCounts, isFollowingUser } from "@/lib/follow-data";
-import { getImplementedIdeaCountByUserId } from "@/lib/feedback-data";
+import { createClient } from "@/lib/supabase/server";
+import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
+import NavBar from "@/components/layout/navbar";
+import FollowButton from "@/components/profile/FollowButton";
+import {
+  ARCHIVED_DAILY_WINNER_RANK,
+  getCurrentZurichDayStartIso,
+} from "@/lib/winners/daily-ranking";
+import { getFollowCounts, isFollowingUser } from "@/lib/profile/follow-data";
+import { getImplementedIdeaCountByUserId } from "@/lib/comments/feedback-data";
 import { getUserBadges } from "@/lib/badges/getUserBadges";
 import type { FeedPost, ReactionType } from "@/types/feed";
-import UserProfileContent from "@/app/components/profile/UserProfileContent";
-import ProfileBadgesSection from "@/app/components/profile/ProfileBadgesSection";
-import type { UserBadgeDisplay } from "@/lib/profile-badges";
+import UserProfileContent from "@/components/profile/UserProfileContent";
+import ProfileBadgesSection from "@/components/profile/ProfileBadgesSection";
+import type { UserBadgeDisplay } from "@/lib/badges/profile-badges";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +64,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (profileError) throw new Error(profileError.message);
+    if (profileError) {
+      throw new Error(profileError.message);
+    }
 
     if (profile?.username) {
       navUser = {
@@ -72,6 +78,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   }
 
   let viewerIsAdmin = false;
+
   if (user) {
     const { data: viewerProfile, error: viewerProfileError } = await supabase
       .from("profiles")
@@ -79,7 +86,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (viewerProfileError) throw new Error(viewerProfileError.message);
+    if (viewerProfileError) {
+      throw new Error(viewerProfileError.message);
+    }
+
     viewerIsAdmin = viewerProfile?.is_admin ?? false;
   }
 
@@ -113,9 +123,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     .from("posts")
     .select("id, content, created_at, user_id, comments_count")
     .eq("user_id", typedProfile.id)
+    .lt("created_at", getCurrentZurichDayStartIso(new Date()))
     .order("created_at", { ascending: false });
 
-  if (postsError) throw new Error(postsError.message);
+  if (postsError) {
+    throw new Error(postsError.message);
+  }
 
   const typedPosts = (postsData ?? []) as PostRow[];
   const postIds = typedPosts.map((post) => post.id);
@@ -133,7 +146,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       .select("post_id, user_id, reaction")
       .in("post_id", postIds);
 
-    if (reactionsError) throw new Error(reactionsError.message);
+    if (reactionsError) {
+      throw new Error(reactionsError.message);
+    }
 
     for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
       const current = reactionCountMap.get(reaction.post_id) ?? {
@@ -197,16 +212,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   );
 
   const { data: hallOfFameData, error: hallOfFameError } = await supabase
-    .from("weekly_post_hall_of_fame")
-    .select("*")
+    .from("daily_post_winners")
+    .select("id")
     .eq("author_id", typedProfile.id)
-    .order("week_start", { ascending: false });
+    .eq("rank_position", ARCHIVED_DAILY_WINNER_RANK);
 
-  if (hallOfFameError) throw new Error(hallOfFameError.message);
+  if (hallOfFameError) {
+    throw new Error(hallOfFameError.message);
+  }
+
   const hallOfFameCount = (hallOfFameData ?? []).length;
-
   const isOwnProfile = user?.id === typedProfile.id;
-
   const profileBadges: UserBadgeDisplay[] =
     (await getUserBadges([typedProfile.id])).get(typedProfile.id) ?? [];
 
@@ -263,7 +279,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
-                    @ {typedProfile.username}
+                    @{typedProfile.username}
                   </h1>
                 </div>
 
@@ -338,3 +354,4 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     </div>
   );
 }
+

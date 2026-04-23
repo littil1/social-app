@@ -1,5 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { recomputeUserBadgeFamilies } from "../../../lib/badges.ts";
+import {
+  ARCHIVED_DAILY_WINNER_LIMIT,
+  compareDailyLiveRank,
+  getLiveScore,
+  getPreviousZurichDayRange,
+  getZurichDayRankingReferenceTime,
+} from "../../../lib/daily-ranking.ts";
 
 type ReactionType = "like" | "funny" | "wow" | "fire";
 
@@ -40,120 +47,6 @@ function createEmptyReactionCounts(): ReactionCounts {
   };
 }
 
-function getTimeZoneOffsetMillis(date: Date, timeZone: string) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  });
-
-  const parts = formatter.formatToParts(date);
-  const map = Object.fromEntries(
-    parts
-      .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, part.value]),
-  );
-
-  const asUtc = Date.UTC(
-    Number(map.year),
-    Number(map.month) - 1,
-    Number(map.day),
-    Number(map.hour),
-    Number(map.minute),
-    Number(map.second),
-  );
-
-  return asUtc - date.getTime();
-}
-
-function zonedTimeToUtc(
-  year: number,
-  month: number,
-  day: number,
-  hour: number,
-  minute: number,
-  second: number,
-  timeZone: string,
-) {
-  const utcGuess = Date.UTC(year, month - 1, day, hour, minute, second);
-  const offset = getTimeZoneOffsetMillis(new Date(utcGuess), timeZone);
-  return new Date(utcGuess - offset);
-}
-
-function getZurichDayKey(date: Date | string) {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Europe/Zurich",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(date));
-}
-
-function getZurichNowParts(date: Date) {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Zurich",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23",
-  });
-
-  const parts = formatter.formatToParts(date);
-  const map = Object.fromEntries(
-    parts
-      .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, part.value]),
-  );
-
-  return {
-    year: Number(map.year),
-    month: Number(map.month),
-    day: Number(map.day),
-  };
-}
-
-function getZurichDayRange(date: Date) {
-  const zurichNow = getZurichNowParts(date);
-
-  const start = zonedTimeToUtc(
-    zurichNow.year,
-    zurichNow.month,
-    zurichNow.day,
-    0,
-    0,
-    0,
-    "Europe/Zurich",
-  );
-
-  const nextDayUtc = new Date(
-    Date.UTC(zurichNow.year, zurichNow.month - 1, zurichNow.day) + 86400000,
-  );
-
-  const end = zonedTimeToUtc(
-    nextDayUtc.getUTCFullYear(),
-    nextDayUtc.getUTCMonth() + 1,
-    nextDayUtc.getUTCDate(),
-    0,
-    0,
-    0,
-    "Europe/Zurich",
-  );
-
-  return {
-    dayKey: getZurichDayKey(date),
-    startIso: start.toISOString(),
-    endIso: end.toISOString(),
-  };
-}
-
 Deno.serve(async () => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -165,12 +58,16 @@ Deno.serve(async () => {
       });
     }
 
+    const previousRange = getPreviousZurichDayRange(new Date());
+    if (!previousRange) {
+      return new Response("Could not resolve Zurich day range.", {
+        status: 500,
+      });
+    }
+
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    const now = new Date();
-    now.setDate(now.getDate() - 1); // 👈 Vortag
-
-    const { dayKey, startIso, endIso } = getZurichDayRange(now);
+    const { dayKey, startIso, endIso } = previousRange;
+    const rankingNow = getZurichDayRankingReferenceTime(endIso);
 
     const { data: existingRows, error: existingError } = await supabase
       .from("daily_post_winners")
@@ -198,13 +95,13 @@ Deno.serve(async () => {
       return new Response("No posts.", { status: 200 });
     }
 
-    const postIds = posts.map((post: PostRow) => post.id);
+    const postIds = posts.map((post) => post.id);
     const authorIds = Array.from(
       new Set(
         posts
-          .map((post: PostRow) => post.user_id)
-          .filter((id: string | null): id is string => typeof id === "string"),
-      ),
+          .map((post) => post.user_id)
+          .filter((id): id is string => typeof id === "string")
+      )
     );
 
     const [
@@ -219,12 +116,10 @@ Deno.serve(async () => {
       supabase
         .from("comments")
         .select("post_id")
+        .is("deleted_at", null)
         .in("post_id", postIds),
       authorIds.length > 0
-        ? supabase
-            .from("profiles")
-            .select("id, username")
-            .in("id", authorIds)
+        ? supabase.from("profiles").select("id, username").in("id", authorIds)
         : Promise.resolve({ data: [] as ProfileRow[], error: null }),
     ]);
 
@@ -241,16 +136,11 @@ Deno.serve(async () => {
     }
 
     for (const comment of (commentsData ?? []) as CommentRow[]) {
-      commentMap.set(
-        comment.post_id,
-        (commentMap.get(comment.post_id) ?? 0) + 1,
-      );
+      commentMap.set(comment.post_id, (commentMap.get(comment.post_id) ?? 0) + 1);
     }
 
     for (const reaction of (reactionsData ?? []) as ReactionRow[]) {
-      const current =
-        reactionMap.get(reaction.post_id) ?? createEmptyReactionCounts();
-
+      const counts = reactionMap.get(reaction.post_id) ?? createEmptyReactionCounts();
       const reactionType = reaction.reaction as ReactionType;
 
       if (
@@ -259,23 +149,27 @@ Deno.serve(async () => {
         reactionType === "wow" ||
         reactionType === "fire"
       ) {
-        current[reactionType] += 1;
+        counts[reactionType] += 1;
       }
 
-      reactionMap.set(reaction.post_id, current);
+      reactionMap.set(reaction.post_id, counts);
     }
 
     const ranked = posts
-      .map((post: PostRow) => {
-        const reactionCounts =
-          reactionMap.get(post.id) ?? createEmptyReactionCounts();
+      .map((post) => {
+        const reactionCounts = reactionMap.get(post.id) ?? createEmptyReactionCounts();
         const commentsCount = commentMap.get(post.id) ?? 0;
         const reactionsCount =
           reactionCounts.like +
           reactionCounts.funny +
           reactionCounts.wow +
           reactionCounts.fire;
-        const relevanceScore = reactionsCount + commentsCount * 2;
+        const relevanceScore = getLiveScore({
+          reactionsTotal: reactionsCount,
+          commentsCount,
+          createdAt: post.created_at,
+          now: rankingNow,
+        });
 
         const author =
           post.user_id && profileMap.has(post.user_id)
@@ -289,28 +183,25 @@ Deno.serve(async () => {
           reactionCounts,
           commentsCount,
           relevanceScore,
-          reactionsCount,
         };
       })
-      .sort((a, b) => {
-        if (b.relevanceScore !== a.relevanceScore) {
-          return b.relevanceScore - a.relevanceScore;
-        }
-
-        if (b.reactionsCount !== a.reactionsCount) {
-          return b.reactionsCount - a.reactionsCount;
-        }
-
-        if (b.commentsCount !== a.commentsCount) {
-          return b.commentsCount - a.commentsCount;
-        }
-
-        return (
-          new Date(a.post.created_at).getTime() -
-          new Date(b.post.created_at).getTime()
-        );
-      })
-      .slice(0, 1);
+      .sort((a, b) =>
+        compareDailyLiveRank(
+          {
+            id: a.post.id,
+            created_at: a.post.created_at,
+            comments_count: a.commentsCount,
+            live_score: a.relevanceScore,
+          },
+          {
+            id: b.post.id,
+            created_at: b.post.created_at,
+            comments_count: b.commentsCount,
+            live_score: b.relevanceScore,
+          }
+        )
+      )
+      .slice(0, ARCHIVED_DAILY_WINNER_LIMIT);
 
     if (ranked.length === 0) {
       return new Response("No ranked posts.", { status: 200 });
@@ -342,8 +233,8 @@ Deno.serve(async () => {
       new Set(
         ranked
           .map((entry) => entry.authorId)
-          .filter((value): value is string => typeof value === "string"),
-      ),
+          .filter((value): value is string => typeof value === "string")
+      )
     );
 
     for (const winnerAuthorId of winnerAuthorIds) {
@@ -358,7 +249,7 @@ Deno.serve(async () => {
 
     return new Response(
       error instanceof Error ? error.message : "Snapshot failed.",
-      { status: 500 },
+      { status: 500 }
     );
   }
 });

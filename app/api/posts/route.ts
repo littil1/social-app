@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import type { FeedPost, ReactionCounts } from "@/types/feed";
 
 // =====================================================
@@ -28,14 +28,23 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const content = String(body?.content ?? "").trim();
 
-    if (!content) {
-      return new NextResponse("Post-Inhalt fehlt.", { status: 400 });
+    if (content.length < 2) {
+      return new NextResponse("Post content must be at least 2 characters.", {
+        status: 400,
+      });
+    }
+
+    if (content.length > 500) {
+      return new NextResponse(
+        "Post content must be 500 characters or fewer.",
+        { status: 400 }
+      );
     }
 
     const { data: insertedPost, error: insertError } = await supabase
@@ -51,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError || !insertedPost) {
       return new NextResponse(
-        insertError?.message ?? "Post konnte nicht erstellt werden.",
+        insertError?.message ?? "Post could not be created.",
         { status: 500 }
       );
     }
@@ -82,8 +91,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error(error);
-    return new NextResponse("Post konnte nicht erstellt werden.", {
+    return new NextResponse("Post could not be created.", {
       status: 500,
     });
   }
 }
+

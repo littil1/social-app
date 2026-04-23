@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import {
   PROFILE_BADGE_KEYS,
   type ProfileBadgeKey,
-} from "@/lib/profile-badges";
+} from "@/lib/badges/profile-badges";
 
 type RouteContext = {
   params: Promise<{ id: string }>;

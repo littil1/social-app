@@ -18,6 +18,19 @@ export type FeedPost = {
   can_delete: boolean;
   author_username: string | null;
   author_avatar_url: string | null;
+  relevance_score?: number;
+};
+
+export type FeedResponse = {
+  posts: FeedPost[];
+  hasMore: boolean;
+};
+
+export type HomeFeedData = {
+  topThreeToday: FeedPost[];
+  todayFeed: FeedPost[];
+  olderFeed: FeedPost[];
+  olderHasMore: boolean;
 };
 
 export type FeedCommentBadge = {
@@ -32,6 +45,8 @@ export type FeedComment = {
   id: number;
   content: string;
   created_at: string;
+  deleted_at: string | null;
+  is_deleted: boolean;
   parent_id: number | null;
   reactions_count: number;
   reaction_counts: ReactionCounts;

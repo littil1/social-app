@@ -1,27 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getFeedPage, FEED_PAGE_SIZE } from "@/lib/feed";
+import {
+  FEED_PAGE_SIZE,
+  MAX_FEED_PAGE_SIZE,
+  getOlderFeedPage,
+} from "@/lib/feed";
+
+function parsePaginationParam(value: string | null, fallback: number) {
+  if (value === null) {
+    return fallback;
+  }
+
+  if (!/^\d+$/.test(value)) {
+    return null;
+  }
+
+  return Number(value);
+}
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const offsetParam = searchParams.get("offset");
-    const limitParam = searchParams.get("limit");
+    const offset = parsePaginationParam(searchParams.get("offset"), 0);
+    const limit = parsePaginationParam(
+      searchParams.get("limit"),
+      FEED_PAGE_SIZE
+    );
 
-    const offset = Number(offsetParam ?? 0);
-    const limit = Number(limitParam ?? FEED_PAGE_SIZE);
-
-    if (!Number.isFinite(offset) || !Number.isFinite(limit)) {
-      return new NextResponse("Ungültige Pagination-Parameter.", {
+    if (
+      offset === null ||
+      limit === null ||
+      offset < 0 ||
+      limit < 1 ||
+      limit > MAX_FEED_PAGE_SIZE
+    ) {
+      return new NextResponse("Invalid pagination parameters.", {
         status: 400,
       });
     }
 
-    const posts = await getFeedPage(offset, limit);
-    return NextResponse.json(posts);
+    const feedPage = await getOlderFeedPage(offset, limit);
+    return NextResponse.json(feedPage);
   } catch (error) {
     console.error("GET /api/feed failed:", error);
-    return new NextResponse("Feed konnte nicht geladen werden.", {
+    return new NextResponse("Feed could not be loaded.", {
       status: 500,
     });
   }

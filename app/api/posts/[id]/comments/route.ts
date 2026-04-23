@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import type {
   FeedComment,
@@ -10,9 +10,8 @@ import type {
 import { recomputeUserBadgeFamilies } from "@/lib/badges";
 import { getUserBadges } from "@/lib/badges/getUserBadges";
 
-// =====================================================
-// Types
-// =====================================================
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -25,17 +24,13 @@ type CommentReactionRow =
 
 type CommentListRow = Pick<
   CommentRow,
-  "id" | "content" | "created_at" | "user_id" | "parent_id"
+  "id" | "content" | "created_at" | "user_id" | "parent_id" | "deleted_at"
 >;
 
 type CommentReactionListRow = Pick<
   CommentReactionRow,
   "comment_id" | "user_id" | "reaction"
 >;
-
-// =====================================================
-// Helpers
-// =====================================================
 
 function createEmptyReactionCounts(): ReactionCounts {
   return {
@@ -51,10 +46,7 @@ function getReactionsCount(counts: ReactionCounts) {
 }
 
 function toFeedCommentBadges(
-  badges: Awaited<ReturnType<typeof getUserBadges>> extends Map<
-    string,
-    infer T
-  >
+  badges: Awaited<ReturnType<typeof getUserBadges>> extends Map<string, infer T>
     ? T
     : never
 ): FeedCommentBadge[] {
@@ -67,9 +59,28 @@ function toFeedCommentBadges(
   }));
 }
 
-// =====================================================
-// GET
-// =====================================================
+function normalizeDeletedComment(comment: FeedComment): FeedComment {
+  if (!comment.deleted_at && !comment.is_deleted) {
+    return comment;
+  }
+
+  return {
+    ...comment,
+    content: "",
+    deleted_at: comment.deleted_at ?? new Date(0).toISOString(),
+    is_deleted: true,
+    reactions_count: 0,
+    reaction_counts: createEmptyReactionCounts(),
+    viewer_reaction: null,
+    can_delete: false,
+  };
+}
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+  Pragma: "no-cache",
+  Expires: "0",
+};
 
 export async function GET(_: NextRequest, context: RouteContext) {
   try {
@@ -77,7 +88,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
     const postId = Number(id);
 
     if (!Number.isFinite(postId)) {
-      return new NextResponse("Ungültige Post-ID.", { status: 400 });
+      return new NextResponse("Invalid post id.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -104,7 +115,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
 
     const { data, error } = await supabase
       .from("comments")
-      .select("id, content, created_at, user_id, parent_id")
+      .select("id, content, created_at, user_id, parent_id, deleted_at")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
 
@@ -178,47 +189,50 @@ export async function GET(_: NextRequest, context: RouteContext) {
     const comments: FeedComment[] = commentRows.map((comment) => {
       const profile =
         comment.user_id ? profilesById.get(comment.user_id) ?? null : null;
+      const isDeleted = !!comment.deleted_at;
 
-      const reactionCounts =
-        reactionCountsByCommentId.get(comment.id) ?? createEmptyReactionCounts();
+      const reactionCounts = isDeleted
+        ? createEmptyReactionCounts()
+        : reactionCountsByCommentId.get(comment.id) ?? createEmptyReactionCounts();
 
       const authorBadges = comment.user_id
         ? toFeedCommentBadges(badgesMap.get(comment.user_id) ?? [])
         : [];
 
-      return {
+      return normalizeDeletedComment({
         id: comment.id,
-        content: comment.content,
+        content: isDeleted ? "" : comment.content,
         created_at: comment.created_at,
+        deleted_at: comment.deleted_at ?? null,
+        is_deleted: isDeleted,
         parent_id: comment.parent_id ?? null,
-        reactions_count: getReactionsCount(reactionCounts),
+        reactions_count: isDeleted ? 0 : getReactionsCount(reactionCounts),
         reaction_counts: reactionCounts,
-        viewer_reaction: viewerReactionByCommentId.get(comment.id) ?? null,
-        can_delete: !!user && (comment.user_id === user.id || viewerIsAdmin),
+        viewer_reaction: isDeleted
+          ? null
+          : viewerReactionByCommentId.get(comment.id) ?? null,
+        can_delete:
+          !isDeleted &&
+          !!user &&
+          (comment.user_id === user.id || viewerIsAdmin),
         author_username: profile?.username ?? null,
         author_avatar_url: profile?.avatar_url ?? null,
-
-        // Legacy safe
         author_hall_of_fame_count: 0,
         author_hall_of_fame_categories: [],
-
-        // New badge system
         author_badges: authorBadges,
-      };
+      });
     });
 
-    return NextResponse.json(comments);
+    return NextResponse.json(comments, {
+      headers: NO_STORE_HEADERS,
+    });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Kommentare konnten nicht geladen werden.", {
+    return new NextResponse("Comments could not be loaded.", {
       status: 500,
     });
   }
 }
-
-// =====================================================
-// POST
-// =====================================================
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
@@ -226,7 +240,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const postId = Number(id);
 
     if (!Number.isFinite(postId)) {
-      return new NextResponse("Ungültige Post-ID.", { status: 400 });
+      return new NextResponse("Invalid post id.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -236,10 +250,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const content = String(body?.content ?? "").trim();
     const rawParentId = body?.parentId;
 
@@ -253,7 +267,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const parsedParentId = Number(rawParentId);
 
       if (!Number.isFinite(parsedParentId)) {
-        return new NextResponse("Ungültige Parent-Kommentar-ID.", {
+        return new NextResponse("Invalid parent comment id.", {
           status: 400,
         });
       }
@@ -262,11 +276,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     if (!content) {
-      return new NextResponse("Kommentar-Inhalt fehlt.", { status: 400 });
+      return new NextResponse("Comment content is required.", { status: 400 });
     }
 
     if (content.length > 200) {
-      return new NextResponse("Kommentar ist zu lang.", { status: 400 });
+      return new NextResponse("Comment must be 200 characters or fewer.", {
+        status: 400,
+      });
     }
 
     if (parentId !== null) {
@@ -282,7 +298,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
       if (!parentComment || parentComment.post_id !== postId) {
         return new NextResponse(
-          "Antwort kann nur auf einen Kommentar dieses Posts erstellt werden.",
+          "Replies can only be created for comments on this post.",
           { status: 400 }
         );
       }
@@ -299,7 +315,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     if (!postData) {
-      return new NextResponse("Post nicht gefunden.", { status: 404 });
+      return new NextResponse("Post not found.", { status: 404 });
     }
 
     const { data: insertedComment, error: insertError } = await supabase
@@ -310,12 +326,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
         content,
         parent_id: parentId,
       })
-      .select("id, content, created_at, user_id, parent_id")
+      .select("id, content, created_at, user_id, parent_id, deleted_at")
       .single();
 
     if (insertError || !insertedComment) {
       return new NextResponse(
-        insertError?.message ?? "Kommentar konnte nicht erstellt werden.",
+        insertError?.message ?? "Comment could not be created.",
         {
           status: 500,
         }
@@ -339,6 +355,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       id: insertedComment.id,
       content: insertedComment.content,
       created_at: insertedComment.created_at,
+      deleted_at: insertedComment.deleted_at ?? null,
+      is_deleted: false,
       parent_id: insertedComment.parent_id ?? null,
       reactions_count: 0,
       reaction_counts: createEmptyReactionCounts(),
@@ -346,30 +364,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
       can_delete: true,
       author_username: profileData?.username ?? null,
       author_avatar_url: profileData?.avatar_url ?? null,
-
-      // New badge system
       author_badges: authorBadges,
-
-      // Legacy safe
       author_hall_of_fame_count: 0,
       author_hall_of_fame_categories: [],
     };
 
-    await recomputeUserBadgeFamilies(supabase as any, user.id, [
-      "top_commentator",
-    ]);
+    await recomputeUserBadgeFamilies(supabase, user.id, ["top_commentator"]);
 
     if (postData.user_id) {
-      await recomputeUserBadgeFamilies(supabase as any, postData.user_id, [
+      await recomputeUserBadgeFamilies(supabase, postData.user_id, [
         "most_discussed",
       ]);
     }
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: NO_STORE_HEADERS,
+    });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Kommentar konnte nicht gespeichert werden.", {
+    return new NextResponse("Comment could not be saved.", {
       status: 500,
     });
   }
 }
+

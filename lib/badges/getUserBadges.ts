@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import {
   mapBadgeToDisplay,
   type BadgeDefinitionRow,
   type UserBadgeRow,
   type UserBadgeDisplay,
-} from "@/lib/profile-badges";
+} from "@/lib/badges/profile-badges";
 
 export type GetUserBadgesOptions = {
   limitPerUser?: number;
@@ -97,3 +97,4 @@ export async function getUserBadges(
 
   return result;
 }
+

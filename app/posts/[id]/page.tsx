@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import NavBar from "@/app/components/layout/navbar";
-import SinglePostView from "@/app/components/posts/SinglePostView";
-import { resolvePostCommentCounts } from "@/lib/post-comment-counts";
-import { createClient } from "@/lib/supabase-server";
+import NavBar from "@/components/layout/navbar";
+import SinglePostView from "@/components/posts/SinglePostView";
+import { resolvePostCommentCounts } from "@/lib/comments/post-comment-counts";
+import { createClient } from "@/lib/supabase/server";
 import type { FeedPost, ReactionCounts, ReactionType } from "@/types/feed";
 
 export const dynamic = "force-dynamic";
@@ -203,3 +203,4 @@ export default async function PostDetailPage({ params }: PageProps) {
     </>
   );
 }
+

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAuthModal } from "@/app/components/auth/AuthModalProvider";
+import { useAuthModal } from "@/components/auth/AuthModalProvider";
 
 // =====================================================
 // Inner Component (mit useSearchParams)

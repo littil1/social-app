@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import AuthModalProvider from "@/app/components/auth/AuthModalProvider";
-import GlobalPostModal from "@/app/components/posts/GlobalPostModal";
-import { createClient } from "@/lib/supabase-server";
+import AuthModalProvider from "@/components/auth/AuthModalProvider";
+import GlobalPostModal from "@/components/posts/GlobalPostModal";
+import { createClient } from "@/lib/supabase/server";
 
 // =====================================================
 // Fonts

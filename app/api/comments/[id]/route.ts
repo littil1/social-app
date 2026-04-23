@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { recomputeUserBadgeFamilies } from "@/lib/badges";
 
@@ -10,7 +10,7 @@ type RouteContext = {
 type CommentRow = Database["public"]["Tables"]["comments"]["Row"];
 type CommentTreeRow = Pick<
   CommentRow,
-  "id" | "post_id" | "user_id" | "parent_id"
+  "id" | "post_id" | "user_id" | "parent_id" | "deleted_at"
 >;
 
 export async function DELETE(_: NextRequest, context: RouteContext) {
@@ -19,7 +19,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
     const commentId = Number(id);
 
     if (!Number.isFinite(commentId)) {
-      return new NextResponse("Ungültige Kommentar-ID.", { status: 400 });
+      return new NextResponse("Invalid comment id.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -29,7 +29,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     const { data: viewerProfile, error: viewerProfileError } = await supabase
@@ -46,7 +46,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
 
     const { data: commentData, error: commentError } = await supabase
       .from("comments")
-      .select("id, post_id, user_id, parent_id")
+      .select("id, post_id, user_id, parent_id, deleted_at")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -55,48 +55,69 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
     }
 
     if (!commentData) {
-      return new NextResponse("Kommentar nicht gefunden.", { status: 404 });
+      return NextResponse.json({ success: true });
     }
 
     const comment = commentData as CommentTreeRow;
 
     if (!viewerIsAdmin && comment.user_id !== user.id) {
-      return new NextResponse("Keine Berechtigung.", { status: 403 });
+      return new NextResponse("Forbidden.", { status: 403 });
     }
 
-    const { data: postAuthorData } = await supabase
+    if (comment.deleted_at) {
+      return NextResponse.json({ success: true });
+    }
+
+    const { data: postAuthorData, error: postAuthorError } = await supabase
       .from("posts")
       .select("user_id")
       .eq("id", comment.post_id)
       .maybeSingle();
 
+    if (postAuthorError) {
+      return new NextResponse(postAuthorError.message, { status: 500 });
+    }
+
     const postAuthorId = postAuthorData?.user_id ?? null;
+    const deletedAt = new Date().toISOString();
 
-    const { error: deleteError } = await supabase
+    const { data: updatedCommentData, error: updateError } = await supabase
       .from("comments")
-      .delete()
-      .eq("id", commentId);
+      .update({
+        deleted_at: deletedAt,
+        content: "",
+      })
+      .eq("id", commentId)
+      .select("id, deleted_at, content")
+      .maybeSingle();
 
-    if (deleteError) {
-      return new NextResponse(deleteError.message, { status: 500 });
+    if (updateError) {
+      console.log("UPDATE ERROR:", updateError);
+      return new NextResponse("Comment could not be deleted.", {
+        status: 500,
+      });
     }
 
     if (comment.user_id) {
-      await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+      await recomputeUserBadgeFamilies(supabase, comment.user_id, [
         "top_commentator",
       ]);
     }
 
     if (postAuthorId) {
-      await recomputeUserBadgeFamilies(supabase as any, postAuthorId, [
+      await recomputeUserBadgeFamilies(supabase, postAuthorId, [
         "most_discussed",
       ]);
     }
 
-    return new NextResponse("OK", { status: 200 });
+    return NextResponse.json({
+      success: true,
+      id: comment.id,
+      deletedAt,
+    });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Kommentar konnte nicht gelöscht werden.", {
+    return new NextResponse("Comment could not be deleted.", {
       status: 500,
     });
   }

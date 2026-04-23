@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 
 const ALLOWED_REPORT_STATUSES = [
   "open",
@@ -83,3 +83,4 @@ export async function updatePostReportReview(formData: FormData) {
 
   revalidatePath("/admin");
 }
+

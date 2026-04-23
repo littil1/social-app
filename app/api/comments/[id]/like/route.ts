@@ -1,21 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase-server";
+import { createClient } from "@/lib/supabase/server";
 import type { ReactionType } from "@/types/feed";
 import { recomputeUserBadgeFamilies } from "@/lib/badges";
-
-// =====================================================
-// Types
-// =====================================================
 
 type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
 const ALLOWED_REACTIONS: ReactionType[] = ["like", "funny", "wow", "fire"];
-
-// =====================================================
-// Helpers
-// =====================================================
 
 function isReactionType(value: unknown): value is ReactionType {
   return (
@@ -24,24 +16,20 @@ function isReactionType(value: unknown): value is ReactionType {
   );
 }
 
-// =====================================================
-// POST
-// =====================================================
-
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params;
     const commentId = Number(id);
 
     if (!Number.isFinite(commentId)) {
-      return new NextResponse("Ungültige Kommentar-ID.", { status: 400 });
+      return new NextResponse("Invalid comment id.", { status: 400 });
     }
 
     const body = await request.json().catch(() => null);
     const reaction = body?.reaction as ReactionType | null;
 
     if (reaction !== null && !isReactionType(reaction)) {
-      return new NextResponse("Ungültige Reaction.", { status: 400 });
+      return new NextResponse("Invalid reaction.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -51,12 +39,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     const { data: comment, error: commentError } = await supabase
       .from("comments")
-      .select("id, user_id")
+      .select("id, user_id, deleted_at")
       .eq("id", commentId)
       .maybeSingle();
 
@@ -65,7 +53,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     if (!comment) {
-      return new NextResponse("Kommentar nicht gefunden.", { status: 404 });
+      return new NextResponse("Comment not found.", { status: 404 });
+    }
+
+    if (comment.deleted_at) {
+      return new NextResponse("Deleted comments cannot be reacted to.", {
+        status: 409,
+      });
     }
 
     const { data: existingReaction, error: existingReactionError } =
@@ -81,12 +75,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     const recomputeBadges = async () => {
-      await recomputeUserBadgeFamilies(supabase as any, user.id, [
+      await recomputeUserBadgeFamilies(supabase, user.id, [
         "top_reactor",
       ]);
 
       if (comment.user_id) {
-        await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+        await recomputeUserBadgeFamilies(supabase, comment.user_id, [
           "most_reacted",
         ]);
       }
@@ -155,11 +149,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     });
   } catch (error) {
     console.error(error);
-    return new NextResponse(
-      "Kommentar-Reaction konnte nicht gespeichert werden.",
-      {
-        status: 500,
-      }
-    );
+    return new NextResponse("Comment reaction could not be saved.", {
+      status: 500,
+    });
   }
 }
+
