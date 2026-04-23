@@ -3,7 +3,6 @@ import type { Database } from "@/types/database";
 
 type PostCommentCountSource = {
   id: number;
-  comments_count: number | null;
 };
 
 type CommentRow = Pick<
