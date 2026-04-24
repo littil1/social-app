@@ -11,7 +11,7 @@ export async function DELETE(_: Request, context: RouteContext) {
     const postId = Number(id);
 
     if (!Number.isFinite(postId)) {
-      return new NextResponse("Ungültige Post-ID.", { status: 400 });
+      return new NextResponse("Invalid post ID.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -21,7 +21,7 @@ export async function DELETE(_: Request, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     // Post laden
@@ -32,7 +32,7 @@ export async function DELETE(_: Request, context: RouteContext) {
       .single();
 
     if (postError || !post) {
-      return new NextResponse("Post nicht gefunden.", { status: 404 });
+      return new NextResponse("Post not found.", { status: 404 });
     }
 
     // Admin prüfen
@@ -46,7 +46,7 @@ export async function DELETE(_: Request, context: RouteContext) {
     const isOwner = post.user_id === user.id;
 
     if (!isOwner && !isAdmin) {
-      return new NextResponse("Keine Berechtigung.", { status: 403 });
+      return new NextResponse("Forbidden.", { status: 403 });
     }
 
     // Kommentare löschen
@@ -68,7 +68,7 @@ export async function DELETE(_: Request, context: RouteContext) {
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Post konnte nicht gelöscht werden.", {
+    return new NextResponse("Post could not be deleted.", {
       status: 500,
     });
   }

@@ -32,14 +32,14 @@ export async function POST(request: Request, context: RouteContext) {
     const commentId = Number(id);
 
     if (!Number.isFinite(commentId)) {
-      return new NextResponse("Ungültige Kommentar-ID.", { status: 400 });
+      return new NextResponse("Invalid comment ID.", { status: 400 });
     }
 
     const body = await request.json().catch(() => null);
     const reaction = body?.reaction;
 
     if (!isReactionType(reaction)) {
-      return new NextResponse("Ungültige Reaction.", { status: 400 });
+      return new NextResponse("Invalid reaction.", { status: 400 });
     }
 
     const { data: comment, error: commentError } = await supabase
@@ -53,7 +53,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (!comment) {
-      return new NextResponse("Kommentar nicht gefunden.", { status: 404 });
+      return new NextResponse("Comment not found.", { status: 404 });
     }
 
     const { data: existingReaction, error: existingReactionError } = await supabase
@@ -142,7 +142,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ success: true, viewer_reaction: reaction });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Unbekannter Fehler.";
+      error instanceof Error ? error.message : "Unknown error.";
     return new NextResponse(message, { status: 500 });
   }
 }

@@ -107,6 +107,7 @@ export default async function HallOfFamePage() {
   );
   const winnerPostIds = Array.from(new Set(winnerRows.map((item) => item.post_id)));
   const currentCommentsCountByPostId = new Map<number, number>();
+  const authorUsernameById = new Map<string, string>();
 
   if (winnerPostIds.length > 0) {
     const { data: postsData, error: postsError } = await supabase
@@ -125,6 +126,31 @@ export default async function HallOfFamePage() {
 
     for (const [postId, count] of resolvedCounts.entries()) {
       currentCommentsCountByPostId.set(postId, count);
+    }
+  }
+
+  const winnerAuthorIds = Array.from(
+    new Set(
+      winnerRows
+        .map((item) => item.author_id)
+        .filter((authorId): authorId is string => typeof authorId === "string")
+    )
+  );
+
+  if (winnerAuthorIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", winnerAuthorIds);
+
+    if (profilesError) {
+      throw new Error(profilesError.message);
+    }
+
+    for (const profile of profilesData ?? []) {
+      if (profile.username) {
+        authorUsernameById.set(profile.id, profile.username);
+      }
     }
   }
 
@@ -148,7 +174,9 @@ export default async function HallOfFamePage() {
             currentCommentsCountByPostId.get(item.post_id) ??
             Math.max(0, Number(item.comments_count ?? 0)),
           relevance_score: Number(item.relevance_score ?? 0),
-          author_username: item.author_username ?? null,
+          author_username:
+            item.author_username ??
+            (item.author_id ? authorUsernameById.get(item.author_id) ?? null : null),
           reactions_count: countTotalReactions(reactionCounts),
           reaction_counts: reactionCounts,
           winner_date: item.winner_date,

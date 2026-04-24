@@ -45,11 +45,15 @@ execute function public.set_post_reports_updated_at();
 
 alter table public.post_reports enable row level security;
 
-create policy "authenticated users can insert post reports"
+drop policy if exists "authenticated_users_can_insert_post_reports" on public.post_reports;
+
+create policy "authenticated_users_can_insert_post_reports"
 on public.post_reports
 for insert
 to authenticated
 with check (auth.uid() = reporter_user_id);
+
+drop policy if exists "admins can select post reports" on public.post_reports;
 
 create policy "admins can select post reports"
 on public.post_reports
@@ -64,6 +68,7 @@ using (
   )
 );
 
+drop policy if exists "admins can update post reports" on public.post_reports;
 create policy "admins can update post reports"
 on public.post_reports
 for update

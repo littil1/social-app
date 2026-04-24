@@ -145,7 +145,7 @@ export default function CreatePostForm({
             {displayAvatarUrl ? (
               <img
                 src={displayAvatarUrl}
-                alt="Profilbild"
+                alt="Profile avatar"
                 className="h-full w-full object-cover"
               />
             ) : displayUsername ? (
@@ -168,8 +168,8 @@ export default function CreatePostForm({
               }}
               placeholder={
                 effectiveIsLoggedIn
-                  ? "What’s actually on your mind?"
-                  : "You need to be logged in to post"
+                  ? "What's actually on your mind?"
+                  : "Log in to post"
               }
               rows={4}
               disabled={loading}

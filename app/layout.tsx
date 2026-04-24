@@ -68,7 +68,7 @@ export default async function RootLayout({
           {/* Padding-Bottom (pb-32):
               Wichtig für die Floating NavBar. 
           */}
-          <main className="pb-32">
+          <main className="pb-28 sm:pb-32">
             {children}
           </main>
 

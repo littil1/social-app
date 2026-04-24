@@ -35,7 +35,7 @@ export default function FollowButton({
             : "bg-black text-white hover:opacity-90"
         }`}
       >
-        {isFollowing ? "Gefolgt" : "Folgen"}
+        {isFollowing ? "Following" : "Follow"}
       </button>
     </form>
   );

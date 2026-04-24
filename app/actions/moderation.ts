@@ -26,7 +26,7 @@ async function requireAdmin() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Nicht eingeloggt.");
+    throw new Error("Not signed in.");
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -40,7 +40,7 @@ async function requireAdmin() {
   }
 
   if (!profile?.is_admin) {
-    throw new Error("Keine Berechtigung.");
+    throw new Error("Forbidden.");
   }
 
   return { supabase, reviewerId: user.id };
@@ -58,11 +58,11 @@ export async function updatePostReportReview(formData: FormData) {
       : "";
 
   if (!reportId) {
-    throw new Error("Ungültige Report-ID.");
+    throw new Error("Invalid report ID.");
   }
 
   if (!isReportStatus(status)) {
-    throw new Error("Ungültiger Status.");
+    throw new Error("Invalid status.");
   }
 
   const { supabase, reviewerId } = await requireAdmin();

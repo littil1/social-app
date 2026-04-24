@@ -187,13 +187,13 @@ export default async function PostDetailPage({ params }: PageProps) {
         {!user && (
           <div className="mb-6 rounded-xl bg-white p-4 shadow">
             <p className="mb-3 text-gray-700">
-              Du musst eingeloggt sein, um zu interagieren.
+              You need to be signed in to interact.
             </p>
             <Link
               href="/login"
               className="inline-block rounded-lg bg-black px-4 py-2 text-white"
             >
-              Anmelden / Registrieren
+              Sign In / Register
             </Link>
           </div>
         )}

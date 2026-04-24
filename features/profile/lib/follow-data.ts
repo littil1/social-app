@@ -131,13 +131,3 @@ export async function getFollowingList(
     .filter(Boolean) as ProfileSummary[];
 }
 
-export async function getFollowingIds(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("follows")
-    .select("following_id")
-    .eq("follower_id", userId);
-
-  if (error) throw new Error(error.message);
-
-  return (data ?? []).map((row: any) => row.following_id as string);
-}

@@ -97,7 +97,7 @@ export default function HallOfFameFrozenPostCard({
             Hall of Fame
           </p>
           <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-950">
-            {archiveLabel ?? "Tagessieger"}
+            {archiveLabel ?? "Daily winner"}
           </h3>
         </div>
 

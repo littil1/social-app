@@ -18,10 +18,10 @@ function formatRemaining(ms: number) {
 }
 
 function formatUpdatedAgo(secondsAgo: number) {
-  if (secondsAgo < 5) return "gerade eben";
-  if (secondsAgo < 60) return `vor ${secondsAgo} Sek.`;
+  if (secondsAgo < 5) return "just now";
+  if (secondsAgo < 60) return `${secondsAgo}s ago`;
   const minutes = Math.floor(secondsAgo / 60);
-  return `vor ${minutes} Min.`;
+  return `${minutes}m ago`;
 }
 
 function shouldPauseAutoRefresh() {
@@ -104,21 +104,15 @@ export default function LeaderboardLiveHeader({
     if (!mounted || now === null) return 0;
 
     const midnight = getNextZurichMidnight().getTime();
-    const start = midnight - 86400000;
-
-    const total = midnight - start;
-    const elapsed = now - start;
-
-    if (total <= 0) return 0;
-
-    const value = (elapsed / total) * 100;
+    const remainingMs = Math.max(0, midnight - now);
+    const value = (remainingMs / 86400000) * 100;
 
     return Math.min(100, Math.max(0, value));
   }, [mounted, now]);
   // ==========================================================
 
   const updatedAgo = useMemo(() => {
-    if (!mounted || now === null || lastRefreshAt === null) return "gerade eben";
+    if (!mounted || now === null || lastRefreshAt === null) return "just now";
 
     const secondsAgo = Math.max(0, Math.floor((now - lastRefreshAt) / 1000));
     return formatUpdatedAgo(secondsAgo);
@@ -177,9 +171,7 @@ export default function LeaderboardLiveHeader({
               disabled={refreshing || autoRefreshing}
               className="rounded-full border border-white/70 bg-white/85 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {refreshing || autoRefreshing
-                ? "Refreshing ..."
-                : "Refresh"}
+              {refreshing || autoRefreshing ? "Refreshing..." : "Refresh"}
             </button>
           </div>
         </div>
@@ -191,9 +183,6 @@ export default function LeaderboardLiveHeader({
             </p>
             <p className="mt-2 text-3xl font-bold tracking-tight text-gray-950 sm:text-4xl">
               {remaining}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Claim the crown.
             </p>
 
             <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-neutral-200">

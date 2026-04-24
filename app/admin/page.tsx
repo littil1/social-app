@@ -87,7 +87,7 @@ type CommentPreviewRow = {
 };
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("de-CH", {
+  return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -149,10 +149,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               403
             </p>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-neutral-950">
-              Kein Zugriff auf das Admin-Panel
+              No access to the admin panel
             </h1>
             <p className="mt-3 text-sm font-medium text-neutral-600">
-              Dieser Bereich ist nur fuer Admins freigegeben.
+              This area is only available to admins.
             </p>
           </section>
         </main>
@@ -251,7 +251,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const moderationUnavailableReason = postReportsError
     ? isMissingPostReportsTableError(postReportsError.message)
-      ? "Die Tabelle post_reports ist in der Datenbank noch nicht verfuegbar. Fuehre zuerst die neue Migration aus."
+      ? "The post_reports table is not available in the database yet. Run the new migration first."
       : postReportsError.message
     : null;
 
@@ -400,7 +400,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               Users
             </p>
             <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
-              Nutzer suchen
+              Search users
             </h2>
           </div>
 
@@ -410,14 +410,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               type="text"
               name="q"
               defaultValue={searchQuery}
-              placeholder="Username suchen..."
+              placeholder="Search username..."
               className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
             />
             <button
               type="submit"
               className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-bold text-neutral-950 shadow-sm"
             >
-              Suchen
+              Search
             </button>
           </form>
         </div>
@@ -425,7 +425,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <div className="mt-6 grid gap-3">
           {users.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
-              Keine Nutzer fuer diese Suche gefunden.
+              No users found for this search.
             </div>
           ) : (
             users.map((profile) => {
@@ -454,8 +454,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                         isActive ? "text-white/70" : "text-neutral-500"
                       }`}
                     >
-                      {userBadgeCountMap.get(profile.id) ?? 0} Badges | Erstellt
-                      am {formatDateTime(profile.created_at)}
+                      {userBadgeCountMap.get(profile.id) ?? 0} badges | Created
+                      on {formatDateTime(profile.created_at)}
                     </p>
                   </div>
                   <span
@@ -463,7 +463,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       isActive ? "text-emerald-300" : "text-neutral-400"
                     }`}
                   >
-                    {isActive ? "Aktiv" : "Oeffnen"}
+                    {isActive ? "Active" : "Open"}
                   </span>
                 </Link>
               );
@@ -477,7 +477,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           User Detail
         </p>
         <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
-          Nutzerdetails
+          User Details
         </h2>
 
         {!selectedUser ? (
@@ -496,7 +496,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 </p>
                 <p>Status: {selectedUser.is_admin ? "Admin" : "User"}</p>
                 <p>
-                  Profil erstellt: {formatDateTime(selectedUser.created_at)}
+                  Profile created: {formatDateTime(selectedUser.created_at)}
                 </p>
               </div>
               <div className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-600">
@@ -521,8 +521,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 />
               </div>
               <p className="mt-4 text-xs text-neutral-500">
-                Optional kannst du einzelne Familien auswaehlen. Ohne Auswahl
-                wird ein vollstaendiger Recompute fuer den User ausgefuehrt.
+                Optionally select individual families. With no selection, a full
+                recompute is run for the user.
               </p>
             </section>
 
@@ -533,8 +533,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
               {selectedUserBadges.length === 0 ? (
                 <div className="mt-5 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
-                  Dieser Nutzer hat aktuell keine Badges aus dem zentralen
-                  System.
+                  This user currently has no badges from the central system.
                 </div>
               ) : (
                 <div className="mt-5 space-y-3">
@@ -558,7 +557,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                       <div className="mt-3 grid gap-2 text-sm text-neutral-600">
                         <p>
-                          Vergeben am:{" "}
+                          Awarded on:{" "}
                           <span className="font-medium text-neutral-950">
                             {formatDateTime(badge.awardedAt)}
                           </span>
@@ -597,13 +596,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ...Object.fromEntries(
           Array.from(reportedPostsMap.entries()).map(([id, post]) => [
             `post:${id}`,
-            post.content?.trim() || "Post nicht mehr verfuegbar.",
+            post.content?.trim() || "Post is no longer available.",
           ])
         ),
         ...Object.fromEntries(
           Array.from(reportedCommentsMap.entries()).map(([id, comment]) => [
             `comment:${id}`,
-            comment.content?.trim() || "Kommentar nicht mehr verfuegbar.",
+            comment.content?.trim() || "Comment is no longer available.",
           ])
         ),
       }}
@@ -622,7 +621,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         Definitions
       </p>
       <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
-        Badge-Definitionen
+        Badge Definitions
       </h2>
 
       <div className="mt-6 overflow-x-auto">
@@ -676,8 +675,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             Control Panel
           </h1>
           <p className="mt-3 max-w-3xl text-sm font-medium text-neutral-600">
-            Klare Oberflaeche fuer Moderation, Nutzerdiagnose und
-            Badge-Management auf Basis der bestehenden Server-Helpers.
+            A clear surface for moderation, user diagnostics, and badge
+            management using the existing server helpers.
           </p>
         </section>
 

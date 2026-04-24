@@ -4,12 +4,12 @@ import { useState } from "react";
 
 const REPORT_REASONS = [
   { value: "spam", label: "Spam" },
-  { value: "harassment", label: "Belästigung" },
-  { value: "hate", label: "Hass / Diskriminierung" },
-  { value: "sexual", label: "Sexueller Inhalt" },
-  { value: "violence", label: "Gewalt / Bedrohung" },
-  { value: "misleading", label: "Irreführender Inhalt" },
-  { value: "other", label: "Sonstiges" },
+  { value: "harassment", label: "Harassment" },
+  { value: "hate", label: "Hate / discrimination" },
+  { value: "sexual", label: "Sexual content" },
+  { value: "violence", label: "Violence / threats" },
+  { value: "misleading", label: "Misleading content" },
+  { value: "other", label: "Other" },
 ] as const;
 
 type CommentReportButtonProps = {
@@ -54,13 +54,13 @@ export default function CommentReportButton({
           setOpen(false);
           setFeedback({
             tone: "success",
-            message: "Du hast diesen Kommentar bereits gemeldet.",
+            message: "You already reported this comment.",
           });
           return;
         }
 
         const message = await response.text();
-        throw new Error(message || "Kommentar konnte nicht gemeldet werden.");
+        throw new Error(message || "Comment could not be reported.");
       }
 
       setHasReported(true);
@@ -69,7 +69,7 @@ export default function CommentReportButton({
       setReason("spam");
       setFeedback({
         tone: "success",
-        message: "Kommentar wurde gemeldet.",
+        message: "Comment reported.",
       });
     } catch (error) {
       console.error(error);
@@ -78,7 +78,7 @@ export default function CommentReportButton({
         message:
           error instanceof Error
             ? error.message
-            : "Kommentar konnte nicht gemeldet werden.",
+            : "Comment could not be reported.",
       });
     } finally {
       setSubmitting(false);
@@ -95,10 +95,10 @@ export default function CommentReportButton({
           setOpen((prev) => !prev);
         }}
         disabled={hasReported}
-        className={`text-[10px] font-black uppercase tracking-[0.2em] transition ${
+        className={`text-[10px] font-black uppercase tracking-widest transition ${
           hasReported
             ? "cursor-default text-emerald-600"
-            : "text-neutral-400 hover:text-amber-600"
+            : "text-neutral-300 hover:text-amber-600"
         }`}
       >
         {hasReported ? "Reported" : "Report"}
@@ -118,10 +118,10 @@ export default function CommentReportButton({
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-neutral-950/40 px-4">
           <div className="w-full max-w-md rounded-[32px] border border-neutral-200 bg-white p-5 shadow-2xl">
             <p className="text-sm font-black text-neutral-950">
-              Kommentar melden
+              Report comment
             </p>
             <p className="mt-1 text-xs text-neutral-500">
-              Melde problematische Kommentare direkt an das Admin-Team.
+              Send problematic comments straight to the admin team.
             </p>
 
             <div className="mt-4 space-y-3">
@@ -147,7 +147,7 @@ export default function CommentReportButton({
                 onChange={(event) => setDetails(event.target.value)}
                 maxLength={1000}
                 rows={4}
-                placeholder="Optionale Details"
+                placeholder="Optional details"
                 disabled={submitting}
                 className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
               />
@@ -162,7 +162,7 @@ export default function CommentReportButton({
                   disabled={submitting}
                   className="rounded-2xl border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -170,7 +170,7 @@ export default function CommentReportButton({
                   disabled={submitting}
                   className="rounded-2xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
                 >
-                  {submitting ? "Sende..." : "Melden"}
+                  {submitting ? "Sending..." : "Report"}
                 </button>
               </div>
             </div>

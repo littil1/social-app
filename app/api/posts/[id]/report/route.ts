@@ -34,7 +34,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const postId = Number(id);
 
     if (!Number.isFinite(postId)) {
-      return new NextResponse("Ungültige Post-ID.", { status: 400 });
+      return new NextResponse("Invalid post ID.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     const body = await request.json().catch(() => null);
@@ -53,11 +53,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
       typeof body?.details === "string" ? body.details.trim() : "";
 
     if (!isReportReason(reason)) {
-      return new NextResponse("Ungültiger Report-Grund.", { status: 400 });
+      return new NextResponse("Invalid report reason.", { status: 400 });
     }
 
     if (details.length > 1000) {
-      return new NextResponse("Details sind zu lang.", { status: 400 });
+      return new NextResponse("Details are too long.", { status: 400 });
     }
 
     const { data: post, error: postError } = await supabase
@@ -71,11 +71,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     if (!post) {
-      return new NextResponse("Post nicht gefunden.", { status: 404 });
+      return new NextResponse("Post not found.", { status: 404 });
     }
 
     if (post.user_id === user.id) {
-      return new NextResponse("Eigene Posts können nicht gemeldet werden.", {
+      return new NextResponse("You cannot report your own posts.", {
         status: 400,
       });
     }
@@ -91,14 +91,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (insertError) {
       if (insertError.code === "23505") {
-        return new NextResponse("Du hast diesen Post bereits gemeldet.", {
+        return new NextResponse("You already reported this post.", {
           status: 409,
         });
       }
 
       if (isMissingPostReportsTableError(insertError.message)) {
         return new NextResponse(
-          "Die Report-Funktion ist gerade noch nicht verfuegbar. Bitte versuche es in Kuerze erneut.",
+          "Reporting is not available yet. Please try again shortly.",
           { status: 503 }
         );
       }
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Post konnte nicht gemeldet werden.", {
+    return new NextResponse("Post could not be reported.", {
       status: 500,
     });
   }

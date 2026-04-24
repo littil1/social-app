@@ -43,7 +43,7 @@ export default async function VibePage() {
 
       <div className="relative mx-auto max-w-5xl px-6 py-12 lg:py-20">
         {/* Header Section */}
-        <section className="mb-32 text-center">
+        <section className="mb-24 text-center sm:mb-32">
           <span className="inline-flex rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 shadow-sm">
             The Vibe
           </span>
@@ -55,13 +55,13 @@ export default async function VibePage() {
           </h1>
 
           <p className="mx-auto mt-10 max-w-2xl text-lg font-medium leading-relaxed text-neutral-500">
-            Great ideas shouldn't need a following to go viral.
+            Great ideas shouldn&apos;t need a following to go viral.
+            We built A Perfect Place to give you the stage you deserve.
             On APP, your content is the only thing that matters.
-            We built this platform to give you the stage you deserve.
-            Post anonymously, let your content speak for itself, and prove what you've got.
+            Post anonymously, let your content speak for itself, and prove what you&apos;ve got.
             Only the daily winner is revealed and immortalized forever.
             <br />
-            <span className="font-black"> Your talent, your stage. </span>
+            <span className="font-black text-neutral-950">Your talent. Your stage.</span>
           </p>
         </section>
 
@@ -75,7 +75,7 @@ export default async function VibePage() {
           <FeatureCard
             badge="02"
             title="Win the Day"
-            text="Our live-ranked feed ensures the best content rises to the top. Every 24 hours, the clock resets – giving everyone a fresh shot at the title."
+            text="Our live-ranked feed ensures the best content rises to the top. Every 24 hours, the clock resets, giving everyone a fresh shot at the title."
           />
           <FeatureCard
             badge="03"
@@ -85,7 +85,7 @@ export default async function VibePage() {
         </div>
 
         {/* The Reward Section */}
-        <section className="mt-24 rounded-[40px] border border-neutral-200 bg-white p-8 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)] sm:p-16">
+        <section className="mt-20 rounded-[40px] border border-neutral-200 bg-white p-8 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)] sm:mt-24 sm:p-16">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <span className="text-xs font-bold uppercase tracking-widest text-amber-600">
@@ -140,7 +140,7 @@ export default async function VibePage() {
         </section>
 
         {/* How APP Works */}
-        <section className="mt-24 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+        <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] sm:mt-24">
           <div className="rounded-[32px] border border-neutral-200 bg-white p-10 shadow-sm">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">
               How A Perfect Place (APP) works
@@ -221,7 +221,7 @@ export default async function VibePage() {
                     Humor with punch
                   </p>
                   <p className="text-sm text-neutral-500">
-                    Funny posts can rise too — if people genuinely react to
+                    Funny posts can rise too if people genuinely react to
                     them.
                   </p>
                 </div>
@@ -288,9 +288,9 @@ export default async function VibePage() {
         </section>
 
         {/* Final CTA */}
-        <section className="mt-32 pb-20 text-center">
+        <section className="mt-24 pb-24 text-center sm:mt-32 sm:pb-20">
           <h2 className="text-[8vw] font-black tracking-tight text-neutral-950 sm:text-[5vw] lg:text-5xl">
-            Welcome to APP <span className="block sm:inline">— A Perfect Place</span>
+            Welcome to APP <span className="block sm:inline">- A Perfect Place</span>
           </h2>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg font-medium leading-relaxed text-neutral-500">

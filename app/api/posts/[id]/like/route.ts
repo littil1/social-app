@@ -23,14 +23,14 @@ export async function POST(request: Request, context: RouteContext) {
     const postId = Number(id);
 
     if (!Number.isFinite(postId)) {
-      return new NextResponse("Ungültige Post-ID.", { status: 400 });
+      return new NextResponse("Invalid post ID.", { status: 400 });
     }
 
     const body = await request.json().catch(() => null);
     const reaction = body?.reaction as ReactionType | null;
 
     if (reaction !== null && !isReactionType(reaction)) {
-      return new NextResponse("Ungültige Reaction.", { status: 400 });
+      return new NextResponse("Invalid reaction.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -40,7 +40,7 @@ export async function POST(request: Request, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     const { data: post, error: postError } = await supabase
@@ -54,7 +54,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (!post) {
-      return new NextResponse("Post nicht gefunden.", { status: 404 });
+      return new NextResponse("Post not found.", { status: 404 });
     }
 
     const { data: existingReaction, error: existingReactionError } =
@@ -117,7 +117,6 @@ export async function POST(request: Request, context: RouteContext) {
       await recomputeBadges();
 
       revalidatePath("/");
-      revalidatePath("/explore");
       if (authorUsername) {
         revalidatePath(`/u/${authorUsername}`);
       }
@@ -141,7 +140,6 @@ export async function POST(request: Request, context: RouteContext) {
       await recomputeBadges();
 
       revalidatePath("/");
-      revalidatePath("/explore");
       if (authorUsername) {
         revalidatePath(`/u/${authorUsername}`);
       }
@@ -165,7 +163,6 @@ export async function POST(request: Request, context: RouteContext) {
     await recomputeBadges();
 
     revalidatePath("/");
-    revalidatePath("/explore");
     if (authorUsername) {
       revalidatePath(`/u/${authorUsername}`);
     }
@@ -176,7 +173,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Reaction konnte nicht gespeichert werden.", {
+    return new NextResponse("Reaction could not be saved.", {
       status: 500,
     });
   }

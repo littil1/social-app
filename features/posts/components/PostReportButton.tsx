@@ -4,12 +4,12 @@ import { useState } from "react";
 
 const REPORT_REASONS = [
   { value: "spam", label: "Spam" },
-  { value: "harassment", label: "Belästigung" },
-  { value: "hate", label: "Hass / Diskriminierung" },
-  { value: "sexual", label: "Sexueller Inhalt" },
-  { value: "violence", label: "Gewalt / Bedrohung" },
-  { value: "misleading", label: "Irreführender Inhalt" },
-  { value: "other", label: "Sonstiges" },
+  { value: "harassment", label: "Harassment" },
+  { value: "hate", label: "Hate / discrimination" },
+  { value: "sexual", label: "Sexual content" },
+  { value: "violence", label: "Violence / threats" },
+  { value: "misleading", label: "Misleading content" },
+  { value: "other", label: "Other" },
 ] as const;
 
 type PostReportButtonProps = {
@@ -52,13 +52,13 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
           setOpen(false);
           setFeedback({
             tone: "success",
-            message: "Du hast diesen Post bereits gemeldet.",
+            message: "You already reported this post.",
           });
           return;
         }
 
         const message = await response.text();
-        throw new Error(message || "Report konnte nicht erstellt werden.");
+        throw new Error(message || "Post could not be reported.");
       }
 
       setHasReported(true);
@@ -67,7 +67,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
       setReason("spam");
       setFeedback({
         tone: "success",
-        message: "Post wurde gemeldet.",
+        message: "Post reported.",
       });
     } catch (error) {
       console.error(error);
@@ -76,7 +76,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
         message:
           error instanceof Error
             ? error.message
-            : "Post konnte nicht gemeldet werden.",
+            : "Post could not be reported.",
       });
     } finally {
       setSubmitting(false);
@@ -115,9 +115,9 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
       {open && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-neutral-950/40 px-4">
           <div className="w-full max-w-md rounded-[32px] border border-neutral-200 bg-white p-5 shadow-2xl">
-            <p className="text-sm font-black text-neutral-950">Post melden</p>
+            <p className="text-sm font-black text-neutral-950">Report post</p>
             <p className="mt-1 text-xs text-neutral-500">
-              Melde problematische Inhalte direkt an das Admin-Team.
+              Send problematic content straight to the admin team.
             </p>
 
             <div className="mt-4 space-y-3">
@@ -143,7 +143,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
                 onChange={(event) => setDetails(event.target.value)}
                 maxLength={1000}
                 rows={4}
-                placeholder="Optionale Details"
+                placeholder="Optional details"
                 disabled={submitting}
                 className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
               />
@@ -158,7 +158,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
                   disabled={submitting}
                   className="rounded-2xl border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600"
                 >
-                  Abbrechen
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -166,7 +166,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
                   disabled={submitting}
                   className="rounded-2xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
                 >
-                  {submitting ? "Sende..." : "Melden"}
+                  {submitting ? "Sending..." : "Report"}
                 </button>
               </div>
             </div>

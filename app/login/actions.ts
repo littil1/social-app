@@ -26,7 +26,7 @@ export async function loginAction(
 
   if (!email || !password) {
     return {
-      error: "Bitte E-Mail und Passwort eingeben.",
+      error: "Please enter your email and password.",
       success: null,
     };
   }
@@ -38,7 +38,7 @@ export async function loginAction(
 
   if (error) {
     return {
-      error: "Anmeldung fehlgeschlagen. Bitte Eingaben prüfen.",
+      error: "Login failed. Please check your details.",
       success: null,
     };
   }
@@ -60,14 +60,14 @@ export async function signupAction(
 
   if (!email || !password) {
     return {
-      error: "Bitte E-Mail und Passwort eingeben.",
+      error: "Please enter your email and password.",
       success: null,
     };
   }
 
   if (password.length < 6) {
     return {
-      error: "Das Passwort muss mindestens 6 Zeichen lang sein.",
+      error: "Password must be at least 6 characters.",
       success: null,
     };
   }
@@ -79,7 +79,7 @@ export async function signupAction(
 
   if (error) {
     return {
-      error: "Registrierung fehlgeschlagen. Bitte Eingaben prüfen.",
+      error: "Sign up failed. Please check your details.",
       success: null,
     };
   }
@@ -94,6 +94,6 @@ export async function signupAction(
   return {
     error: null,
     success:
-      "Account erstellt. Bitte bestätige deine E-Mail und melde dich danach an.",
+      "Account created. Please confirm your email, then sign in.",
   };
 }

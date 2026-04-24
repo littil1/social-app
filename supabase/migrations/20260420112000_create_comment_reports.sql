@@ -45,11 +45,15 @@ execute function public.set_comment_reports_updated_at();
 
 alter table public.comment_reports enable row level security;
 
+drop policy if exists "authenticated users can insert comment reports" on public.comment_reports;
+
 create policy "authenticated users can insert comment reports"
 on public.comment_reports
 for insert
 to authenticated
 with check (auth.uid() = reporter_user_id);
+
+drop policy if exists "admins can select comment reports" on public.comment_reports;
 
 create policy "admins can select comment reports"
 on public.comment_reports
@@ -63,6 +67,8 @@ using (
       and profiles.is_admin = true
   )
 );
+
+drop policy if exists "admins can update comment reports" on public.comment_reports;
 
 create policy "admins can update comment reports"
 on public.comment_reports

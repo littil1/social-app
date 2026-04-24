@@ -31,7 +31,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const reportId = id?.trim();
 
     if (!reportId) {
-      return new NextResponse("Ungültige Report-ID.", { status: 400 });
+      return new NextResponse("Invalid report ID.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -40,7 +40,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -54,7 +54,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (!profile?.is_admin) {
-      return new NextResponse("Keine Berechtigung.", { status: 403 });
+      return new NextResponse("Forbidden.", { status: 403 });
     }
 
     const body = await request.json().catch(() => null);
@@ -63,7 +63,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       typeof body?.admin_note === "string" ? body.admin_note.trim() : "";
 
     if (!isReportStatus(status)) {
-      return new NextResponse("Ungültiger Status.", { status: 400 });
+      return new NextResponse("Invalid status.", { status: 400 });
     }
 
     const { data, error } = await supabase
@@ -81,7 +81,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (error) {
       if (isMissingPostReportsTableError(error.message)) {
         return new NextResponse(
-          "Die Reports-Tabelle ist noch nicht verfuegbar. Fuehre zuerst die Migration aus.",
+          "The reports table is not available yet. Run the migration first.",
           { status: 503 }
         );
       }
@@ -90,7 +90,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (!data) {
-      return new NextResponse("Report nicht gefunden.", { status: 404 });
+      return new NextResponse("Report not found.", { status: 404 });
     }
 
     return NextResponse.json({
@@ -113,7 +113,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Report konnte nicht aktualisiert werden.", {
+    return new NextResponse("Report could not be updated.", {
       status: 500,
     });
   }

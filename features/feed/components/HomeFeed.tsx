@@ -239,7 +239,7 @@ export default function HomeFeed({
   }, [todaysPostsCount, olderFeed.length, showOlderPosts]);
 
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (!showOlderPosts || loadingMore || !hasMore) return;
 
     setLoadingMore(true);
 
@@ -258,9 +258,11 @@ export default function HomeFeed({
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, offset, pageSize]);
+  }, [hasMore, loadingMore, offset, pageSize, showOlderPosts]);
 
   useEffect(() => {
+    if (!showOlderPosts || !hasMore) return;
+
     const element = sentinelRef.current;
     if (!element) return;
 
@@ -274,7 +276,7 @@ export default function HomeFeed({
     observer.observe(element);
 
     return () => observer.disconnect();
-  }, [loadMore]);
+  }, [hasMore, loadMore, showOlderPosts]);
 
   const handleReactionUpdated = useCallback(
     (postId: number, nextReaction: ReactionType | null) => {
@@ -435,6 +437,13 @@ export default function HomeFeed({
               />
             ))}
           </div>
+
+          {loadingMore && hasMore && (
+            <div className="flex items-center justify-center gap-2 py-4 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-neutral-300" />
+              Loading more posts
+            </div>
+          )}
         </section>
       )}
 
@@ -458,7 +467,7 @@ export default function HomeFeed({
         </div>
       )}
 
-      <div ref={sentinelRef} className="h-10" />
+      <div ref={sentinelRef} className="h-6 sm:h-10" />
     </div>
   );
 }

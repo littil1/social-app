@@ -63,7 +63,7 @@ export default function HallOfFameWinnersCarousel({
           type="button"
           onClick={() => scrollByDirection("left")}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-lg text-gray-800 shadow-sm transition hover:bg-gray-50"
-          aria-label="Nach links scrollen"
+          aria-label="Scroll left"
         >
           ←
         </button>
@@ -72,7 +72,7 @@ export default function HallOfFameWinnersCarousel({
           type="button"
           onClick={() => scrollByDirection("right")}
           className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-lg text-gray-800 shadow-sm transition hover:bg-gray-50"
-          aria-label="Nach rechts scrollen"
+          aria-label="Scroll right"
         >
           →
         </button>
@@ -91,7 +91,7 @@ export default function HallOfFameWinnersCarousel({
               <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                    Tagessieger
+                    Daily winner
                   </p>
                   <h3 className="mt-2 text-xl font-bold tracking-tight text-gray-950">
                     {entry.dayLabel}
@@ -105,7 +105,7 @@ export default function HallOfFameWinnersCarousel({
 
               <HallOfFameFrozenPostCard
                 post={entry.winner}
-                archiveLabel="Tagessieger"
+                archiveLabel="Daily winner"
                 variant="archive"
               />
             </section>

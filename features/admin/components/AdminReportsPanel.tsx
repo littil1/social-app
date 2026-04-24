@@ -74,7 +74,7 @@ const FILTER_OPTIONS: Array<{ value: ReportFilter; label: string }> = [
 ];
 
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("de-CH", {
+  return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -177,7 +177,7 @@ export default function AdminReportsPanel({
 
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || "Report konnte nicht aktualisiert werden.");
+        throw new Error(message || "Report could not be updated.");
       }
 
       const payload = (await response.json()) as { report: ModerationReport };
@@ -209,7 +209,7 @@ export default function AdminReportsPanel({
         message:
           error instanceof Error
             ? error.message
-            : "Report konnte nicht aktualisiert werden.",
+            : "Report could not be updated.",
       });
     } finally {
       setUpdatingReportId(null);
@@ -223,7 +223,7 @@ export default function AdminReportsPanel({
           Reports
         </p>
         <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
-          Moderations-Queue
+          Moderation Queue
         </h2>
 
         {!moderationReady ? (
@@ -257,7 +257,7 @@ export default function AdminReportsPanel({
               <div className="mt-6 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
                 {reports.length === 0
                   ? "No reports yet"
-                  : "Keine Reports fuer diesen Filter."}
+                  : "No reports for this filter."}
               </div>
             ) : (
               <div className="mt-6 grid gap-3">
@@ -268,7 +268,7 @@ export default function AdminReportsPanel({
                     usernamesById[report.reporter_user_id] ?? "unknown";
                   const targetPreview =
                     targetPreviewsByKey[getTargetKey(report)] ??
-                    "Inhalt nicht mehr verfuegbar.";
+                    "Content is no longer available.";
 
                   return (
                     <button
@@ -312,7 +312,7 @@ export default function AdminReportsPanel({
                               isActive ? "text-white/70" : "text-neutral-500"
                             }`}
                           >
-                            von @{reporterUsername} | {formatDateTime(report.created_at)}
+                            by @{reporterUsername} | {formatDateTime(report.created_at)}
                           </p>
                         </div>
                         <span
@@ -339,7 +339,7 @@ export default function AdminReportsPanel({
           Report Detail
         </p>
         <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
-          Moderationsdetails
+          Moderation Details
         </h2>
 
         {!moderationReady ? (
@@ -348,7 +348,7 @@ export default function AdminReportsPanel({
           </div>
         ) : !selectedReport ? (
           <div className="mt-6 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
-            Waehle links einen Report aus.
+            Select a report on the left.
           </div>
         ) : (
           <div className="mt-6 space-y-8">
@@ -363,7 +363,7 @@ export default function AdminReportsPanel({
                   {getTargetLabel(selectedReport.target_type)}
                 </span>
                 <span className="text-xs text-neutral-500">
-                  Gemeldet am {formatDateTime(selectedReport.created_at)}
+                  Reported on {formatDateTime(selectedReport.created_at)}
                 </span>
               </div>
 
@@ -379,11 +379,11 @@ export default function AdminReportsPanel({
                   <span className="font-medium text-neutral-950">
                     {selectedReport.owner_user_id
                       ? `@${usernamesById[selectedReport.owner_user_id] ?? "unknown"}`
-                      : "unbekannt"}
+                      : "unknown"}
                   </span>
                 </p>
                 <p>
-                  Reviewt von:{" "}
+                  Reviewed by:{" "}
                   <span className="font-medium text-neutral-950">
                     {selectedReport.reviewed_by
                       ? `@${usernamesById[selectedReport.reviewed_by] ?? "unknown"}`
@@ -391,7 +391,7 @@ export default function AdminReportsPanel({
                   </span>
                 </p>
                 <p>
-                  Review-Zeitpunkt:{" "}
+                  Review time:{" "}
                   <span className="font-medium text-neutral-950">
                     {selectedReport.reviewed_at
                       ? formatDateTime(selectedReport.reviewed_at)
@@ -407,7 +407,7 @@ export default function AdminReportsPanel({
               </p>
               <p className="mt-4 whitespace-pre-wrap break-words text-sm font-medium text-neutral-800">
                 {targetPreviewsByKey[getTargetKey(selectedReport)] ??
-                  "Inhalt nicht mehr verfuegbar."}
+                  "Content is no longer available."}
               </p>
               {selectedReport.post_id && (
                 <div className="mt-5">
@@ -415,7 +415,7 @@ export default function AdminReportsPanel({
                     href={`/posts/${selectedReport.post_id}`}
                     className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-950"
                   >
-                    Zum Post
+                    Open post
                   </Link>
                 </div>
               )}
@@ -484,7 +484,7 @@ export default function AdminReportsPanel({
                     }))
                   }
                   rows={4}
-                  placeholder="Interne Admin-Notiz"
+                  placeholder="Internal admin note"
                   disabled={updatingReportId === selectedReport.id}
                   className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none"
                 />
@@ -496,8 +496,8 @@ export default function AdminReportsPanel({
                   className="rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-60"
                 >
                   {updatingReportId === selectedReport.id
-                    ? "Speichert..."
-                    : "Status speichern"}
+                    ? "Saving..."
+                    : "Save status"}
                 </button>
               </div>
             </section>

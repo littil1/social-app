@@ -137,7 +137,6 @@ export async function updateProfile(
   }
 
   revalidatePath("/");
-  revalidatePath("/explore");
   revalidatePath("/settings/profile");
   revalidatePath(`/u/${username}`);
 

@@ -184,6 +184,12 @@ function CommentItem({
           </button>
         )}
 
+        {isLoggedIn && !node.can_delete && !node.is_deleted && (
+          <div className="absolute right-4 top-4">
+            <CommentReportButton commentId={node.id} />
+          </div>
+        )}
+
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-bold text-neutral-400 shadow-inner">
             {node.author_avatar_url ? (
@@ -277,10 +283,6 @@ function CommentItem({
                 >
                   Reply
                 </button>
-
-                {isLoggedIn && !node.can_delete && (
-                  <CommentReportButton commentId={node.id} />
-                )}
               </div>
             )}
 

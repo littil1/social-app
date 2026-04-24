@@ -87,7 +87,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
     const isActive = pathname === path;
 
     return [
-      "relative flex items-center gap-2 rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] transition-all duration-300 sm:px-6 sm:text-xs",
+      "relative flex h-12 flex-1 items-center justify-center overflow-hidden rounded-full text-[10px] font-black uppercase tracking-[0.12em] transition-all duration-300 sm:h-11 sm:w-28 sm:flex-none sm:text-xs sm:tracking-[0.15em]",
       isActive
         ? "bg-white text-neutral-950 shadow-lg"
         : "text-neutral-400 hover:bg-white/5 hover:text-white",
@@ -95,19 +95,29 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
   }
 
   return (
-    <nav className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 left-1/2 z-[60] w-full max-w-fit -translate-x-1/2 px-4 transition-all duration-500">
-      <div className="flex h-16 items-center gap-1 rounded-full border border-white/10 bg-neutral-950/90 p-2 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:gap-2">
-        <div className="flex items-center gap-1 sm:gap-2">
+    <nav className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-4 left-1/2 z-[60] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 px-2 transition-all duration-500 sm:bottom-6 sm:max-w-fit sm:px-4">
+      <div className="flex min-h-[4.5rem] w-full items-center gap-1 rounded-full border border-white/10 bg-neutral-950/90 p-2 shadow-[0_20px_50px_-15px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:h-16 sm:min-h-0 sm:w-auto sm:gap-2">
+        <div className="flex min-w-0 flex-1 items-center justify-between sm:flex-none sm:gap-2">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={getLinkClass(item.href)}
             >
-              <span className="text-sm sm:text-base">{item.icon}</span>
-              <span className={pathname === item.href ? "block" : "hidden md:block"}>
-                {item.name}
-              </span>
+              <div className="flex min-w-0 flex-col items-center justify-center sm:flex-row sm:gap-1.5">
+                <span className="shrink-0 text-sm leading-none sm:text-base">
+                  {item.icon}
+                </span>
+                <span
+                  className={`pointer-events-none min-h-[0.75rem] max-w-full truncate whitespace-nowrap text-[8px] font-black uppercase leading-none tracking-[0.12em] transition-opacity duration-200 sm:min-h-0 sm:text-[10px] sm:tracking-[0.15em] ${
+                    pathname === item.href
+                      ? "visible opacity-100"
+                      : "invisible opacity-0 sm:visible sm:opacity-100"
+                  }`}
+                >
+                  {item.name}
+                </span>
+              </div>
             </Link>
           ))}
         </div>
@@ -127,7 +137,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
             <button
               type="button"
               onClick={() => openLogin(pathname || "/leaderboard")}
-              className="rounded-full bg-emerald-500 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-emerald-400 active:scale-95 sm:px-6"
+              className="rounded-full bg-emerald-500 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition hover:bg-emerald-400 active:scale-95 sm:px-6 sm:py-2"
             >
               Join
             </button>

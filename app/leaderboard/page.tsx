@@ -9,7 +9,6 @@ import LoginCta from "@/features/auth/components/LoginCta";
 import {
   FEED_PAGE_SIZE,
   getHomeFeedData,
-  getLeaderboardTopThreeData,
 } from "@/features/feed/lib";
 import type {
   FeedPost,
@@ -37,7 +36,7 @@ type RankedPost = {
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
-  return new Intl.DateTimeFormat("de-CH", {
+  return new Intl.DateTimeFormat("en-GB", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -106,7 +105,6 @@ export default async function LeaderboardPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const leaderboardTopThreePromise = getLeaderboardTopThreeData();
   const homeFeedDataPromise = getHomeFeedData(0, FEED_PAGE_SIZE);
 
   let navUser = null;
@@ -126,7 +124,8 @@ export default async function LeaderboardPage() {
   }
 
   const { dayKey: todayKey } = getZurichDayRange(new Date());
-  const topThreeToday = await leaderboardTopThreePromise;
+  const homeFeedData = await homeFeedDataPromise;
+  const topThreeToday = homeFeedData.topThreeToday;
   const hasPostsToday = topThreeToday.length > 0;
   const baseRankedPosts = topThreeToday.map((post) =>
     toRankedPost(post)
@@ -185,7 +184,7 @@ export default async function LeaderboardPage() {
 
         <Suspense fallback={<section className="mx-auto w-full max-w-5xl" />}>
           <LeaderboardFeedSection
-            homeFeedDataPromise={homeFeedDataPromise}
+            homeFeedDataPromise={Promise.resolve(homeFeedData)}
             isLoggedIn={!!user}
           />
         </Suspense>

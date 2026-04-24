@@ -19,7 +19,7 @@ export async function POST(request: Request, context: RouteContext) {
     const { id: targetUserId } = await context.params;
 
     if (!targetUserId) {
-      return new NextResponse("Ungültige User-ID.", { status: 400 });
+      return new NextResponse("Invalid user ID.", { status: 400 });
     }
 
     const supabase = await createClient();
@@ -29,7 +29,7 @@ export async function POST(request: Request, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Nicht eingeloggt.", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
     }
 
     const { data: adminProfile, error: adminProfileError } = await supabase
@@ -43,7 +43,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (!adminProfile?.is_admin) {
-      return new NextResponse("Keine Berechtigung.", { status: 403 });
+      return new NextResponse("Forbidden.", { status: 403 });
     }
 
     const { data: targetProfile, error: targetProfileError } = await supabase
@@ -57,7 +57,7 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     if (!targetProfile) {
-      return new NextResponse("Profil nicht gefunden.", { status: 404 });
+      return new NextResponse("Profile not found.", { status: 404 });
     }
 
     const body = (await request.json().catch(() => null)) as RequestBody | null;
@@ -93,7 +93,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Badge-Recompute fehlgeschlagen.", {
+    return new NextResponse("Badge recompute failed.", {
       status: 500,
     });
   }

@@ -59,15 +59,26 @@ export async function createPost(formData: FormData) {
 export async function toggleFollow(formData: FormData) {
   const supabase = await createClient();
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // Falls nicht eingeloggt, zum Login schicken
   if (!user) redirect("/login");
 
-  const targetUserId = String(formData.get("targetUserId") ?? "").trim();
+  const targetUserId = String(formData.get("target_user_id") ?? "").trim();
+  const targetUsername = String(formData.get("target_username") ?? "").trim();
   const path = String(formData.get("path") ?? "/").trim() || "/";
 
   if (!targetUserId || targetUserId === user.id) return;
+
+  const { data: viewerProfile, error: viewerProfileError } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (viewerProfileError) throw new Error(viewerProfileError.message);
 
   // Check ob Follow bereits existiert
   const { data: existingFollow, error: existingFollowError } = await supabase
@@ -84,7 +95,8 @@ export async function toggleFollow(formData: FormData) {
     const { error: deleteError } = await supabase
       .from("follows")
       .delete()
-      .eq("id", existingFollow.id);
+      .eq("follower_id", user.id)
+      .eq("following_id", targetUserId);
 
     if (deleteError) throw new Error(deleteError.message);
   } else {
@@ -98,5 +110,17 @@ export async function toggleFollow(formData: FormData) {
   }
 
   // Die Seite aktualisieren, auf der man sich gerade befindet
-  revalidatePath(path);
+  const pathsToRevalidate = new Set([
+    path,
+    targetUsername ? `/u/${targetUsername}` : null,
+    targetUsername ? `/u/${targetUsername}/followers` : null,
+    viewerProfile?.username ? `/u/${viewerProfile.username}` : null,
+    viewerProfile?.username ? `/u/${viewerProfile.username}/following` : null,
+  ]);
+
+  for (const pathToRevalidate of pathsToRevalidate) {
+    if (pathToRevalidate) {
+      revalidatePath(pathToRevalidate);
+    }
+  }
 }

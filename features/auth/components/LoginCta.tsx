@@ -1,48 +1,111 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 
-// =====================================================
-// Component
-// =====================================================
+const LOGIN_NUDGE_SESSION_KEY = "app_leaderboard_login_nudge_seen";
+const LOGIN_NUDGE_DELAY_MS = 50000;
 
 export default function LoginCta() {
   const pathname = usePathname();
   const { openLogin } = useAuthModal();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const alreadySeen =
+      window.sessionStorage.getItem(LOGIN_NUDGE_SESSION_KEY) === "true";
+
+    if (alreadySeen) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      window.sessionStorage.setItem(LOGIN_NUDGE_SESSION_KEY, "true");
+      setVisible(true);
+    }, LOGIN_NUDGE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
+
+  function handleDismiss() {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(LOGIN_NUDGE_SESSION_KEY, "true");
+    }
+
+    setVisible(false);
+  }
+
+  function handleOpenLogin() {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(LOGIN_NUDGE_SESSION_KEY, "true");
+    }
+
+    setVisible(false);
+    openLogin(pathname || "/leaderboard");
+  }
+
+  if (!visible) {
+    return null;
+  }
 
   return (
-    <div className="relative mb-8 overflow-hidden rounded-[28px] border border-neutral-200 bg-white p-6 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.05)] sm:p-8">
-      {/* Subtle Background Decor */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-4 -top-4 h-24 w-24 rounded-full bg-amber-50/50 blur-2xl" />
-        <div className="absolute -right-4 -bottom-4 h-24 w-24 rounded-full bg-indigo-50/50 blur-2xl" />
-      </div>
-
-      <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="max-w-xl">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-neutral-300" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-400">
-              Spectator Mode
-            </p>
+    <div className="pointer-events-none fixed inset-x-0 bottom-20 z-40 px-4 sm:bottom-24">
+      <div className="mx-auto flex max-w-sm justify-center sm:justify-end">
+        <div className="pointer-events-auto relative w-full overflow-hidden rounded-[28px] border border-white/60 bg-white/90 p-4 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.22)] backdrop-blur-xl sm:max-w-[22rem]">
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute -left-8 top-0 h-24 w-24 rounded-full bg-amber-100/70 blur-3xl" />
+            <div className="absolute bottom-0 right-0 h-24 w-24 rounded-full bg-sky-100/70 blur-3xl" />
           </div>
-          <h3 className="text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
-            Ready to join the race?
-          </h3>
-          <p className="mt-1 text-sm font-medium leading-relaxed text-neutral-500">
-            Log in to post your thoughts, react to others, and become a Legend.
-          </p>
-        </div>
 
-        <button
-          onClick={() => openLogin(pathname || "/")}
-          className="relative flex items-center justify-center overflow-hidden rounded-2xl bg-neutral-950 px-8 py-3.5 text-sm font-bold text-white transition-all hover:scale-[1.03] active:scale-[0.98] shadow-lg shadow-neutral-200"
-        >
-          Sign In / Register
-        </button>
+          <div className="relative">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                  Spectator Mode
+                </p>
+                <h3 className="mt-2 text-lg font-black tracking-tight text-neutral-950">
+                  Join the race.
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                  Create your profile to post, react, and climb into the Hall.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="shrink-0 rounded-full p-2 text-neutral-400 transition hover:bg-neutral-100 hover:text-neutral-700"
+                aria-label="Dismiss login prompt"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleOpenLogin}
+                className="rounded-full bg-neutral-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-neutral-800 active:scale-[0.98]"
+              >
+                Create your profile
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="rounded-full px-3 py-2 text-sm font-medium text-neutral-500 transition hover:bg-neutral-100 hover:text-neutral-700"
+              >
+                Not now
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

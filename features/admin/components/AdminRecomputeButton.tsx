@@ -49,18 +49,18 @@ export default function AdminRecomputeButton({
 
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || "Badge-Recompute fehlgeschlagen.");
+        throw new Error(message || "Badge recompute failed.");
       }
 
       setSuccessMessage(
         selectedFamilies.length === 0
-          ? `Alle Badge-Familien für @${username} wurden neu berechnet.`
-          : `${selectedFamilies.length} Badge-Familie(n) für @${username} wurden neu berechnet.`
+          ? `All badge families were recomputed for @${username}.`
+          : `${selectedFamilies.length} badge family/families were recomputed for @${username}.`
       );
       router.refresh();
     } catch (error) {
       console.error(error);
-      alert(`Badge-Recompute für @${username} fehlgeschlagen.`);
+      alert(`Badge recompute failed for @${username}.`);
     } finally {
       setLoading(false);
     }
@@ -92,8 +92,8 @@ export default function AdminRecomputeButton({
 
       <p className="text-xs text-neutral-500">
         {selectedFamilies.length === 0
-          ? "Keine Familie ausgewählt: Es werden alle Badge-Familien neu berechnet."
-          : `${selectedFamilies.length} Familie(n) ausgewählt.`}
+          ? "No family selected: all badge families will be recomputed."
+          : `${selectedFamilies.length} family/families selected.`}
       </p>
 
       <button
@@ -102,7 +102,7 @@ export default function AdminRecomputeButton({
         disabled={loading}
         className="rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {loading ? "Recompute läuft..." : "Badges neu berechnen"}
+        {loading ? "Recompute running..." : "Recompute badges"}
       </button>
 
       {successMessage && (

@@ -111,8 +111,6 @@ export async function deleteFeatureRequest(formData: FormData) {
 
   revalidateMany([
     "/",
-    "/explore",
-    "/following",
     "/feedback",
     authorUsername ? `/u/${authorUsername}` : null,
   ]);
@@ -290,8 +288,6 @@ export async function updateFeatureRequestStatus(formData: FormData) {
 
   revalidateMany([
     "/",
-    "/explore",
-    "/following",
     "/feedback",
     authorUsername ? `/u/${authorUsername}` : null,
   ]);
