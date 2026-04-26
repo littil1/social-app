@@ -3,17 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
 import NavBar from "@/shared/components/layout/navbar";
 import FollowButton from "@/features/profile/components/FollowButton";
-import {
-  ARCHIVED_DAILY_WINNER_RANK,
-  getCurrentZurichDayStartIso,
-} from "@/features/winners/lib/daily-ranking";
-import { getFollowCounts, isFollowingUser } from "@/features/profile/lib/follow-data";
-import { getImplementedIdeaCountByUserId } from "@/features/feedback/lib/feedback-data";
-import { getUserBadges } from "@/features/badges/lib/getUserBadges";
+import { getCurrentZurichDayStartIso } from "@/features/winners/lib/daily-ranking";
+import { isFollowingUser } from "@/features/profile/lib/follow-data";
+import { getComputedUserBadges } from "@/features/badges/lib/showcase-badges";
+import { getProfileBadge } from "@/features/badges/lib/profile-badges";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import UserProfileContent from "@/features/profile/components/UserProfileContent";
 import ProfileBadgesSection from "@/features/profile/components/ProfileBadgesSection";
-import type { UserBadgeDisplay } from "@/features/badges/lib/profile-badges";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +39,7 @@ type ProfileRow = {
   bio: string | null;
   avatar_url: string | null;
   created_at: string;
+  badges: string[];
 };
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
@@ -98,7 +95,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("id, username, bio, avatar_url, created_at")
+    .select("id, username, bio, avatar_url, created_at, badges")
     .eq("username", usernameFromUrl)
     .maybeSingle();
 
@@ -197,40 +194,26 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     };
   });
 
-  const { followersCount, followingCount } = await getFollowCounts(
-    supabase,
-    typedProfile.id
-  );
   const isFollowing = await isFollowingUser(
     supabase,
     user?.id ?? null,
     typedProfile.id
   );
-  const implementedIdeaCount = await getImplementedIdeaCountByUserId(
-    supabase,
-    typedProfile.id
-  );
-
-  const { data: hallOfFameData, error: hallOfFameError } = await supabase
-    .from("daily_post_winners")
-    .select("id")
-    .eq("author_id", typedProfile.id)
-    .eq("rank_position", ARCHIVED_DAILY_WINNER_RANK);
-
-  if (hallOfFameError) {
-    throw new Error(hallOfFameError.message);
-  }
-
-  const hallOfFameCount = (hallOfFameData ?? []).length;
   const isOwnProfile = user?.id === typedProfile.id;
-  const profileBadges: UserBadgeDisplay[] =
-    (await getUserBadges([typedProfile.id])).get(typedProfile.id) ?? [];
+  const profileBadges = await getComputedUserBadges(supabase, typedProfile.id, {
+    includeProgress: isOwnProfile,
+  });
+  const specialBadges = Array.isArray(typedProfile.badges)
+    ? typedProfile.badges
+        .map((badgeKey) => getProfileBadge(badgeKey))
+        .filter((badge): badge is NonNullable<typeof badge> => badge !== null)
+    : [];
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <NavBar user={navUser} />
-      <main className="mx-auto max-w-2xl px-4 py-8 sm:py-16">
-        <div className="mb-8 overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
+      <main className="mx-auto max-w-2xl px-4 pb-28 pt-8 sm:py-16">
+        <div className="overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
           <div className="relative h-32 overflow-hidden bg-neutral-950">
             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
             <div className="absolute bottom-0 left-0 h-full w-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_40%)]" />
@@ -275,7 +258,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div>
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
@@ -284,7 +267,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
 
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">
-                  Legacy started ·{" "}
+                  Legacy started -{" "}
                   {new Date(typedProfile.created_at).toLocaleDateString(
                     "en-GB",
                     {
@@ -294,61 +277,20 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   )}
                 </p>
               </div>
-
-              {(implementedIdeaCount > 0 || hallOfFameCount > 0) && (
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  {implementedIdeaCount > 0 && (
-                    <div className="group flex flex-col rounded-3xl border border-amber-100 bg-amber-50/30 p-4 transition-colors hover:bg-amber-50">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-600/60">
-                        Community Impact
-                      </span>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-xl">💡</span>
-                        <span className="text-xl font-black text-amber-900">
-                          {implementedIdeaCount}{" "}
-                          {implementedIdeaCount === 1 ? "Idea" : "Ideas"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {hallOfFameCount > 0 && (
-                    <div className="group flex flex-col rounded-3xl border border-indigo-100 bg-indigo-50/30 p-4 transition-colors hover:bg-indigo-50">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600/60">
-                        Victories
-                      </span>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="text-xl">🏆</span>
-                        <span className="text-xl font-black text-indigo-900">
-                          {hallOfFameCount}{" "}
-                          {hallOfFameCount === 1
-                            ? "Legendary Win"
-                            : "Legendary Wins"}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="border-t border-neutral-100 pt-6">
-                <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
-                  Earned Badges
-                </p>
-
-                <ProfileBadgesSection badges={profileBadges} />
-              </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-12">
-          <UserProfileContent
-            initialPosts={posts}
-            followersCount={followersCount}
-            followingCount={followingCount}
-            username={typedProfile.username}
+        <div className="mt-8">
+          <ProfileBadgesSection
+            badges={profileBadges}
+            specialBadges={specialBadges}
+            showProgress={isOwnProfile}
           />
+        </div>
+
+        <div className="mt-12">
+          <UserProfileContent initialPosts={posts} />
         </div>
       </main>
     </div>

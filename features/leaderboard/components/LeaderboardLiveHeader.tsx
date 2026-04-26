@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getNextZurichMidnight } from "@/features/winners/lib/daily-ranking";
 import { isAutoRefreshPaused } from "@/lib/utils/auto-refresh";
+
+type LeaderboardLiveHeaderProps = {
+  todayLabel: string;
+};
 
 function formatRemaining(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -26,50 +30,38 @@ function formatUpdatedAgo(secondsAgo: number) {
 
 function shouldPauseAutoRefresh() {
   if (typeof document === "undefined") return false;
-
   if (isAutoRefreshPaused()) return true;
-
-  if (document.querySelector('[data-comments-panel-open="true"]')) {
-    return true;
-  }
-
-  return false;
+  return !!document.querySelector('[data-comments-panel-open="true"]');
 }
-
-// =====================================================
-// Component
-// =====================================================
-
-type LeaderboardLiveHeaderProps = {
-  todayLabel: string;
-};
 
 export default function LeaderboardLiveHeader({
   todayLabel,
 }: LeaderboardLiveHeaderProps) {
   const router = useRouter();
-
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<number | null>(null);
   const [lastRefreshAt, setLastRefreshAt] = useState<number | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
   const [autoRefreshing, setAutoRefreshing] = useState(false);
 
   useEffect(() => {
-    const initialNow = Date.now();
-    setMounted(true);
-    setNow(initialNow);
-    setLastRefreshAt(initialNow);
-
+    const frame = window.requestAnimationFrame(() => {
+      const initialNow = Date.now();
+      setMounted(true);
+      setNow(initialNow);
+      setLastRefreshAt(initialNow);
+    });
     const ticker = window.setInterval(() => {
       setNow(Date.now());
     }, 1000);
 
-    return () => window.clearInterval(ticker);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearInterval(ticker);
+    };
   }, []);
 
-  function handleAutoRefresh() {
-    if (refreshing || autoRefreshing) return;
+  const handleAutoRefresh = useCallback(() => {
+    if (autoRefreshing) return;
     if (shouldPauseAutoRefresh()) return;
 
     const refreshTime = Date.now();
@@ -80,7 +72,7 @@ export default function LeaderboardLiveHeader({
     window.setTimeout(() => {
       setAutoRefreshing(false);
     }, 900);
-  }
+  }, [autoRefreshing, router]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -90,7 +82,7 @@ export default function LeaderboardLiveHeader({
     }, 60000);
 
     return () => window.clearInterval(interval);
-  }, [mounted, refreshing, autoRefreshing]);
+  }, [handleAutoRefresh, mounted]);
 
   const remaining = useMemo(() => {
     if (!mounted || now === null) return "--:--:--";
@@ -99,7 +91,6 @@ export default function LeaderboardLiveHeader({
     return formatRemaining(target - now);
   }, [mounted, now]);
 
-  // ================== NUR FÜR PROGRESS BAR ==================
   const progress = useMemo(() => {
     if (!mounted || now === null) return 0;
 
@@ -109,7 +100,6 @@ export default function LeaderboardLiveHeader({
 
     return Math.min(100, Math.max(0, value));
   }, [mounted, now]);
-  // ==========================================================
 
   const updatedAgo = useMemo(() => {
     if (!mounted || now === null || lastRefreshAt === null) return "just now";
@@ -118,96 +108,57 @@ export default function LeaderboardLiveHeader({
     return formatUpdatedAgo(secondsAgo);
   }, [lastRefreshAt, mounted, now]);
 
-  function handleRefresh() {
-    if (refreshing || autoRefreshing) return;
-
-    const refreshTime = Date.now();
-    setRefreshing(true);
-    setLastRefreshAt(refreshTime);
-    router.refresh();
-
-    window.setTimeout(() => {
-      setRefreshing(false);
-    }, 900);
-  }
-
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/80 to-sky-100/70 px-4 py-4 shadow-[0_35px_90px_-45px_rgba(16,185,129,0.30)] sm:rounded-[32px] sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+    <section className="relative overflow-hidden rounded-[26px] border border-emerald-100/80 bg-gradient-to-br from-white via-emerald-50/70 to-sky-50 px-4 py-3 shadow-[0_24px_70px_-48px_rgba(16,185,129,0.34)] sm:rounded-[30px] sm:px-6 sm:py-5 lg:px-7">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-8 top-4 h-20 w-20 rounded-full bg-emerald-200/30 blur-3xl sm:h-24 sm:w-24" />
-        <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-sky-200/30 blur-3xl sm:h-28 sm:w-28" />
+        <div className="absolute left-8 top-2 h-16 w-16 rounded-full bg-emerald-200/25 blur-3xl sm:h-20 sm:w-20" />
+        <div className="absolute right-0 top-0 h-20 w-20 rounded-full bg-sky-200/25 blur-3xl sm:h-24 sm:w-24" />
       </div>
 
-      <div className="relative grid gap-4 lg:grid-cols-[1.25fr_0.75fr] lg:items-end lg:gap-6">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-3.5 py-1.5 text-sm font-semibold text-emerald-900 backdrop-blur">
+      <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-emerald-900 backdrop-blur">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             </span>
             LIVE
-          </div>
+          </span>
 
-          <h1 className="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-gray-950 sm:text-4xl lg:text-7xl">
-            Race in progress.
+          <h1 className="mt-2 text-4xl font-black leading-tight tracking-tight text-gray-950 sm:text-4xl">
+            Leaderboard
           </h1>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-700 sm:text-base sm:leading-7">
-            Every reaction and every comment counts.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-white/70 bg-white/85 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur">
-              Today · {todayLabel}
+              {todayLabel}
             </span>
 
             <span className="rounded-full border border-white/70 bg-white/85 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur">
-              Just updated {updatedAgo}
+              Updated {updatedAgo}
             </span>
-
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={refreshing || autoRefreshing}
-              className="rounded-full border border-white/70 bg-white/85 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {refreshing || autoRefreshing ? "Refreshing..." : "Refresh"}
-            </button>
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-          <div className="rounded-3xl border border-white/70 bg-white/85 p-4 shadow-sm backdrop-blur lg:p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              Time remaining
-            </p>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-950 sm:text-4xl">
-              {remaining}
-            </p>
-
-            <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-neutral-200">
-              <div
-                className="h-full bg-emerald-500 transition-all duration-1000"
-                style={{ width: `${progress}%` }}
-              />
+        <div className="rounded-[26px] border border-white/70 bg-white/85 p-4 shadow-sm backdrop-blur sm:min-w-[290px] sm:p-5">
+          <div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">
+                Time left
+              </p>
+              <p className="mt-2 text-3xl font-black tracking-tight text-gray-950 tabular-nums sm:text-4xl">
+                {remaining}
+              </p>
             </div>
           </div>
-
-          <div className="rounded-3xl border border-white/70 bg-white/85 p-4 shadow-sm backdrop-blur lg:p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              Daily Goal
-            </p>
-            <p className="mt-2 text-base font-semibold text-gray-950">
-              Top by midnight.
-            </p>
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              Lead the pack to become a legend.
-            </p>
+          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+            <div
+              className="motion-safe:animate-pulse h-full bg-emerald-500 transition-all duration-1000"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
       </div>
     </section>
   );
 }
-
-

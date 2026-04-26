@@ -10,6 +10,7 @@ import {
   FEED_PAGE_SIZE,
   getHomeFeedData,
 } from "@/features/feed/lib";
+import { KNOW_EVERYTHING_BADGE_KEY } from "@/features/badges/lib/profile-badges";
 import type {
   FeedPost,
   HomeFeedData,
@@ -27,20 +28,22 @@ type RankedPost = {
   comments_count: number;
   relevance_score: number;
   author_username: string | null;
+  author_avatar_url: string | null;
   reactions_count: number;
   reaction_counts: ReactionCounts;
   viewer_reaction: ReactionType | null;
+  can_delete: boolean;
   points_to_higher_rank: number | null;
   lead_over_next_rank: number | null;
 };
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(date);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}.${month}.${year}`;
 }
 
 function getDesktopPodiumPositions() {
@@ -68,9 +71,11 @@ function toRankedPost(post: FeedPost): RankedPost {
     comments_count: post.comments_count,
     relevance_score: liveScore,
     author_username: post.author_username,
+    author_avatar_url: post.author_avatar_url,
     reactions_count: post.reactions_count,
     reaction_counts: post.reaction_counts,
     viewer_reaction: post.viewer_reaction,
+    can_delete: post.can_delete,
     points_to_higher_rank: null,
     lead_over_next_rank: null,
   };
@@ -79,9 +84,11 @@ function toRankedPost(post: FeedPost): RankedPost {
 async function LeaderboardFeedSection({
   homeFeedDataPromise,
   isLoggedIn,
+  hasKnowEverythingBadge,
 }: {
   homeFeedDataPromise: Promise<HomeFeedData>;
   isLoggedIn: boolean;
+  hasKnowEverythingBadge: boolean;
 }) {
   const homeFeedData = await homeFeedDataPromise;
 
@@ -94,6 +101,7 @@ async function LeaderboardFeedSection({
         initialOlderHasMore={homeFeedData.olderHasMore}
         pageSize={FEED_PAGE_SIZE}
         isLoggedIn={isLoggedIn}
+        initialHasKnowEverythingBadge={hasKnowEverythingBadge}
         showTopSection={false}
       />
     </section>
@@ -108,10 +116,11 @@ export default async function LeaderboardPage() {
   const homeFeedDataPromise = getHomeFeedData(0, FEED_PAGE_SIZE);
 
   let navUser = null;
+  let hasKnowEverythingBadge = false;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, avatar_url, is_admin")
+      .select("username, avatar_url, is_admin, badges")
       .eq("id", user.id)
       .maybeSingle();
     if (profile?.username) {
@@ -121,6 +130,10 @@ export default async function LeaderboardPage() {
         is_admin: profile.is_admin ?? false,
       };
     }
+
+    hasKnowEverythingBadge = Array.isArray(profile?.badges)
+      ? profile.badges.includes(KNOW_EVERYTHING_BADGE_KEY)
+      : false;
   }
 
   const { dayKey: todayKey } = getZurichDayRange(new Date());
@@ -168,11 +181,11 @@ export default async function LeaderboardPage() {
   return (
     <>
       <NavBar user={navUser} />
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:gap-8 lg:px-8 lg:py-6">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pb-28 pt-4 sm:px-6 sm:py-6 lg:gap-7 lg:px-8 lg:py-6">
         {!user && <LoginCta />}
 
         {hasPostsToday && (
-          <div className="flex flex-col gap-6 lg:gap-8">
+          <div className="flex flex-col gap-4 lg:gap-6">
             <LeaderboardLiveHeader todayLabel={todayLabel} />
             <LeaderboardPodiumSection
               mobileItems={mobilePodium}
@@ -186,6 +199,7 @@ export default async function LeaderboardPage() {
           <LeaderboardFeedSection
             homeFeedDataPromise={Promise.resolve(homeFeedData)}
             isLoggedIn={!!user}
+            hasKnowEverythingBadge={hasKnowEverythingBadge}
           />
         </Suspense>
       </main>

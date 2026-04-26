@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import CommentsSection from "@/features/comments/components/CommentsSection";
 import PostReportButton from "@/features/posts/components/PostReportButton";
@@ -21,6 +21,8 @@ type PostCardProps = {
   detailHref?: string;
   isLoggedIn?: boolean;
   disableRouterRefresh?: boolean;
+  initialShowComments?: boolean;
+  onMutationCommitted?: () => void;
 };
 
 const REACTIONS: Array<{
@@ -93,32 +95,46 @@ function PostCardComponent({
   detailHref,
   isLoggedIn = false,
   disableRouterRefresh = false,
+  initialShowComments = false,
+  onMutationCommitted,
 }: PostCardProps) {
   const { requireLoginAndResume, isAuthenticated, authReady } =
     useAuthModal();
   const router = useRouter();
   const [reactionLoading, setReactionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(initialShowComments);
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post.comments_count
   );
+  const localCommentsCountRef = useRef(post.comments_count);
 
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const rankStyles = getRankStyles(dailyRank);
 
   useEffect(() => {
+    localCommentsCountRef.current = post.comments_count;
     setLocalCommentsCount(post.comments_count);
   }, [post.comments_count]);
 
   const handleCommentCreated = useCallback(() => {
-    setLocalCommentsCount((prev) => prev + 1);
+    setLocalCommentsCount((prev) => {
+      const next = prev + 1;
+      localCommentsCountRef.current = next;
+      return next;
+    });
     onCommentCreated?.(post.id);
-  }, [onCommentCreated, post.id]);
+    onMutationCommitted?.();
+  }, [onCommentCreated, onMutationCommitted, post.id]);
 
   const handleCommentsLoaded = useCallback(
     (count: number) => {
-      setLocalCommentsCount((prev) => (prev === count ? prev : count));
+      if (localCommentsCountRef.current === count) {
+        return;
+      }
+
+      localCommentsCountRef.current = count;
+      setLocalCommentsCount(count);
       onCommentsCountChange?.(post.id, count);
     },
     [onCommentsCountChange, post.id]
@@ -151,6 +167,8 @@ function PostCardComponent({
       if (!res.ok) {
         throw new Error("Post reaction failed.");
       }
+
+      onMutationCommitted?.();
 
       if (!showComments && !disableRouterRefresh) {
         router.refresh();

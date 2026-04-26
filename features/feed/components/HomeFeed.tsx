@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { FeedPost, FeedResponse, ReactionType } from "@/shared/types/feed";
 import { getZurichHourBucket } from "@/features/winners/lib/daily-ranking";
 import PostCard from "@/features/posts/components/PostCard";
+import { KNOW_EVERYTHING_BADGE_KEY } from "@/features/badges/lib/profile-badges";
 
 type HomeFeedProps = {
   initialTopThreeToday: FeedPost[];
@@ -13,6 +14,7 @@ type HomeFeedProps = {
   initialOlderHasMore: boolean;
   pageSize: number;
   isLoggedIn: boolean;
+  initialHasKnowEverythingBadge?: boolean;
   showTopSection?: boolean;
 };
 
@@ -171,6 +173,7 @@ export default function HomeFeed({
   initialOlderHasMore,
   pageSize,
   isLoggedIn,
+  initialHasKnowEverythingBadge = false,
   showTopSection = true,
 }: HomeFeedProps) {
   const [topThreeToday, setTopThreeToday] = useState<FeedPost[]>(() =>
@@ -186,6 +189,11 @@ export default function HomeFeed({
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(initialOlderHasMore);
   const [showOlderPosts, setShowOlderPosts] = useState(false);
+  const [hasKnowEverythingBadge, setHasKnowEverythingBadge] = useState(
+    initialHasKnowEverythingBadge
+  );
+  const [claimingKnowEverythingBadge, setClaimingKnowEverythingBadge] =
+    useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const router = useRouter();
@@ -203,6 +211,10 @@ export default function HomeFeed({
     setOffset(initialOlderFeed.length);
     setHasMore(initialOlderHasMore);
   }, [initialOlderFeed, initialOlderHasMore]);
+
+  useEffect(() => {
+    setHasKnowEverythingBadge(initialHasKnowEverythingBadge);
+  }, [initialHasKnowEverythingBadge]);
 
   useEffect(() => {
     let currentBucket = getZurichHourBucket(new Date());
@@ -318,6 +330,49 @@ export default function HomeFeed({
     setOlderFeed((prev) => prev.filter((post) => post.id !== postId));
   }, []);
 
+  const handlePostMutationCommitted = useCallback(() => {
+    router.refresh();
+  }, [router]);
+
+  const handleClaimKnowEverythingBadge = useCallback(async () => {
+    if (!isLoggedIn || hasKnowEverythingBadge || claimingKnowEverythingBadge) {
+      return;
+    }
+
+    setClaimingKnowEverythingBadge(true);
+
+    try {
+      const res = await fetch("/api/profile/badges/know-everything", {
+        method: "POST",
+      });
+
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "Badge claim failed.");
+      }
+
+      const data = (await res.json()) as { badges?: string[] };
+      if (!data.badges?.includes(KNOW_EVERYTHING_BADGE_KEY)) {
+        throw new Error("Badge claim did not persist.");
+      }
+
+      setHasKnowEverythingBadge(true);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      alert(
+        error instanceof Error ? error.message : "Badge could not be claimed."
+      );
+    } finally {
+      setClaimingKnowEverythingBadge(false);
+    }
+  }, [
+    claimingKnowEverythingBadge,
+    hasKnowEverythingBadge,
+    isLoggedIn,
+    router,
+  ]);
+
   const todaySections = buildTodayRankingSections(todayFeed, todaysPostsCount);
 
   return (
@@ -335,6 +390,7 @@ export default function HomeFeed({
               onPostDeleted={handlePostDeleted}
               isLoggedIn={isLoggedIn}
               disableRouterRefresh
+              onMutationCommitted={handlePostMutationCommitted}
             />
           ))}
         </section>
@@ -347,7 +403,7 @@ export default function HomeFeed({
       )}
 
       {todaySections.length > 0 && (
-        <div className="space-y-8">
+        <div className="-mt-4 space-y-8 sm:-mt-5">
           {todaySections.map((section) => (
             <section key={section.key} className={section.sectionClassName}>
               <div className="space-y-5">
@@ -368,6 +424,7 @@ export default function HomeFeed({
                       onPostDeleted={handlePostDeleted}
                       isLoggedIn={isLoggedIn}
                       disableRouterRefresh
+                      onMutationCommitted={handlePostMutationCommitted}
                     />
                   ))}
                 </div>
@@ -380,7 +437,7 @@ export default function HomeFeed({
       <div className="rounded-[32px] border border-neutral-200 bg-white p-10 text-center shadow-sm">
         {todaysPostsCount > 0 ? (
           <p className="text-lg font-black text-neutral-950">
-            You are all caught up.
+            That’s everything for today.
           </p>
         ) : (
           <>
@@ -419,7 +476,7 @@ export default function HomeFeed({
         <section className="space-y-6 opacity-60">
           <div className="px-2">
             <h2 className="text-xl font-black text-neutral-950">
-              What resonated
+              What resonated before
             </h2>
           </div>
 
@@ -434,6 +491,7 @@ export default function HomeFeed({
                 onPostDeleted={handlePostDeleted}
                 isLoggedIn={isLoggedIn}
                 disableRouterRefresh
+                onMutationCommitted={handlePostMutationCommitted}
               />
             ))}
           </div>
@@ -463,6 +521,19 @@ export default function HomeFeed({
                 <div className="h-[1px] w-8 bg-neutral-200" />
               </div>
             </div>
+
+            {isLoggedIn && !hasKnowEverythingBadge && (
+              <button
+                type="button"
+                onClick={() => void handleClaimKnowEverythingBadge()}
+                disabled={claimingKnowEverythingBadge}
+                className="rounded-full bg-neutral-950 px-6 py-3 text-sm font-black text-white shadow-lg transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {claimingKnowEverythingBadge
+                  ? "Claiming..."
+                  : "Claim special badge"}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -471,4 +542,3 @@ export default function HomeFeed({
     </div>
   );
 }
-

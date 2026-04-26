@@ -9,12 +9,20 @@ export type BadgeColorToken =
   | "sky"
   | "teal";
 
+export const KNOW_EVERYTHING_BADGE_KEY = "know_everything";
+
 export const PROFILE_BADGES = [
   {
     key: "daily_winner",
     label: "Daily Winner",
     emoji: "🏆",
     className: "border-amber-200 bg-amber-50 text-amber-800",
+  },
+  {
+    key: KNOW_EVERYTHING_BADGE_KEY,
+    label: "I want to know everything",
+    emoji: "\u221E",
+    className: "border-violet-200 bg-violet-50 text-violet-800",
   },
 ] as const;
 

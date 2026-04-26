@@ -219,17 +219,6 @@ function CommentItem({
                   </span>
                 )}
 
-                {node.author_badges?.[0] && (
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest shadow-sm ${node.author_badges[0].className}`}
-                    title={node.author_badges[0].description}
-                  >
-                    <span aria-hidden="true" className="mr-1">
-                      {node.author_badges[0].icon}
-                    </span>
-                    {node.author_badges[0].label}
-                  </span>
-                )}
               </div>
 
               <p className="text-[10px] font-bold uppercase tracking-tighter text-neutral-400">
@@ -248,38 +237,42 @@ function CommentItem({
             )}
 
             {!node.is_deleted && (
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                {REACTIONS.map((reaction) => {
-                  const isActive = node.viewer_reaction === reaction.value;
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+                <div className="flex min-w-0 items-center gap-1.5 overflow-hidden sm:gap-2">
+                  {REACTIONS.map((reaction) => {
+                    const isActive = node.viewer_reaction === reaction.value;
 
-                  return (
-                    <button
-                      key={reaction.value}
-                      type="button"
-                      onClick={() =>
-                        void onReactionClick(node.id, reaction.value)
-                      }
-                      disabled={reactingCommentId === node.id}
-                      className={`flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-all active:scale-90 disabled:opacity-50 ${
-                        isActive
-                          ? "scale-105 bg-neutral-950 text-white shadow-md"
-                          : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
-                      }`}
-                    >
-                      <span>{reaction.emoji}</span>
-                      <span
-                        className={isActive ? "text-white" : "text-neutral-900"}
+                    return (
+                      <button
+                        key={reaction.value}
+                        type="button"
+                        onClick={() =>
+                          void onReactionClick(node.id, reaction.value)
+                        }
+                        disabled={reactingCommentId === node.id}
+                        className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-bold transition-all active:scale-90 disabled:opacity-50 sm:px-3.5 ${
+                          isActive
+                            ? "scale-105 bg-neutral-950 text-white shadow-md"
+                            : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
+                        }`}
                       >
-                        {node.reaction_counts[reaction.countKey]}
-                      </span>
-                    </button>
-                  );
-                })}
+                        <span>{reaction.emoji}</span>
+                        <span
+                          className={
+                            isActive ? "text-white" : "text-neutral-900"
+                          }
+                        >
+                          {node.reaction_counts[reaction.countKey]}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
                 <button
                   type="button"
                   onClick={() => onReplyOpen(node.id)}
-                  className="ml-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-neutral-950"
+                  className="self-start text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-neutral-950 sm:ml-2"
                 >
                   Reply
                 </button>
@@ -377,6 +370,12 @@ export default function CommentsSection({
   const [replyContent, setReplyContent] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
   const loadRequestIdRef = useRef(0);
+  const lastEmittedCommentsCountRef = useRef<number | null>(null);
+  const onCommentsLoadedRef = useRef(onCommentsLoaded);
+
+  useEffect(() => {
+    onCommentsLoadedRef.current = onCommentsLoaded;
+  }, [onCommentsLoaded]);
 
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const commentTree = useMemo(() => buildCommentTree(comments), [comments]);
@@ -417,6 +416,7 @@ export default function CommentsSection({
 
   useEffect(() => {
     let active = true;
+    lastEmittedCommentsCountRef.current = null;
 
     async function loadCommentsForPost() {
       try {
@@ -445,8 +445,13 @@ export default function CommentsSection({
   }, [postId]);
 
   useEffect(() => {
-    onCommentsLoaded?.(visibleCommentsCount);
-  }, [onCommentsLoaded, visibleCommentsCount]);
+    if (lastEmittedCommentsCountRef.current === visibleCommentsCount) {
+      return;
+    }
+
+    lastEmittedCommentsCountRef.current = visibleCommentsCount;
+    onCommentsLoadedRef.current?.(visibleCommentsCount);
+  }, [visibleCommentsCount]);
 
   async function createComment(textToSubmit?: string) {
     const trimmed = (textToSubmit || content).trim();

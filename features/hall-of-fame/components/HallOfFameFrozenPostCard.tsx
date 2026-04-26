@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { ReactionCounts } from "@/shared/types/feed";
 import CommentsSection from "@/features/comments/components/CommentsSection";
+import type { ReactionCounts } from "@/shared/types/feed";
 
 type FrozenHallOfFamePost = {
   id: number;
@@ -31,7 +31,6 @@ function getCardStyles(variant: "featured" | "archive") {
       accentText: "text-amber-700",
       authorBox: "border-yellow-200/80 bg-white/90",
       contentBox: "border-yellow-100 bg-white/95",
-      reactionPill: "border-yellow-100 bg-white/90",
       contentText: "text-lg leading-8 sm:text-xl sm:leading-9",
       padding: "p-5 sm:p-7",
     };
@@ -43,7 +42,6 @@ function getCardStyles(variant: "featured" | "archive") {
     accentText: "text-amber-700",
     authorBox: "border-gray-200 bg-white",
     contentBox: "border-gray-100 bg-white",
-    reactionPill: "border-gray-100 bg-white",
     contentText: "text-base leading-7 sm:text-lg sm:leading-8",
     padding: "p-5 sm:p-6",
   };
@@ -58,32 +56,7 @@ export default function HallOfFameFrozenPostCard({
   archiveLabel,
   variant = "archive",
 }: HallOfFameFrozenPostCardProps) {
-  const [showComments, setShowComments] = useState(false);
-  const [localCommentsCount, setLocalCommentsCount] = useState(
-    post?.comments_count ?? 0
-  );
-
   const styles = useMemo(() => getCardStyles(variant), [variant]);
-
-  useEffect(() => {
-    setLocalCommentsCount(post?.comments_count ?? 0);
-  }, [post?.comments_count]);
-
-  useEffect(() => {
-    if (!post || typeof window === "undefined") return;
-
-    const saved = window.sessionStorage.getItem(getCommentsStorageKey(post.id));
-    setShowComments(saved === "true");
-  }, [post?.id]);
-
-  useEffect(() => {
-    if (!post || typeof window === "undefined") return;
-
-    window.sessionStorage.setItem(
-      getCommentsStorageKey(post.id),
-      String(showComments)
-    );
-  }, [post?.id, showComments]);
 
   if (!post) {
     return (
@@ -107,6 +80,44 @@ export default function HallOfFameFrozenPostCard({
       </article>
     );
   }
+
+  return (
+    <HallOfFameFrozenPostCardContent
+      key={post.id}
+      post={post}
+      archiveLabel={archiveLabel}
+      styles={styles}
+    />
+  );
+}
+
+function HallOfFameFrozenPostCardContent({
+  post,
+  archiveLabel,
+  styles,
+}: {
+  post: FrozenHallOfFamePost;
+  archiveLabel?: string;
+  styles: ReturnType<typeof getCardStyles>;
+}) {
+  const [showComments, setShowComments] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.sessionStorage.getItem(getCommentsStorageKey(post.id)) === "true"
+    );
+  });
+  const [localCommentsCount, setLocalCommentsCount] = useState(
+    post.comments_count
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    window.sessionStorage.setItem(
+      getCommentsStorageKey(post.id),
+      String(showComments)
+    );
+  }, [post.id, showComments]);
 
   return (
     <article
@@ -151,38 +162,36 @@ export default function HallOfFameFrozenPostCard({
           </p>
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2.5">
-          <div
-            className={`rounded-full border px-4 py-2.5 text-sm ${styles.reactionPill}`}
-          >
-            ❤️ {post.reaction_counts.like}
-          </div>
-          <div
-            className={`rounded-full border px-4 py-2.5 text-sm ${styles.reactionPill}`}
-          >
-            😂 {post.reaction_counts.funny}
-          </div>
-          <div
-            className={`rounded-full border px-4 py-2.5 text-sm ${styles.reactionPill}`}
-          >
-            🤯 {post.reaction_counts.wow}
-          </div>
-          <div
-            className={`rounded-full border px-4 py-2.5 text-sm ${styles.reactionPill}`}
-          >
-            🔥 {post.reaction_counts.fire}
-          </div>
-        </div>
-
-        <div className="mt-5">
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+            <span>{"\u2764\uFE0F"}</span>
+            <span className="text-neutral-900">{post.reaction_counts.like}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+            <span>{"\uD83D\uDE02"}</span>
+            <span className="text-neutral-900">
+              {post.reaction_counts.funny}
+            </span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+            <span>{"\uD83E\uDD2F"}</span>
+            <span className="text-neutral-900">{post.reaction_counts.wow}</span>
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+            <span>{"\uD83D\uDD25"}</span>
+            <span className="text-neutral-900">{post.reaction_counts.fire}</span>
+          </span>
           <button
             type="button"
             onClick={() => setShowComments((prev) => !prev)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 shadow-sm transition hover:bg-gray-50 sm:w-auto"
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
+              showComments
+                ? "bg-neutral-200 text-neutral-900"
+                : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
+            }`}
           >
-            💬 {localCommentsCount}{" "}
-            {localCommentsCount === 1 ? "Comment" : "Comments"}{" "}
-            {showComments ? "hide" : "show"}
+            <span>{"\uD83D\uDCAC"}</span>
+            <span className="text-neutral-900">{localCommentsCount}</span>
           </button>
         </div>
 
@@ -199,5 +208,3 @@ export default function HallOfFameFrozenPostCard({
     </article>
   );
 }
-
-
