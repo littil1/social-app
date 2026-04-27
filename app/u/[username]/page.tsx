@@ -4,7 +4,10 @@ import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-c
 import NavBar from "@/shared/components/layout/navbar";
 import FollowButton from "@/features/profile/components/FollowButton";
 import { getCurrentZurichDayStartIso } from "@/features/winners/lib/daily-ranking";
-import { isFollowingUser } from "@/features/profile/lib/follow-data";
+import {
+  getFollowCounts,
+  isFollowingUser,
+} from "@/features/profile/lib/follow-data";
 import { getComputedUserBadges } from "@/features/badges/lib/showcase-badges";
 import { getProfileBadge } from "@/features/badges/lib/profile-badges";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
@@ -199,6 +202,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     user?.id ?? null,
     typedProfile.id
   );
+  const { followersCount, followingCount } = await getFollowCounts(
+    supabase,
+    typedProfile.id
+  );
   const isOwnProfile = user?.id === typedProfile.id;
   const profileBadges = await getComputedUserBadges(supabase, typedProfile.id, {
     includeProgress: isOwnProfile,
@@ -265,6 +272,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                     @{typedProfile.username}
                   </h1>
                 </div>
+
+                <p className="mt-2 text-sm text-neutral-500">
+                  <Link href={`/u/${username}/followers`} className="hover:underline">
+                    {followersCount} followers
+                  </Link>
+                    {" · "}
+                  <Link href={`/u/${username}/following`} className="hover:underline">
+                    {followingCount} following
+                  </Link>
+                </p>
 
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">
                   Legacy started -{" "}
