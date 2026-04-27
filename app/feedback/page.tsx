@@ -3,11 +3,12 @@ import FeedbackCard from "@/features/feedback/components/FeedbackCard";
 import { addFeatureRequest } from "@/app/actions/feedback";
 import { createClient } from "@/lib/supabase/server";
 import { getFeedbackBundle } from "@/features/feedback/lib/feedback-data";
+import type { FeedbackItem } from "@/features/feedback/lib/feedback-data";
 
 export const dynamic = "force-dynamic";
 
-// Helper für die Echo-Berechnung (analog zur Arena)
-function getEchoScore(item: any) {
+// Helper for the Echo score, matching the arena weighting.
+function getEchoScore(item: FeedbackItem) {
   const likes = item.likeCount || 0;
   const comments = item.commentCount || 0;
   return likes + (comments * 2);
@@ -28,7 +29,7 @@ export default async function FeedbackPage() {
     viewerProfile = data;
   }
 
-  // 1. Filtern und SORTIEREN nach Echo-Score (Absteigend)
+  // Sort ideas by Echo score, highest first.
   const openIdeas = feedback
     .filter((item) => item.status === "open")
     .sort((a, b) => getEchoScore(b) - getEchoScore(a));
@@ -64,11 +65,11 @@ export default async function FeedbackPage() {
                 Co-Creation
               </span>
               <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-7xl">
-                Build the <span className="text-amber-400">Future</span> of APP.
+                Help us build the <span className="text-amber-400">Future</span> of APP.
               </h1>
               <p className="mt-6 text-lg leading-relaxed text-neutral-400">
                 The community decides what stays, but you decide what comes next. 
-                Share your ideas, vote for features, and let’s craft the ultimate noise-free arena together.
+                Share your ideas, support what matters, and let’s craft the ultimate noise-free arena together.
               </p>
             </div>
 
@@ -76,12 +77,12 @@ export default async function FeedbackPage() {
                <div className="text-center lg:text-right">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Live Feedback</p>
                   <p className="mt-1 text-5xl font-black text-white">{openIdeas.length}</p>
-                  <p className="text-sm font-medium text-neutral-400">Open Requests</p>
+                  <p className="text-sm font-medium text-neutral-400">Open ideas</p>
                </div>
                <div className="text-center lg:text-right border-t border-white/10 pt-6">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Community Power</p>
                   <p className="mt-1 text-5xl font-black text-amber-400">{totalSupporters}</p>
-                  <p className="text-sm font-medium text-neutral-400">Upvotes Cast</p>
+                  <p className="text-sm font-medium text-neutral-400">Supports cast</p>
                </div>
             </div>
           </div>
@@ -109,7 +110,7 @@ export default async function FeedbackPage() {
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🤝</span>
                 <div>
-                  <p className="font-bold text-neutral-900">Get Supported</p>
+                  <p className="font-bold text-neutral-900">Get support</p>
                   <p className="text-sm text-neutral-500">Support ideas that benefit the entire community.</p>
                 </div>
               </div>
@@ -117,13 +118,13 @@ export default async function FeedbackPage() {
           </div>
 
           <div className="rounded-[32px] border border-neutral-200 bg-white p-8 shadow-sm">
-            <h2 className="text-2xl font-black tracking-tight text-neutral-950">Submit Request</h2>
+            <h2 className="text-2xl font-black tracking-tight text-neutral-950">Submit an idea</h2>
             {user ? (
               <form action={addFeatureRequest} className="mt-6 space-y-4">
                 <input
                   type="text"
                   name="title"
-                  placeholder="Feature Title (e.g., Save for Later)"
+                  placeholder="Idea title (e.g., Save for Later)"
                   required
                   className="w-full rounded-2xl border border-neutral-200 px-5 py-4 font-medium outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
@@ -138,8 +139,8 @@ export default async function FeedbackPage() {
                   <p className="text-xs font-bold text-amber-900 uppercase tracking-tight">
                     Posting as @{viewerProfile?.username ?? "user"}
                   </p>
-                  <button type="submit" className="rounded-xl bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white transition hover:scale-105">
-                    Submit
+                  <button type="submit" className="rounded-full bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:scale-105">
+                    Submit idea
                   </button>
                 </div>
               </form>
@@ -154,10 +155,10 @@ export default async function FeedbackPage() {
 
         {/* FEEDBACK BOARD */}
         <div className="grid gap-12 xl:grid-cols-2">
-          {/* UP FOR VOTE */}
+          {/* OPEN IDEAS */}
           <section>
             <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-2xl font-black tracking-tight text-neutral-950">Up for Vote</h2>
+              <h2 className="text-2xl font-black tracking-tight text-neutral-950">Open ideas</h2>
               <span className="rounded-full bg-neutral-100 px-4 py-1 text-xs font-bold text-neutral-500">{openIdeas.length}</span>
             </div>
             <div className="space-y-4">
@@ -169,7 +170,7 @@ export default async function FeedbackPage() {
                   currentUserIsAdmin={viewerProfile?.is_admin ?? false}
                 />
               ))}
-              {openIdeas.length === 0 && <EmptyState text="No open requests yet." />}
+              {openIdeas.length === 0 && <EmptyState text="No open ideas yet." />}
             </div>
           </section>
 
@@ -199,7 +200,7 @@ export default async function FeedbackPage() {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-[32px] border border-neutral-100 bg-white p-12 text-center text-neutral-400 shadow-sm font-medium">
+    <div className="rounded-[32px] border border-neutral-100 bg-white p-12 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-300 shadow-sm">
       {text}
     </div>
   );

@@ -262,6 +262,7 @@ function PostCardComponent({
               key={reaction.value}
               onClick={() => submitReaction(reaction.value)}
               disabled={reactionLoading}
+              aria-label={`React with ${reaction.label}, ${count} reactions`}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-90 ${isActive ? "bg-neutral-950 text-white shadow-lg" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
             >
               <span>{reaction.emoji}</span>
@@ -273,6 +274,7 @@ function PostCardComponent({
         })}
         <button
           onClick={() => setShowComments(!showComments)}
+          aria-label={`${showComments ? "Hide" : "Show"} comments, ${localCommentsCount} comments`}
           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
         >
           <span>💬</span>

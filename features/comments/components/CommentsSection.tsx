@@ -49,6 +49,13 @@ const REACTIONS: Array<{
   { value: "fire", emoji: "🔥", countKey: "fire" },
 ];
 
+function getReactionLabel(reaction: ReactionType) {
+  if (reaction === "like") return "Impact";
+  if (reaction === "funny") return "Funny";
+  if (reaction === "wow") return "Wow";
+  return "Strong";
+}
+
 function formatDate(dateString: string) {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat("en-US", {
@@ -250,6 +257,11 @@ function CommentItem({
                           void onReactionClick(node.id, reaction.value)
                         }
                         disabled={reactingCommentId === node.id}
+                        aria-label={`React with ${getReactionLabel(
+                          reaction.value
+                        )}, ${
+                          node.reaction_counts[reaction.countKey]
+                        } reactions`}
                         className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-bold transition-all active:scale-90 disabled:opacity-50 sm:px-3.5 ${
                           isActive
                             ? "scale-105 bg-neutral-950 text-white shadow-md"
@@ -272,6 +284,7 @@ function CommentItem({
                 <button
                   type="button"
                   onClick={() => onReplyOpen(node.id)}
+                  aria-label={`Reply to ${node.author_username ?? "anonymous"}`}
                   className="self-start text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-neutral-950 sm:ml-2"
                 >
                   Reply

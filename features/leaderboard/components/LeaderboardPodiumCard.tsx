@@ -35,11 +35,12 @@ type LeaderboardPodiumCardProps = {
 const REACTION_SUMMARY: Array<{
   key: ReactionType;
   emoji: string;
+  label: string;
 }> = [
-  { key: "like", emoji: "\u2764\uFE0F" },
-  { key: "funny", emoji: "\uD83D\uDE02" },
-  { key: "wow", emoji: "\uD83E\uDD2F" },
-  { key: "fire", emoji: "\uD83D\uDD25" },
+  { key: "like", emoji: "\u2764\uFE0F", label: "Impact" },
+  { key: "funny", emoji: "\uD83D\uDE02", label: "Funny" },
+  { key: "wow", emoji: "\uD83E\uDD2F", label: "Wow" },
+  { key: "fire", emoji: "\uD83D\uDD25", label: "Strong" },
 ];
 
 function getDisplayEchoScore(score: number | null | undefined) {
@@ -50,8 +51,8 @@ function getRankStyles(position: 1 | 2 | 3) {
   if (position === 1) {
     return {
       shell:
-        "min-h-[248px] rounded-[34px] border-amber-200 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.32),transparent_38%),linear-gradient(145deg,#fffdf5,#ffffff_54%,#fffbeb)] p-5 shadow-[0_28px_78px_-44px_rgba(245,158,11,0.65)] sm:min-h-[300px] sm:p-6",
-      glow: "bg-amber-300/35",
+        "min-h-[248px] rounded-[34px] border-amber-300/90 bg-[radial-gradient(circle_at_50%_-8%,rgba(251,191,36,0.52),transparent_42%),radial-gradient(circle_at_100%_15%,rgba(245,158,11,0.24),transparent_30%),linear-gradient(145deg,#fff8db,#ffffff_52%,#fffbeb)] p-5 shadow-[0_36px_110px_-46px_rgba(245,158,11,0.88),0_18px_52px_-40px_rgba(120,53,15,0.72)] ring-1 ring-amber-200/70 sm:min-h-[300px] sm:p-6 md:scale-[1.035]",
+      glow: "bg-amber-300/55",
       rankPill: "border-amber-200 bg-amber-100 text-amber-950",
       score: "text-amber-950",
       accent: "from-amber-300 via-yellow-300 to-orange-400",
@@ -114,7 +115,7 @@ export default function LeaderboardPodiumCard({
             Rank #{position}
           </span>
           <p className="mt-8 text-sm font-bold text-neutral-400">
-            Rank available.
+            Your spot. Take it.
           </p>
         </div>
       </article>
@@ -159,11 +160,16 @@ export default function LeaderboardPodiumCard({
 
   return (
     <article
-      className={`group relative block h-full w-full overflow-hidden border text-left transition duration-300 hover:-translate-y-1 ${styles.shell}`}
+      className={`group relative block h-full w-full transform-gpu overflow-hidden border text-left transition duration-300 hover:-translate-y-1 ${
+        position === 1 ? "z-10" : "z-0"
+      } ${styles.shell}`}
     >
       <div
         className={`absolute -right-10 -top-10 h-28 w-28 rounded-full blur-3xl transition group-hover:opacity-80 ${styles.glow}`}
       />
+      {position === 1 && (
+        <div className="pointer-events-none absolute inset-x-6 -top-10 h-28 rounded-full bg-amber-300/30 blur-3xl" />
+      )}
       <div
         className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${styles.accent}`}
       />
@@ -212,6 +218,9 @@ export default function LeaderboardPodiumCard({
                 key={reaction.key}
                 type="button"
                 onClick={() => void submitReaction(reaction.key)}
+                aria-label={`React with ${reaction.label}, ${
+                  post.reaction_counts[reaction.key] ?? 0
+                } reactions`}
                 className={`inline-flex min-w-0 items-center justify-center gap-1 rounded-full px-2 py-2 text-xs font-bold transition-all active:scale-90 sm:gap-1.5 sm:px-2.5 ${
                   isActive
                     ? "bg-neutral-950 text-white shadow-lg"
@@ -232,6 +241,7 @@ export default function LeaderboardPodiumCard({
           <button
             type="button"
             onClick={onOpenComments}
+            aria-label={`Open comments, ${post.comments_count} comments`}
             className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-neutral-50 px-2 py-2 text-xs font-bold text-neutral-500 transition-all hover:bg-neutral-100 sm:gap-1.5 sm:px-2.5"
           >
             <span>{"\uD83D\uDCAC"}</span>

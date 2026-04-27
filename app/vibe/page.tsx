@@ -38,12 +38,12 @@ export default async function VibePage() {
       {/* Background Decor */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-[-10%] h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-amber-100/40 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-8%] h-[360px] w-[360px] rounded-full bg-sky-100/40 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-8%] h-[360px] w-[360px] rounded-full bg-amber-50/50 blur-[120px]" />
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-6 py-12 lg:py-20">
+      <div className="relative mx-auto max-w-5xl px-5 py-10 sm:px-6 lg:py-16">
         {/* Header Section */}
-        <section className="mb-24 text-center sm:mb-32">
+        <section className="mb-16 text-center sm:mb-20">
           <span className="inline-flex rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 shadow-sm">
             The Vibe
           </span>
@@ -55,9 +55,9 @@ export default async function VibePage() {
           </h1>
 
           <p className="mx-auto mt-10 max-w-2xl text-lg font-medium leading-relaxed text-neutral-500">
-            Great ideas shouldn&apos;t need a following to go viral.
+            Great ideas Don&apos;t need a following.
             We built A Perfect Place to give you the stage you deserve.
-            On APP, your content is the only thing that matters.
+            On APP, your content speaks for itself.
             Post anonymously, let your content speak for itself, and prove what you&apos;ve got.
             Only the daily winner is revealed and immortalized forever.
             <br />
@@ -65,8 +65,107 @@ export default async function VibePage() {
           </p>
         </section>
 
+        {/* ECHO Explanation */}
+        <section className="relative -mt-6 mb-14 overflow-visible rounded-[36px] border border-neutral-200 bg-neutral-950 p-5 text-white shadow-[0_40px_100px_-28px_rgba(0,0,0,0.36)] sm:-mt-8 sm:mb-16 sm:p-8 lg:p-10">
+          <style>{`
+            @media (prefers-reduced-motion: no-preference) {
+              .echo-winner-card {
+                animation:
+                  echoWinnerEnter 520ms cubic-bezier(0.16, 1, 0.3, 1) both,
+                  echoWinnerGlow 3.2s ease-in-out 650ms infinite;
+                transform-origin: center;
+              }
+            }
+
+            @keyframes echoWinnerEnter {
+              from {
+                opacity: 0;
+                transform: translateY(8px) scale(1.01);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0) scale(1.02);
+              }
+            }
+
+            @keyframes echoWinnerGlow {
+              0%, 100% {
+                box-shadow: 0 28px 70px -36px rgba(245, 158, 11, 0.85);
+              }
+              50% {
+                box-shadow:
+                  0 30px 78px -34px rgba(245, 158, 11, 0.98),
+                  0 0 0 1px rgba(252, 211, 77, 0.2);
+              }
+            }
+          `}</style>
+
+          <div className="pointer-events-none absolute inset-x-8 -top-10 h-16 rounded-full bg-amber-100/35 blur-3xl" />
+
+          <div className="relative grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
+            <div>
+              <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-amber-300">
+                ECHO
+              </span>
+
+              <h2 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">
+                What is ECHO?
+              </h2>
+
+              <p className="mt-5 text-2xl font-black tracking-tight text-amber-300">
+                One post wins. Every day.
+              </p>
+
+              <div className="mt-6 grid gap-2.5">
+                {[
+                  "Reactions boost your score.",
+                  "Comments carry more weight.",
+                  "New posts can still break through.",
+                  "The highest ECHO wins the day.",
+                ].map((text) => (
+                  <div
+                    key={text}
+                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-bold text-neutral-200"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_18px_rgba(252,211,77,0.75)]" />
+                    {text}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <EchoExampleCard
+                label="Quick Reactions"
+                content="A sharp take that gets quick taps from the crowd."
+                echoScore={64}
+                reactionCounts={{
+                  like: 42,
+                  funny: 18,
+                  wow: 9,
+                  fire: 6,
+                }}
+                comments={3}
+              />
+              <EchoExampleCard
+                label="Deep Conversation"
+                content="A post that gets people replying, debating, and building on it."
+                echoScore={91}
+                reactionCounts={{
+                  like: 24,
+                  funny: 10,
+                  wow: 6,
+                  fire: 4,
+                }}
+                comments={14}
+                isWinner
+              />
+            </div>
+          </div>
+        </section>
+
         {/* The Core Mechanics */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-3">
           <FeatureCard
             badge="01"
             title="Post Anonymously"
@@ -85,54 +184,48 @@ export default async function VibePage() {
         </div>
 
         {/* The Reward Section */}
-        <section className="mt-20 rounded-[40px] border border-neutral-200 bg-white p-8 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)] sm:mt-24 sm:p-16">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
+        <section className="mt-14 rounded-[36px] border border-neutral-200 bg-white p-6 shadow-[0_34px_90px_-30px_rgba(0,0,0,0.08)] sm:mt-16 sm:p-10 lg:p-12">
+          <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-10">
             <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-amber-600">
-                Premium Status
-              </span>
 
-              <h2 className="mt-4 text-4xl font-black tracking-tight text-neutral-950 sm:text-5xl">
-                Win the day.
-                <br />
-                Own the flex.
-              </h2>
-
-              <p className="mt-6 text-lg leading-relaxed text-neutral-600">
-                On APP, attention is earned. If your post takes the top spot,
-                your name is revealed, your win is remembered, and your post
-                becomes part of APP history.
-              </p>
-
-              <ul className="mt-8 space-y-4">
-                <li className="flex items-center gap-3 font-semibold text-neutral-800">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs text-amber-600">
-                    ✓
+                <h2 className="mt-4 font-black tracking-tight text-neutral-950">
+                  <span className="block text-4xl sm:text-5xl">
+                    Only one wins.
                   </span>
-                  Your identity is revealed only if you win
+
+                  <span className="block text-4xl sm:text-5xl">
+                    Be that{" "}
+                    <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 bg-clip-text text-transparent">
+                      one
+                    </span>
+                    .
+                  </span>
+
+                  <span className="mt-3 block text-lg sm:text-xl font-medium text-neutral-600">
+                    And everything changes.
+                  </span>
+                </h2>
+
+              <ul className="mt-6 space-y-3">
+                <li className="flex items-center gap-3 font-semibold text-neutral-800">
+                  👤 Your name is revealed
                 </li>
                 <li className="flex items-center gap-3 font-semibold text-neutral-800">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs text-amber-600">
-                    ✓
-                  </span>
-                  Permanent Hall of Fame visibility
+                  🏆 Your post is remembered
                 </li>
                 <li className="flex items-center gap-3 font-semibold text-neutral-800">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-100 text-xs text-amber-600">
-                    ✓
-                  </span>
-                  A real digital flex worth earning
+                  🔥 You become a Legend
                 </li>
               </ul>
             </div>
 
-            <div className="relative flex justify-center">
-              <div className="relative flex h-64 w-64 items-center justify-center rounded-[48px] bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner">
-                <span className="animate-bounce text-8xl">🏆</span>
+            <div className="relative flex justify-center lg:justify-end">
+              <div className="relative flex h-52 w-52 items-center justify-center rounded-[42px] bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner sm:h-60 sm:w-60 sm:rounded-[48px]">
+                <span className="animate-bounce text-7xl sm:text-8xl">🏆</span>
                 <div className="absolute -bottom-4 rounded-2xl border border-amber-100 bg-white px-6 py-3 shadow-xl">
-                  <p className="text-xs font-black uppercase tracking-tighter text-amber-900">
+                  <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-amber-200 bg-white px-5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-amber-700 shadow-sm">
                     Legend Status
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -140,13 +233,13 @@ export default async function VibePage() {
         </section>
 
         {/* How APP Works */}
-        <section className="mt-20 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] sm:mt-24">
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-10 shadow-sm">
+        <section className="mt-14 grid gap-6 lg:grid-cols-[1.15fr_0.85fr] sm:mt-16">
+          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">
               How A Perfect Place (APP) works
             </h2>
 
-            <div className="mt-8 space-y-4">
+            <div className="mt-6 space-y-3">
               <InfoRow
                 emoji="⚡"
                 title="Quality at a glance - See the best first."
@@ -170,8 +263,8 @@ export default async function VibePage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="rounded-[32px] bg-neutral-950 p-8 text-white shadow-2xl">
+          <div className="flex flex-col gap-5">
+            <div className="rounded-[32px] bg-neutral-950 p-6 text-white shadow-2xl sm:p-7">
               <h3 className="text-xl font-bold text-amber-400">
                 Why it feels better
               </h3>
@@ -182,7 +275,7 @@ export default async function VibePage() {
               </p>
             </div>
 
-            <div className="rounded-[32px] border border-neutral-200 bg-white p-8">
+            <div className="rounded-[32px] border border-neutral-200 bg-white p-6 sm:p-7">
               <h3 className="text-xl font-bold text-neutral-950">
                 Why it matters
               </h3>
@@ -196,13 +289,13 @@ export default async function VibePage() {
         </section>
 
         {/* What wins / what loses */}
-        <section className="mt-24 mb-20 grid gap-8 lg:grid-cols-2">
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-10 shadow-sm">
+        <section className="mt-16 mb-14 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">
               What rises
             </h2>
 
-            <div className="mt-8 space-y-4">
+            <div className="mt-6 space-y-3">
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">💡</span>
                 <div>
@@ -242,12 +335,12 @@ export default async function VibePage() {
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-10 shadow-sm">
+          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">
               What fades
             </h2>
 
-            <div className="mt-8 space-y-4">
+            <div className="mt-6 space-y-3">
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🤖</span>
                 <div>
@@ -288,7 +381,7 @@ export default async function VibePage() {
         </section>
 
         {/* Final CTA */}
-        <section className="mt-24 pb-24 text-center sm:mt-32 sm:pb-20">
+        <section className="mt-16 pb-24 text-center sm:mt-20 sm:pb-20">
           <h2 className="text-[8vw] font-black tracking-tight text-neutral-950 sm:text-[5vw] lg:text-5xl">
             Welcome to APP <span className="block sm:inline">- A Perfect Place</span>
           </h2>
@@ -329,17 +422,121 @@ function FeatureCard({
   text: string;
 }) {
   return (
-    <div className="group rounded-[32px] border border-neutral-200 bg-white/50 p-8 transition-all hover:border-amber-300 hover:bg-white hover:shadow-xl">
+    <div className="group rounded-[32px] border border-neutral-200 bg-white/60 p-6 transition-all hover:border-amber-300 hover:bg-white hover:shadow-xl sm:p-7">
       <span className="text-xs font-black tracking-widest text-amber-500">
         {badge}
       </span>
       <h3 className="mt-4 text-2xl font-black tracking-tight text-neutral-950">
         {title}
       </h3>
-      <p className="mt-4 font-medium leading-relaxed text-neutral-600">
+      <p className="mt-3 font-medium leading-relaxed text-neutral-600">
         {text}
       </p>
     </div>
+  );
+}
+
+function EchoExampleCard({
+  label,
+  content,
+  echoScore,
+  reactionCounts,
+  comments,
+  isWinner = false,
+}: {
+  label: string;
+  content: string;
+  echoScore: number;
+  reactionCounts: {
+    like: number;
+    funny: number;
+    wow: number;
+    fire: number;
+  };
+  comments: number;
+  isWinner?: boolean;
+}) {
+  const reactions = [
+    { key: "like", emoji: "\u2764\uFE0F", count: reactionCounts.like },
+    { key: "funny", emoji: "\uD83D\uDE02", count: reactionCounts.funny },
+    { key: "wow", emoji: "\uD83E\uDD2F", count: reactionCounts.wow },
+    { key: "fire", emoji: "\uD83D\uDD25", count: reactionCounts.fire },
+  ];
+
+  return (
+    <article
+      className={`relative rounded-[30px] border p-4 transition-all sm:p-5 ${
+        isWinner
+          ? "echo-winner-card overflow-hidden border-amber-300 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.34),transparent_40%),radial-gradient(circle_at_100%_20%,rgba(245,158,11,0.18),transparent_34%),linear-gradient(145deg,#fff5cc,#ffffff_62%,#fffbeb)] text-neutral-950 shadow-[0_34px_88px_-34px_rgba(245,158,11,0.98),0_10px_32px_-28px_rgba(120,53,15,0.8)] ring-1 ring-amber-200/75 motion-reduce:scale-[1.02]"
+          : "overflow-hidden border-white/10 bg-white/[0.06] text-white"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <p
+          className={`text-[10px] font-black uppercase tracking-[0.16em] ${
+            isWinner ? "text-amber-700" : "text-amber-200"
+          }`}
+        >
+          {label}
+        </p>
+
+        <div
+          className={`inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] shadow-sm ${
+            isWinner
+              ? "border-amber-200 bg-amber-100 text-amber-950"
+              : "border-white/10 bg-white/10 text-amber-100"
+          }`}
+        >
+          <span>ECHO</span>
+          <span className="text-xs tabular-nums">{echoScore}</span>
+        </div>
+      </div>
+
+      <p
+        className={`mt-6 min-h-[88px] rounded-3xl border p-4 text-base font-black leading-snug tracking-tight sm:p-5 sm:text-lg ${
+          isWinner
+            ? "border-amber-100 bg-white/90 text-neutral-950"
+            : "border-white/10 bg-white/[0.05] text-white"
+        }`}
+      >
+        {content}
+      </p>
+
+      <div className="mt-4 flex flex-nowrap items-center gap-1 overflow-hidden sm:gap-1.5">
+        {reactions.map((reaction) => (
+          <span
+            key={reaction.key}
+            className={`inline-flex h-8 min-w-0 shrink items-center justify-center gap-1 rounded-full px-1.5 py-1.5 text-[10px] font-bold sm:px-2 sm:text-[11px] ${
+              isWinner
+                ? "bg-white/90 text-neutral-500"
+                : "bg-neutral-50 text-neutral-500"
+            }`}
+          >
+            <span>{reaction.emoji}</span>
+            <span className="tabular-nums text-neutral-900">
+              {reaction.count}
+            </span>
+          </span>
+        ))}
+
+        <span
+          className={`inline-flex h-8 min-w-0 shrink items-center justify-center gap-1 rounded-full px-1.5 py-1.5 text-[10px] font-bold sm:px-2 sm:text-[11px] ${
+            isWinner
+              ? "bg-neutral-950 text-neutral-300"
+              : "bg-neutral-50 text-neutral-500"
+          }`}
+        >
+          <span>{"\uD83D\uDCAC"}</span>
+          <span
+            className={`tabular-nums ${
+              isWinner ? "text-white" : "text-neutral-900"
+            }`}
+          >
+            {comments}
+          </span>
+        </span>
+      </div>
+    </article>
   );
 }
 
@@ -353,7 +550,7 @@ function InfoRow({
   text: string;
 }) {
   return (
-    <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+    <div className="flex gap-3 rounded-2xl bg-neutral-50 p-3.5 sm:gap-4 sm:p-4">
       <span className="text-xl">{emoji}</span>
       <div>
         <p className="font-bold text-neutral-900">{title}</p>

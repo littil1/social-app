@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getNextZurichMidnight } from "@/features/winners/lib/daily-ranking";
@@ -85,7 +86,7 @@ export default function LeaderboardLiveHeader({
   }, [handleAutoRefresh, mounted]);
 
   const remaining = useMemo(() => {
-    if (!mounted || now === null) return "--:--:--";
+    if (!mounted || now === null) return "Ends tonight";
 
     const target = getNextZurichMidnight().getTime();
     return formatRemaining(target - now);
@@ -117,41 +118,49 @@ export default function LeaderboardLiveHeader({
 
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/90 px-3 py-1.5 text-xs font-black uppercase tracking-[0.16em] text-emerald-900 backdrop-blur">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-bold text-gray-600">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             </span>
-            LIVE
-          </span>
 
-          <h1 className="mt-2 text-4xl font-black leading-tight tracking-tight text-gray-950 sm:text-4xl">
+            <span className="font-black uppercase tracking-[0.14em] text-emerald-800">
+              LIVE
+            </span>
+            <span className="text-gray-300">•</span>
+            <span>{todayLabel}</span>
+            <span className="text-gray-300">•</span>
+            <span>Updated {updatedAgo}</span>
+          </div>
+
+          <h1 className="mt-2.5 text-4xl font-black leading-tight tracking-tight text-gray-950 sm:text-6xl">
             Leaderboard
           </h1>
-
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/70 bg-white/85 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur">
-              {todayLabel}
-            </span>
-
-            <span className="rounded-full border border-white/70 bg-white/85 px-3 py-1.5 text-sm font-medium text-gray-700 backdrop-blur">
-              Updated {updatedAgo}
-            </span>
-          </div>
+          <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-emerald-900/70">
+            <span>Climb with</span>
+            <Link
+              href="/vibe"
+              title="What is ECHO?"
+              aria-label="Learn what ECHO means"
+              className="inline-flex cursor-pointer rounded-full border border-emerald-200 bg-white/90 px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-900 shadow-[0_8px_24px_-18px_rgba(16,185,129,0.8)] transition-all duration-200 hover:scale-[1.03] hover:border-emerald-300 hover:bg-emerald-50 hover:shadow-[0_14px_34px_-20px_rgba(16,185,129,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
+            >
+              ECHO
+            </Link>
+          </p>
         </div>
 
-        <div className="rounded-[26px] border border-white/70 bg-white/85 p-4 shadow-sm backdrop-blur sm:min-w-[290px] sm:p-5">
+        <div className="rounded-[28px] border border-white/70 bg-white/85 p-5 shadow-sm backdrop-blur sm:min-w-[310px] sm:p-6">
           <div>
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-700">
                 Time left
               </p>
-              <p className="mt-2 text-3xl font-black tracking-tight text-gray-950 tabular-nums sm:text-4xl">
+              <p className="mt-2 text-4xl font-black tracking-tight text-gray-950 tabular-nums">
                 {remaining}
               </p>
             </div>
           </div>
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
+          <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-neutral-200">
             <div
               className="motion-safe:animate-pulse h-full bg-emerald-500 transition-all duration-1000"
               style={{ width: `${progress}%` }}

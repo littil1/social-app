@@ -32,10 +32,12 @@ export default function FeedbackCard({
   const canManage = isOwnRequest || currentUserIsAdmin;
   const isImplemented = item.status === "implemented";
 
-  // Schließt Menü bei Klick außerhalb
+  // Close the menu when clicking outside it.
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -43,7 +45,10 @@ export default function FeedbackCard({
 
   function handleLikeClick() {
     if (!currentUserId) {
-      requireLoginAndResume(() => likeFormRef.current?.requestSubmit(), window.location.pathname);
+      requireLoginAndResume(
+        () => likeFormRef.current?.requestSubmit(),
+        window.location.pathname
+      );
       return;
     }
     likeFormRef.current?.requestSubmit();
@@ -66,7 +71,7 @@ export default function FeedbackCard({
             <Link href={`/u/${item.username}`} className="block truncate text-sm font-black text-neutral-900 hover:underline">
               @{item.username ?? "anonymous"}
             </Link>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Community Suggestion</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Community idea</p>
           </div>
         </div>
 
@@ -83,6 +88,7 @@ export default function FeedbackCard({
             <div className="relative" ref={menuRef}>
               <button 
                 onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Open idea actions"
                 className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-neutral-50 text-neutral-400 transition-colors"
               >
                 <span className="text-xl font-black leading-none mb-2">...</span>
@@ -95,14 +101,14 @@ export default function FeedbackCard({
                       <input type="hidden" name="request_id" value={item.id} />
                       <input type="hidden" name="status" value={isImplemented ? "open" : "implemented"} />
                       <button type="submit" className="w-full px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-neutral-600 hover:bg-neutral-50 transition-colors border-b border-neutral-50">
-                        {isImplemented ? "↺ Re-open Request" : "✓ Mark Deployed"}
+                        {isImplemented ? "Re-open idea" : "Mark Deployed"}
                       </button>
                     </form>
                   )}
                   <form action={deleteFeatureRequest}>
                     <input type="hidden" name="request_id" value={item.id} />
                     <button type="submit" className="w-full px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 transition-colors">
-                      ✕ Delete Request
+                      Delete idea
                     </button>
                   </form>
                 </div>
@@ -113,7 +119,7 @@ export default function FeedbackCard({
       </div>
 
       {/* CONTENT AREA */}
-      <div className="mb-6 rounded-[24px] border border-neutral-50 bg-neutral-50/50 p-5">
+      <div className="mb-6 rounded-[24px] border border-neutral-50 bg-neutral-50/50 p-5 sm:p-6">
         <h3 className="text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
           {item.title}
         </h3>
@@ -129,24 +135,35 @@ export default function FeedbackCard({
           <button
             type="button"
             onClick={handleLikeClick}
-            className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all active:scale-95 ${
+            aria-label={`${item.likedByViewer ? "Remove support from" : "Support"} idea, ${item.likeCount} supporters`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-90 ${
               item.likedByViewer 
                 ? "bg-neutral-950 text-white shadow-lg" 
                 : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
             }`}
           >
-            {item.likedByViewer ? "❤️ Supported" : "🤍 Support"}
-            <span className="ml-1 opacity-50">{item.likeCount}</span>
+            <span>{item.likedByViewer ? "❤️" : "🤍"}</span>
+            <span className={item.likedByViewer ? "text-white" : "text-neutral-900"}>
+              {item.likeCount}
+            </span>
+            <span className="text-xs font-black uppercase tracking-widest">
+              Support idea
+            </span>
           </button>
         </form>
 
         <button
           onClick={() => setShowComments(!showComments)}
-          className={`rounded-full px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all ${
+          aria-label={`${showComments ? "Hide" : "Show"} idea comments, ${item.commentCount} comments`}
+          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
             showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
           }`}
         >
-          💬 {item.commentCount} Comments
+          <span>💬</span>
+          <span className="text-neutral-900">{item.commentCount}</span>
+          <span className="text-xs font-black uppercase tracking-widest">
+            Comments
+          </span>
         </button>
       </div>
 

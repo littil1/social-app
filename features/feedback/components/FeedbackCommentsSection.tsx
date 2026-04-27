@@ -295,7 +295,8 @@ export default function FeedbackCommentsSection({
                 type="button"
                 onClick={() => void handleReaction(node.id, reaction.value)}
                 disabled={isRefreshing}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold transition-all active:scale-90 ${
+                aria-label={`React with ${reaction.label}, ${reactionCounts[reaction.value]} reactions`}
+                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-90 ${
                   isActive
                     ? "scale-105 bg-neutral-950 text-white shadow-lg"
                     : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
@@ -314,6 +315,7 @@ export default function FeedbackCommentsSection({
             onClick={() =>
               setActiveReplyId(activeReplyId === node.id ? null : node.id)
             }
+            aria-label={`Reply to ${node.username ?? "anonymous"}`}
             className="ml-3 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-950"
           >
             Reply
@@ -339,11 +341,11 @@ export default function FeedbackCommentsSection({
                 name="content"
                 placeholder={`Reply to @${node.username}...`}
                 required
-                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 text-sm font-medium outline-none transition-all shadow-inner focus:border-neutral-950 focus:bg-white"
+                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 text-sm font-medium outline-none transition-all focus:border-neutral-950 focus:bg-white"
               />
               <button
                 type="submit"
-                className="absolute right-2 top-2 rounded-xl bg-neutral-950 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-md"
+                className="absolute right-2 top-2 rounded-xl bg-neutral-950 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg"
               >
                 Reply
               </button>
@@ -376,7 +378,7 @@ export default function FeedbackCommentsSection({
   };
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8">
       <form
         action={async (fd) => {
           await addFeatureRequestComment(fd);
@@ -392,11 +394,11 @@ export default function FeedbackCommentsSection({
             placeholder="Share a thought..."
             required
             disabled={!currentUserId}
-            className="w-full rounded-[24px] border border-neutral-200 bg-white py-6 pl-8 pr-40 text-base font-medium outline-none transition-all shadow-sm focus:border-neutral-950"
+            className="w-full rounded-2xl border border-neutral-200 bg-white py-5 pl-6 pr-32 text-[15px] font-medium outline-none transition-all shadow-sm focus:border-neutral-950"
           />
           <button
             type="submit"
-            className="absolute right-3 top-3 rounded-2xl bg-neutral-950 px-8 py-4 text-[11px] font-black uppercase tracking-widest text-white shadow-xl transition-all active:scale-95"
+            className="absolute right-2.5 top-2.5 rounded-xl bg-neutral-950 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95"
           >
             Post
           </button>
@@ -414,9 +416,9 @@ export default function FeedbackCommentsSection({
           {commentTree.map((node) => renderComment(node))}
 
           {localComments.length === 0 && (
-            <div className="py-20 text-center">
-              <span className="text-[11px] font-black uppercase tracking-[0.4em] text-neutral-200">
-                No thoughts yet.
+            <div className="py-16 text-center">
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-300">
+                No comments yet.
               </span>
             </div>
           )}

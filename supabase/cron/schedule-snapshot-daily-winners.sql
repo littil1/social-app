@@ -1,28 +1,18 @@
--- Run this manually in Supabase SQL Editor after the function is deployed.
+-- Run this manually in Supabase SQL Editor after the migration that creates
+-- public.run_snapshot_daily_winners(date) has been applied.
 -- Required first:
--- 1. Enable pg_cron and pg_net in Database > Extensions.
--- 2. Set the same DAILY_WINNER_CRON_SECRET in the Edge Function secrets.
--- 3. Replace the placeholders below.
+-- 1. Enable pg_cron in Database > Extensions.
 
 select
   cron.schedule(
     'snapshot-daily-winners-zurich',
     '5,20,35,50 * * * *', -- every 15 minutes, function is idempotent
     $$
-    select
-      net.http_post(
-        url:='https://<PROJECT-REF>.supabase.co/functions/v1/snapshot-daily-winners',
-        headers:=jsonb_build_object(
-          'Content-Type', 'application/json',
-          'x-cron-secret', '<DAILY_WINNER_CRON_SECRET>'
-        ),
-        body:='{}'::jsonb,
-        timeout_milliseconds:=10000
-      ) as request_id;
+    select public.run_snapshot_daily_winners();
     $$
   );
 
 -- This intentionally runs several times per hour.
--- The function snapshots the previous Zurich day only if that day
--- does not already have a winner row, so repeated runs are safe and
--- avoid daylight-saving-time scheduling drift.
+-- The function snapshots the previous Zurich day only if that day does not
+-- already have a winner row, so repeated runs are safe and avoid
+-- daylight-saving-time scheduling drift.

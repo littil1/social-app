@@ -19,20 +19,27 @@ type FrozenHallOfFamePost = {
 
 type HallOfFameFrozenPostCardProps = {
   post: FrozenHallOfFamePost | null;
-  archiveLabel?: string;
+  dayLabel?: string;
   variant?: "featured" | "archive";
 };
+
+function formatEchoScore(score: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
+  }).format(score);
+}
 
 function getCardStyles(variant: "featured" | "archive") {
   if (variant === "featured") {
     return {
       outer:
-        "border-yellow-300/80 bg-gradient-to-br from-yellow-50 via-amber-50 to-white shadow-[0_28px_90px_-42px_rgba(245,158,11,0.42)]",
+        "border-yellow-300/80 bg-[radial-gradient(circle_at_20%_0%,rgba(251,191,36,0.18),transparent_32%),linear-gradient(145deg,#fff8db,#ffffff_54%,#fffbeb)] shadow-[0_28px_90px_-42px_rgba(245,158,11,0.42)]",
       accentText: "text-amber-700",
       authorBox: "border-yellow-200/80 bg-white/90",
       contentBox: "border-yellow-100 bg-white/95",
-      contentText: "text-lg leading-8 sm:text-xl sm:leading-9",
-      padding: "p-5 sm:p-7",
+      contentText: "text-base leading-7 sm:text-lg sm:leading-8",
+      padding: "p-5 sm:p-6",
     };
   }
 
@@ -42,7 +49,7 @@ function getCardStyles(variant: "featured" | "archive") {
     accentText: "text-amber-700",
     authorBox: "border-gray-200 bg-white",
     contentBox: "border-gray-100 bg-white",
-    contentText: "text-base leading-7 sm:text-lg sm:leading-8",
+    contentText: "text-base leading-7",
     padding: "p-5 sm:p-6",
   };
 }
@@ -53,7 +60,7 @@ function getCommentsStorageKey(postId: number) {
 
 export default function HallOfFameFrozenPostCard({
   post,
-  archiveLabel,
+  dayLabel,
   variant = "archive",
 }: HallOfFameFrozenPostCardProps) {
   const styles = useMemo(() => getCardStyles(variant), [variant]);
@@ -70,7 +77,7 @@ export default function HallOfFameFrozenPostCard({
             Hall of Fame
           </p>
           <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-950">
-            {archiveLabel ?? "Daily winner"}
+            No post found
           </h3>
         </div>
 
@@ -85,20 +92,23 @@ export default function HallOfFameFrozenPostCard({
     <HallOfFameFrozenPostCardContent
       key={post.id}
       post={post}
-      archiveLabel={archiveLabel}
+      dayLabel={dayLabel}
       styles={styles}
+      variant={variant}
     />
   );
 }
 
 function HallOfFameFrozenPostCardContent({
   post,
-  archiveLabel,
+  dayLabel,
   styles,
+  variant,
 }: {
   post: FrozenHallOfFamePost;
-  archiveLabel?: string;
+  dayLabel?: string;
   styles: ReturnType<typeof getCardStyles>;
+  variant: "featured" | "archive";
 }) {
   const [showComments, setShowComments] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -121,39 +131,55 @@ function HallOfFameFrozenPostCardContent({
 
   return (
     <article
-      className={`rounded-[28px] border ${styles.outer} ${styles.padding}`}
+      className={`overflow-hidden rounded-[28px] border ${styles.outer} ${styles.padding}`}
     >
       <div className="flex h-full flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p
-              className={`text-xs font-semibold uppercase tracking-[0.18em] ${styles.accentText}`}
-            >
-              Legends
+        <div className="flex flex-col gap-3 border-b border-black/5 pb-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold tracking-normal text-neutral-600">
+              {dayLabel ?? "Hall of Fame"}
             </p>
-            <h3 className="mt-2 text-2xl font-bold tracking-tight text-gray-950 sm:text-3xl">
-              {archiveLabel ?? "Champion of the day"}
-            </h3>
+            {variant === "featured" && (
+              <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-amber-700">
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-xs font-black uppercase tracking-[0.16em] shadow-sm ${
+                variant === "featured"
+                  ? "border-amber-200 bg-amber-100 text-amber-950"
+                  : "border-amber-200 bg-amber-50 text-amber-800"
+              }`}
+            >
+              <span>ECHO</span>
+              <span className="text-sm tabular-nums">
+                {formatEchoScore(post.relevance_score)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <div className="min-w-0">
+            {post.author_username ? (
+              <Link
+                href={`/u/${encodeURIComponent(post.author_username)}`}
+                className="truncate text-2xl font-black tracking-tight text-gray-950 transition hover:opacity-75 sm:text-3xl"
+              >
+                @{post.author_username}
+              </Link>
+            ) : (
+              <h3 className="text-2xl font-black tracking-tight text-gray-950 sm:text-3xl">
+                Unknown
+              </h3>
+            )}
           </div>
         </div>
 
         <div
-          className={`mt-5 inline-flex max-w-full flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 ${styles.authorBox}`}
-        >
-          {post.author_username ? (
-            <Link
-              href={`/u/${encodeURIComponent(post.author_username)}`}
-              className="truncate text-xl font-bold text-gray-950 transition hover:opacity-75"
-            >
-              @{post.author_username}
-            </Link>
-          ) : (
-            <span className="text-xl font-bold text-gray-950">Unknown</span>
-          )}
-        </div>
-
-        <div
-          className={`mt-5 rounded-[28px] border p-5 shadow-sm sm:p-6 ${styles.contentBox}`}
+          className={`mt-4 rounded-[24px] border p-4 shadow-sm sm:p-5 ${styles.contentBox}`}
         >
           <p
             className={`whitespace-pre-wrap break-words text-gray-900 ${styles.contentText}`}
@@ -162,28 +188,41 @@ function HallOfFameFrozenPostCardContent({
           </p>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span
+            aria-label={`Impact reactions, ${post.reaction_counts.like}`}
+            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+          >
             <span>{"\u2764\uFE0F"}</span>
             <span className="text-neutral-900">{post.reaction_counts.like}</span>
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+          <span
+            aria-label={`Funny reactions, ${post.reaction_counts.funny}`}
+            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+          >
             <span>{"\uD83D\uDE02"}</span>
             <span className="text-neutral-900">
               {post.reaction_counts.funny}
             </span>
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+          <span
+            aria-label={`Wow reactions, ${post.reaction_counts.wow}`}
+            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+          >
             <span>{"\uD83E\uDD2F"}</span>
             <span className="text-neutral-900">{post.reaction_counts.wow}</span>
           </span>
-          <span className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500">
+          <span
+            aria-label={`Strong reactions, ${post.reaction_counts.fire}`}
+            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+          >
             <span>{"\uD83D\uDD25"}</span>
             <span className="text-neutral-900">{post.reaction_counts.fire}</span>
           </span>
           <button
             type="button"
             onClick={() => setShowComments((prev) => !prev)}
+            aria-label={`${showComments ? "Hide" : "Show"} comments, ${localCommentsCount} comments`}
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
               showComments
                 ? "bg-neutral-200 text-neutral-900"
