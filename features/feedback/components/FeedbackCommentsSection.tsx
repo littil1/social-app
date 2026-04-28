@@ -242,7 +242,7 @@ export default function FeedbackCommentsSection({
     };
 
     const card = (
-      <div className="group relative rounded-[24px] border border-neutral-100 bg-white p-5 shadow-sm transition-all hover:border-neutral-200">
+      <div className="motion-card soft-enter group relative rounded-[24px] border border-neutral-100 bg-white p-5 shadow-sm transition-all hover:border-neutral-200">
         {canDelete && (
           <button
             type="button"
@@ -301,8 +301,9 @@ export default function FeedbackCommentsSection({
                 type="button"
                 onClick={() => void handleReaction(node.id, reaction.value)}
                 disabled={isRefreshing}
+                data-active={isActive}
                 aria-label={`React with ${reaction.label}, ${reactionCounts[reaction.value]} reactions`}
-                className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-90 ${
+                className={`motion-reaction flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
                   isActive
                     ? "scale-105 bg-neutral-950 text-white shadow-lg"
                     : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
@@ -322,7 +323,7 @@ export default function FeedbackCommentsSection({
               setActiveReplyId(activeReplyId === node.id ? null : node.id)
             }
             aria-label={`Reply to ${node.username ?? "anonymous"}`}
-            className="ml-3 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-950"
+            className="motion-button ml-3 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-950"
           >
             Reply
           </button>
@@ -351,7 +352,7 @@ export default function FeedbackCommentsSection({
               />
               <button
                 type="submit"
-                className="absolute right-2 top-2 rounded-xl bg-neutral-950 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg"
+                className="motion-button absolute right-2 top-2 rounded-xl bg-neutral-950 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg"
               >
                 Reply
               </button>
@@ -404,7 +405,7 @@ export default function FeedbackCommentsSection({
           />
           <button
             type="submit"
-            className="absolute right-2.5 top-2.5 rounded-xl bg-neutral-950 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95"
+            className="motion-button absolute right-2.5 top-2.5 rounded-xl bg-neutral-950 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all"
           >
             Post
           </button>
@@ -422,7 +423,7 @@ export default function FeedbackCommentsSection({
           {commentTree.map((node) => renderComment(node))}
 
           {localComments.length === 0 && (
-            <div className="py-16 text-center">
+            <div className="soft-enter py-16 text-center">
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400">
                 No comments yet.
               </span>

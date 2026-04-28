@@ -206,7 +206,7 @@ const CommentItem = memo(function CommentItem({
         marginLeft: effectiveDepth > 0 ? `${effectiveDepth * 8}px` : undefined,
       }}
     >
-      <div className="relative rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm transition-all hover:border-neutral-200 sm:p-5">
+      <div className="motion-card soft-enter relative rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm transition-all hover:border-neutral-200 sm:p-5">
         {node.can_delete && (
           <button
             type="button"
@@ -288,12 +288,13 @@ const CommentItem = memo(function CommentItem({
                           void onReactionClick(node.id, reaction.value)
                         }
                         disabled={reactingCommentId === node.id}
+                        data-active={isActive}
                         aria-label={`React with ${getReactionLabel(
                           reaction.value
                         )}, ${
                           node.reaction_counts[reaction.countKey]
                         } reactions`}
-                        className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-bold transition-all active:scale-90 disabled:opacity-50 sm:px-3.5 ${
+                        className={`motion-reaction flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-2 text-xs font-bold transition-all disabled:opacity-50 sm:px-3.5 ${
                           isActive
                             ? "scale-105 bg-neutral-950 text-white shadow-md"
                             : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
@@ -316,7 +317,7 @@ const CommentItem = memo(function CommentItem({
                   type="button"
                   onClick={() => onReplyOpen(node.id)}
                   aria-label={`Reply to ${node.author_username ?? "anonymous"}`}
-                  className="self-start text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-neutral-950 sm:ml-2"
+                  className="motion-button self-start rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 transition-colors hover:text-neutral-950 sm:ml-2"
                 >
                   Reply
                 </button>
@@ -346,14 +347,14 @@ const CommentItem = memo(function CommentItem({
                   <button
                     type="button"
                     onClick={onReplyCancel}
-                    className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600"
+                    className="motion-button rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-600"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={replySubmitting || !replyContent.trim()}
-                    className="rounded-xl bg-neutral-950 px-5 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 disabled:opacity-20"
+                    className="motion-button rounded-xl bg-neutral-950 px-5 py-2 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all disabled:opacity-20"
                   >
                     Send
                   </button>
@@ -763,7 +764,7 @@ export default function CommentsSection({
           <button
             type="submit"
             disabled={submitting || !content.trim()}
-            className="absolute right-2.5 top-2.5 rounded-xl bg-neutral-950 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 disabled:opacity-20"
+            className="motion-button absolute right-2.5 top-2.5 rounded-xl bg-neutral-950 px-6 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-lg transition-all disabled:opacity-20"
           >
             {submitting ? "..." : "Post"}
           </button>
@@ -775,11 +776,11 @@ export default function CommentsSection({
       </form>
 
       {loading ? (
-        <div className="animate-pulse py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400">
+        <div className="soft-enter animate-pulse py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400">
           Loading comments...
         </div>
       ) : comments.length === 0 ? (
-        <div className="py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400">
+        <div className="soft-enter py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400">
           No comments yet.
         </div>
       ) : (

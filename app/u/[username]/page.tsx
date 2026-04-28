@@ -55,15 +55,18 @@ function formatProfileMonth(dateString: string) {
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const supabase = await createClient();
+  const paramsPromise = params;
+  const userPromise = supabase.auth.getUser();
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await userPromise;
 
   let navUser: {
     username: string;
     avatar_url: string | null;
     is_admin: boolean;
   } | null = null;
+  let viewerIsAdmin = false;
 
   if (user) {
     const { data: profile, error: profileError } = await supabase
@@ -83,25 +86,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         is_admin: profile.is_admin ?? false,
       };
     }
+    viewerIsAdmin = profile?.is_admin ?? false;
   }
 
-  let viewerIsAdmin = false;
-
-  if (user) {
-    const { data: viewerProfile, error: viewerProfileError } = await supabase
-      .from("profiles")
-      .select("is_admin")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (viewerProfileError) {
-      throw new Error(viewerProfileError.message);
-    }
-
-    viewerIsAdmin = viewerProfile?.is_admin ?? false;
-  }
-
-  const { username } = await params;
+  const { username } = await paramsPromise;
   const usernameFromUrl = decodeURIComponent(username).trim().toLowerCase();
 
   const { data: profile, error: profileError } = await supabase
@@ -140,24 +128,50 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const typedPosts = (postsData ?? []) as PostRow[];
   const postIds = typedPosts.map((post) => post.id);
-  const commentCountMap = await resolvePostCommentCounts(supabase, typedPosts);
-
   const reactionCountMap = new Map<
     number,
     { like: number; funny: number; wow: number; fire: number }
   >();
   const viewerReactionMap = new Map<number, ReactionType | null>();
 
+  const commentCountPromise = resolvePostCommentCounts(supabase, typedPosts);
+  const reactionsPromise =
+    postIds.length > 0
+      ? supabase
+          .from("post_reactions")
+          .select("post_id, user_id, reaction")
+          .in("post_id", postIds)
+      : Promise.resolve({ data: [], error: null });
+  const followStatusPromise = isFollowingUser(
+    supabase,
+    user?.id ?? null,
+    typedProfile.id
+  );
+  const followCountsPromise = getFollowCounts(supabase, typedProfile.id);
+  const isOwnProfile = user?.id === typedProfile.id;
+  const profileBadgesPromise = getComputedUserBadges(supabase, typedProfile.id, {
+    includeProgress: isOwnProfile,
+  });
+
+  const [
+    commentCountMap,
+    { data: reactionsData, error: reactionsError },
+    isFollowing,
+    { followersCount, followingCount },
+    profileBadges,
+  ] = await Promise.all([
+    commentCountPromise,
+    reactionsPromise,
+    followStatusPromise,
+    followCountsPromise,
+    profileBadgesPromise,
+  ]);
+
+  if (reactionsError) {
+    throw new Error(reactionsError.message);
+  }
+
   if (postIds.length > 0) {
-    const { data: reactionsData, error: reactionsError } = await supabase
-      .from("post_reactions")
-      .select("post_id, user_id, reaction")
-      .in("post_id", postIds);
-
-    if (reactionsError) {
-      throw new Error(reactionsError.message);
-    }
-
     for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
       const current = reactionCountMap.get(reaction.post_id) ?? {
         like: 0,
@@ -205,19 +219,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     };
   });
 
-  const isFollowing = await isFollowingUser(
-    supabase,
-    user?.id ?? null,
-    typedProfile.id
-  );
-  const { followersCount, followingCount } = await getFollowCounts(
-    supabase,
-    typedProfile.id
-  );
-  const isOwnProfile = user?.id === typedProfile.id;
-  const profileBadges = await getComputedUserBadges(supabase, typedProfile.id, {
-    includeProgress: isOwnProfile,
-  });
   const specialBadges = Array.isArray(typedProfile.badges)
     ? typedProfile.badges
         .map((badgeKey) => getProfileBadge(badgeKey))

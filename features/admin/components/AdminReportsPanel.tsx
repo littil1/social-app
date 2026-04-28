@@ -48,12 +48,12 @@ const STATUS_STYLES: Record<
   }
 > = {
   open: {
-    chip: "border-rose-200 bg-rose-50 text-rose-700",
-    select: "border-rose-200 bg-rose-50 text-rose-800",
-  },
-  reviewing: {
     chip: "border-amber-200 bg-amber-50 text-amber-700",
     select: "border-amber-200 bg-amber-50 text-amber-800",
+  },
+  reviewing: {
+    chip: "border-sky-200 bg-sky-50 text-sky-700",
+    select: "border-sky-200 bg-sky-50 text-sky-800",
   },
   resolved: {
     chip: "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -217,8 +217,8 @@ export default function AdminReportsPanel({
   }
 
   return (
-    <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm">
+    <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
+      <section className="rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           Reports
         </p>
@@ -232,7 +232,7 @@ export default function AdminReportsPanel({
           </div>
         ) : (
           <>
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               {FILTER_OPTIONS.map((filter) => {
                 const isActive = activeFilter === filter.value;
 
@@ -241,9 +241,9 @@ export default function AdminReportsPanel({
                     key={filter.value}
                     type="button"
                     onClick={() => setActiveFilter(filter.value)}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] transition ${
+                    className={`motion-button rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] transition ${
                       isActive
-                        ? "border-neutral-950 bg-neutral-950 text-white"
+                        ? "border-neutral-950 bg-neutral-950/90 text-white"
                         : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50"
                     }`}
                   >
@@ -260,7 +260,7 @@ export default function AdminReportsPanel({
                   : "No reports for this filter."}
               </div>
             ) : (
-              <div className="mt-6 grid gap-3">
+              <div className="mt-5 grid gap-2.5">
                 {visibleReports.map((report) => {
                   const isActive = selectedReport?.id === report.id;
                   const statusStyle = STATUS_STYLES[report.status];
@@ -278,10 +278,10 @@ export default function AdminReportsPanel({
                         setSelectedReportId(report.id);
                         setFeedback(null);
                       }}
-                      className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                      className={`motion-card w-full rounded-2xl border px-4 py-3 text-left transition ${
                         isActive
-                          ? "border-neutral-950 bg-neutral-950 text-white"
-                          : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50"
+                          ? "border-emerald-200 bg-emerald-950/90 text-white shadow-[0_18px_36px_-28px_rgba(6,95,70,0.75)]"
+                          : "border-neutral-200 bg-white/90 hover:border-amber-200 hover:bg-amber-50/30"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -334,7 +334,7 @@ export default function AdminReportsPanel({
         )}
       </section>
 
-      <section className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm">
+      <section className="rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           Report Detail
         </p>
@@ -351,7 +351,7 @@ export default function AdminReportsPanel({
             Select a report on the left.
           </div>
         ) : (
-          <div className="mt-6 space-y-8">
+          <div className="mt-5 space-y-5">
             <section className="rounded-3xl border border-neutral-200 bg-neutral-50 p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <span
@@ -413,7 +413,7 @@ export default function AdminReportsPanel({
                 <div className="mt-5">
                   <Link
                     href={`/posts/${selectedReport.post_id}`}
-                    className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-950"
+                    className="motion-button rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-950"
                   >
                     Open post
                   </Link>
@@ -493,7 +493,7 @@ export default function AdminReportsPanel({
                   type="button"
                   onClick={() => handleSave(selectedReport.id)}
                   disabled={updatingReportId === selectedReport.id}
-                  className="rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-60"
+                  className="motion-button rounded-2xl bg-neutral-950 px-4 py-3 text-sm font-bold text-white disabled:opacity-60"
                 >
                   {updatingReportId === selectedReport.id
                     ? "Saving..."

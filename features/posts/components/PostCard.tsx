@@ -257,7 +257,7 @@ function PostCardComponent({
 
   return (
     <article
-      className={`group relative overflow-hidden rounded-[32px] border p-6 transition-all duration-300 hover:shadow-md ${rankStyles.articleClass}`}
+      className={`motion-card soft-enter group relative overflow-hidden rounded-[32px] border p-6 transition-all duration-300 hover:shadow-md ${rankStyles.articleClass}`}
     >
       {dailyRank && (
         <div
@@ -321,8 +321,9 @@ function PostCardComponent({
               key={reaction.value}
               onClick={() => submitReaction(reaction.value)}
               disabled={reactionLoading}
+              data-active={isActive}
               aria-label={`React with ${reaction.label}, ${count} reactions`}
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-90 ${isActive ? "bg-neutral-950 text-white shadow-lg" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+              className={`motion-reaction inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${isActive ? "bg-neutral-950 text-white shadow-lg" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
             >
               <span>{reaction.emoji}</span>
               <span className={isActive ? "text-white" : "text-neutral-900"}>
@@ -334,7 +335,7 @@ function PostCardComponent({
         <button
           onClick={() => setShowComments(!showComments)}
           aria-label={`${showComments ? "Hide" : "Show"} comments, ${localCommentsCount} comments`}
-          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+          className={`motion-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
         >
           <span>💬</span>
           <span className="text-neutral-900">{localCommentsCount}</span>

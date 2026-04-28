@@ -110,10 +110,11 @@ async function LeaderboardFeedSection({
 
 export default async function LeaderboardPage() {
   const supabase = await createClient();
+  const userPromise = supabase.auth.getUser();
+  const homeFeedDataPromise = getHomeFeedData(0, FEED_PAGE_SIZE);
   const {
     data: { user },
-  } = await supabase.auth.getUser();
-  const homeFeedDataPromise = getHomeFeedData(0, FEED_PAGE_SIZE);
+  } = await userPromise;
 
   let navUser = null;
   let hasKnowEverythingBadge = false;

@@ -18,16 +18,21 @@ function getEchoScore(item: FeedbackItem) {
 export default async function FeedbackPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const feedback = await getFeedbackBundle(supabase, user?.id ?? null);
 
-  let viewerProfile = null;
-  if (user) {
-    const { data } = await supabase
+  const feedbackPromise = getFeedbackBundle(supabase, user?.id ?? null);
+  const viewerProfilePromise = user
+    ? supabase
       .from("profiles")
       .select("username, avatar_url, is_admin")
       .eq("id", user.id)
-      .maybeSingle();
-    viewerProfile = data;
+      .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+
+  const [feedback, { data: viewerProfile, error: viewerProfileError }] =
+    await Promise.all([feedbackPromise, viewerProfilePromise]);
+
+  if (viewerProfileError) {
+    throw new Error(viewerProfileError.message);
   }
 
   // Sort ideas by Echo score, highest first.

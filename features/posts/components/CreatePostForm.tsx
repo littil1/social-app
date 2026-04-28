@@ -140,7 +140,7 @@ export default function CreatePostForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-3xl border border-gray-200 bg-gray-50/80 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+      <div className="motion-card rounded-3xl border border-gray-200 bg-gray-50/80 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
             {displayAvatarUrl ? (
@@ -194,7 +194,7 @@ export default function CreatePostForm({
         <button
           type="submit"
           disabled={!canSubmit || loading}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-white"
+          className="motion-button inline-flex min-h-[44px] items-center justify-center rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-gray-900 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-white"
         >
           {loading ? "Posting..." : "Post"}
         </button>

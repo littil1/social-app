@@ -7,10 +7,10 @@ export default function UserListItem({
 }: {
   user: ProfileSummary;
 }) {
-  return (
-    <div className="rounded-xl bg-white p-4 shadow">
+  const content = (
+    <>
       <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-lg font-semibold text-gray-600">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-amber-50 text-lg font-black text-amber-700 shadow-inner ring-1 ring-amber-100/70 sm:h-16 sm:w-16">
           {user.avatar_url ? (
             <Image
               src={user.avatar_url}
@@ -28,16 +28,9 @@ export default function UserListItem({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            {user.username ? (
-              <Link
-                href={`/u/${user.username}`}
-                className="block truncate text-lg font-semibold text-gray-900 hover:underline"
-              >
-                @{user.username}
-              </Link>
-            ) : (
-              <p className="text-lg font-semibold text-gray-900">@unknown</p>
-            )}
+            <p className="block truncate text-lg font-black tracking-tight text-neutral-950">
+              @{user.username ?? "unknown"}
+            </p>
 
             {user.isCurrentUser && (
               <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-neutral-600">
@@ -46,12 +39,29 @@ export default function UserListItem({
             )}
           </div>
 
-          <p className="mt-1 truncate text-sm text-gray-600">
+          <p className="mt-1 truncate text-sm font-medium text-neutral-500">
             {user.bio ?? "No bio yet."}
           </p>
         </div>
       </div>
-    </div>
+    </>
+  );
+
+  if (!user.username) {
+    return (
+      <div className="motion-card rounded-[28px] border border-neutral-100 bg-[#fffdf8] p-4 shadow-sm">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/u/${user.username}`}
+      className="motion-card block rounded-[28px] border border-neutral-100 bg-[#fffdf8] p-4 shadow-sm transition hover:border-amber-200 hover:bg-white hover:shadow-md"
+    >
+      {content}
+    </Link>
   );
 }
 

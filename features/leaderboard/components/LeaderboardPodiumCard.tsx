@@ -110,7 +110,7 @@ function LeaderboardPodiumCard({
         onClick={() =>
           window.dispatchEvent(new CustomEvent("open-create-post"))
         }
-        className={`relative flex h-full w-full flex-col justify-between overflow-hidden border text-left transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${styles.shell}`}
+        className={`motion-card relative flex h-full w-full flex-col justify-between overflow-hidden border text-left transition duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${styles.shell}`}
         aria-label={`Create a post for rank ${position}`}
       >
         <div className="absolute inset-x-8 top-0 h-16 rounded-full bg-neutral-200/40 blur-2xl" />
@@ -166,7 +166,7 @@ function LeaderboardPodiumCard({
 
   return (
     <article
-      className={`group relative block h-full w-full transform-gpu overflow-hidden border text-left transition duration-300 hover:-translate-y-1 ${
+      className={`motion-card group relative block h-full w-full transform-gpu overflow-hidden border text-left transition duration-300 ${
         position === 1 ? "z-10" : "z-0"
       } ${styles.shell}`}
     >
@@ -205,7 +205,7 @@ function LeaderboardPodiumCard({
         <button
           type="button"
           onClick={onOpenPost}
-          className="relative mt-5 flex-1 overflow-hidden rounded-[26px] border border-white/80 bg-white/72 p-4 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
+          className="motion-button relative mt-5 flex-1 overflow-hidden rounded-[26px] border border-white/80 bg-white/72 p-4 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
         >
           <p
             className={`[display:-webkit-box] overflow-hidden whitespace-pre-wrap break-words font-semibold tracking-tight text-neutral-950 [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${styles.preview}`}
@@ -224,10 +224,11 @@ function LeaderboardPodiumCard({
                 key={reaction.key}
                 type="button"
                 onClick={() => void submitReaction(reaction.key)}
+                data-active={isActive}
                 aria-label={`React with ${reaction.label}, ${
                   post.reaction_counts[reaction.key] ?? 0
                 } reactions`}
-                className={`inline-flex min-w-0 items-center justify-center gap-1 rounded-full px-2 py-2 text-xs font-bold transition-all active:scale-90 sm:gap-1.5 sm:px-2.5 ${
+                className={`motion-reaction inline-flex min-w-0 items-center justify-center gap-1 rounded-full px-2 py-2 text-xs font-bold transition-all sm:gap-1.5 sm:px-2.5 ${
                   isActive
                     ? "bg-neutral-950 text-white shadow-lg"
                     : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
@@ -248,7 +249,7 @@ function LeaderboardPodiumCard({
             type="button"
             onClick={onOpenComments}
             aria-label={`Open comments, ${post.comments_count} comments`}
-            className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-neutral-50 px-2 py-2 text-xs font-bold text-neutral-500 transition-all hover:bg-neutral-100 sm:gap-1.5 sm:px-2.5"
+            className="motion-button inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-neutral-50 px-2 py-2 text-xs font-bold text-neutral-500 transition-all hover:bg-neutral-100 sm:gap-1.5 sm:px-2.5"
           >
             <span>{"\uD83D\uDCAC"}</span>
             <span className="tabular-nums text-neutral-900">

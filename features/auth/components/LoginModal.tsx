@@ -55,17 +55,17 @@ export default function LoginModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-md"
+      className="soft-enter fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-md"
       onClick={closeLogin}
     >
       <div
-        className="relative grid w-full max-w-4xl overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-2xl lg:grid-cols-[1fr_1.1fr]"
+        className="soft-enter relative grid w-full max-w-4xl overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-2xl lg:grid-cols-[1fr_1.1fr]"
         onClick={(event) => event.stopPropagation()}
       >
         <button
           type="button"
           onClick={closeLogin}
-          className="absolute right-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 transition hover:bg-neutral-200 hover:text-black"
+          className="motion-button absolute right-6 top-6 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 transition hover:bg-neutral-200 hover:text-black"
           aria-label="Close"
         >
           ✕
@@ -111,7 +111,7 @@ export default function LoginModal() {
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className={`rounded-xl px-4 py-3 text-sm font-bold transition-all ${
+                className={`motion-button rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                   mode === "login" ? "bg-white text-black shadow-sm" : "text-neutral-500 hover:text-black"
                 }`}
               >
@@ -120,7 +120,7 @@ export default function LoginModal() {
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className={`rounded-xl px-4 py-3 text-sm font-bold transition-all ${
+                className={`motion-button rounded-xl px-4 py-3 text-sm font-bold transition-all ${
                   mode === "signup" ? "bg-white text-black shadow-sm" : "text-neutral-500 hover:text-black"
                 }`}
               >
@@ -175,7 +175,7 @@ export default function LoginModal() {
               <button
                 type="submit"
                 disabled={loginPending || signupPending}
-                className="w-full rounded-2xl bg-neutral-950 py-5 text-sm font-bold text-white shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                className="motion-button w-full rounded-2xl bg-neutral-950 py-5 text-sm font-bold text-white shadow-xl transition-all hover:scale-[1.01] disabled:opacity-50"
               >
                 {mode === "login"
                   ? loginPending ? "Syncing..." : "Enter the Place"
@@ -196,7 +196,7 @@ type InfoCardProps = {
 
 function InfoCard({ title, text }: InfoCardProps) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-white/[0.03] p-5 transition hover:bg-white/[0.06]">
+    <div className="motion-card rounded-2xl border border-white/5 bg-white/[0.03] p-5 transition hover:bg-white/[0.06]">
       <h3 className="text-xs font-black uppercase tracking-widest text-white">{title}</h3>
       <p className="mt-1 text-[11px] font-medium leading-relaxed text-neutral-500">{text}</p>
     </div>

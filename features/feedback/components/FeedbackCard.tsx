@@ -60,7 +60,7 @@ function FeedbackCard({
   }, []);
 
   return (
-    <article className="relative rounded-[32px] border border-neutral-100 bg-white p-5 shadow-sm transition-all hover:shadow-md sm:p-6">
+    <article className="motion-card soft-enter relative rounded-[32px] border border-neutral-100 bg-white p-5 shadow-sm transition-all hover:shadow-md sm:p-6">
       
       {/* HEADER: Profile & Actions */}
       <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
@@ -102,7 +102,7 @@ function FeedbackCard({
               <button 
                 onClick={() => setMenuOpen(!menuOpen)}
                 aria-label="Open idea actions"
-                className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-neutral-50 text-neutral-400 transition-colors"
+                className="motion-button flex h-8 w-8 items-center justify-center rounded-full hover:bg-neutral-50 text-neutral-400 transition-colors"
               >
                 <span className="text-xl font-black leading-none mb-2">...</span>
               </button>
@@ -148,8 +148,9 @@ function FeedbackCard({
           <button
             type="button"
             onClick={handleLikeClick}
+            data-active={item.likedByViewer}
             aria-label={`${item.likedByViewer ? "Remove support from" : "Support"} idea, ${item.likeCount} supporters`}
-            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all active:scale-90 sm:px-4 ${
+            className={`motion-reaction inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
               item.likedByViewer 
                 ? "bg-neutral-950 text-white shadow-lg" 
                 : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
@@ -168,7 +169,7 @@ function FeedbackCard({
         <button
           onClick={handleToggleComments}
           aria-label={`${showComments ? "Hide" : "Show"} idea comments, ${item.commentCount} comments`}
-            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
+            className={`motion-button inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
             showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
           }`}
         >

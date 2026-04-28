@@ -392,9 +392,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   ];
 
   const usersTab = (
-    <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8">
-      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4">
+    <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
+      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
               Users
@@ -415,14 +415,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             />
             <button
               type="submit"
-              className="rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-bold text-neutral-950 shadow-sm"
+              className="motion-button rounded-2xl border border-neutral-200 bg-white px-4 py-3 text-sm font-bold text-neutral-950 shadow-sm"
             >
               Search
             </button>
           </form>
         </div>
 
-        <div className="mt-6 grid gap-3">
+        <div className="mt-5 grid gap-2.5">
           {users.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
               No users found for this search.
@@ -439,10 +439,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <Link
                   key={profile.id}
                   href={href}
-                  className={`flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
+                  className={`motion-card flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
                     isActive
-                      ? "border-neutral-950 bg-neutral-950 text-white"
-                      : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50"
+                      ? "border-emerald-200 bg-emerald-950/90 text-white shadow-[0_18px_36px_-28px_rgba(6,95,70,0.75)]"
+                      : "border-neutral-200 bg-white/90 hover:border-amber-200 hover:bg-amber-50/30"
                   }`}
                 >
                   <div className="min-w-0">
@@ -472,7 +472,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       </section>
 
-      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           User Detail
         </p>
@@ -481,11 +481,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </h2>
 
         {!selectedUser ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
-            Select a user to inspect badges.
+          <div className="mt-5 rounded-[28px] border border-dashed border-neutral-200 bg-neutral-50 px-5 py-10 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-neutral-400">
+              Waiting for selection
+            </p>
+            <p className="mx-auto mt-3 max-w-sm text-sm font-medium text-neutral-500">
+              Select a user to inspect badges.
+            </p>
           </div>
         ) : (
-          <div className="mt-6 space-y-8">
+          <div className="mt-5 space-y-5">
             <section className="rounded-3xl border border-neutral-200 bg-neutral-50 p-5">
               <p className="text-xl font-black text-neutral-950">
                 @{selectedUser.username}
@@ -616,7 +621,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   );
 
   const badgesTab = (
-    <section className="rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
         Definitions
       </p>
@@ -624,7 +629,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         Badge Definitions
       </h2>
 
-      <div className="mt-6 -mx-2 overflow-x-auto px-2">
+      <div className="mt-5 -mx-2 overflow-x-auto px-2">
         <table className="min-w-full text-left text-sm">
           <thead className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
             <tr>
@@ -666,18 +671,40 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         }}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:gap-8 lg:px-8 lg:pt-10">
-        <section className="rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:rounded-[36px] sm:p-8">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
-            Admin
-          </p>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-neutral-950 sm:text-4xl">
-            Control Panel
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm font-medium text-neutral-600">
-            A clear surface for moderation, user diagnostics, and badge
-            management using the existing server helpers.
-          </p>
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:gap-5 lg:px-8 lg:pt-8">
+        <section className="overflow-hidden rounded-[32px] border border-amber-100 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_34%),linear-gradient(135deg,#fffdf8,#ffffff)] p-5 shadow-sm sm:rounded-[36px] sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
+                Admin
+              </p>
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-neutral-950 sm:text-4xl">
+                Control Panel
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm font-medium text-neutral-600">
+                A clear surface for moderation, user diagnostics, and badge
+                management using the existing server helpers.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 rounded-[26px] border border-amber-100 bg-white/70 p-2 text-center shadow-sm">
+              <div className="px-3 py-2">
+                <p className="text-lg font-black tabular-nums text-neutral-950">
+                  {users.length}
+                </p>
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">
+                  Users
+                </p>
+              </div>
+              <div className="border-l border-amber-100 px-3 py-2">
+                <p className="text-lg font-black tabular-nums text-neutral-950">
+                  {moderationReports.length}
+                </p>
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">
+                  Reports
+                </p>
+              </div>
+            </div>
+          </div>
         </section>
 
         <AdminTabs
