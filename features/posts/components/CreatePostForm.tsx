@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedPost } from "@/shared/types/feed";
@@ -143,9 +144,13 @@ export default function CreatePostForm({
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
             {displayAvatarUrl ? (
-              <img
+              <Image
                 src={displayAvatarUrl}
                 alt="Profile avatar"
+                width={40}
+                height={40}
+                sizes="40px"
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : displayUsername ? (

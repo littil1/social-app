@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import LeaderboardPodiumCard from "@/features/leaderboard/components/LeaderboardPodiumCard";
 import LeaderboardPostDetailModal from "@/features/leaderboard/components/LeaderboardPostDetailModal";
 import { setAutoRefreshPaused } from "@/lib/utils/auto-refresh";
+import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
 
 type LeaderboardPost = {
@@ -54,10 +55,10 @@ export default function LeaderboardPodiumSection({
     setDesktopPodiumItems(desktopItems);
   }, [desktopItems]);
 
-  function updatePost(
+  const updatePost = useCallback((
     postId: number,
     updater: (post: LeaderboardPost) => LeaderboardPost
-  ) {
+  ) => {
     setMobilePodiumItems((prev) =>
       prev.map((entry) =>
         entry.post?.id === postId ? { ...entry, post: updater(entry.post) } : entry
@@ -71,12 +72,12 @@ export default function LeaderboardPodiumSection({
     setSelectedPost((current) =>
       current?.id === postId ? updater(current) : current
     );
-  }
+  }, []);
 
-  function handleReactionUpdated(
+  const handleReactionUpdated = useCallback((
     postId: number,
     nextReaction: ReactionType | null
-  ) {
+  ) => {
     updatePost(postId, (post) => {
       const previousReaction = post.viewer_reaction;
       if (previousReaction === nextReaction) return post;
@@ -104,7 +105,15 @@ export default function LeaderboardPodiumSection({
         reactions_count: reactionsCount,
       };
     });
-  }
+  }, [updatePost]);
+
+  const handleMutationCommitted = useCallback(() => {
+    scheduleRefresh(router);
+  }, [router]);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedPost(null);
+  }, []);
 
   const visiblePostIds = useMemo(() => {
     const ids = new Set<number>();
@@ -155,7 +164,7 @@ export default function LeaderboardPodiumSection({
                 entry.post ? () => setSelectedPost(entry.post) : undefined
               }
               onReactionUpdated={handleReactionUpdated}
-              onMutationCommitted={() => router.refresh()}
+              onMutationCommitted={handleMutationCommitted}
             />
           );
         })}
@@ -178,7 +187,7 @@ export default function LeaderboardPodiumSection({
                 entry.post ? () => setSelectedPost(entry.post) : undefined
               }
               onReactionUpdated={handleReactionUpdated}
-              onMutationCommitted={() => router.refresh()}
+              onMutationCommitted={handleMutationCommitted}
             />
           );
         })}
@@ -188,7 +197,7 @@ export default function LeaderboardPodiumSection({
         key={visibleSelectedPost?.id ?? "closed"}
         post={visibleSelectedPost}
         isLoggedIn={isLoggedIn}
-        onClose={() => setSelectedPost(null)}
+        onClose={handleCloseModal}
       />
     </section>
   );

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/shared/types/database";
 import {
   compareDailyLiveRank,
   getLiveScore,
@@ -98,7 +99,10 @@ function uniqueStringIds(values: Array<string | null | undefined>) {
   );
 }
 
-async function loadCommentCountsByPostId(supabase: any, postIds: number[]) {
+async function loadCommentCountsByPostId(
+  supabase: SupabaseClient<Database>,
+  postIds: number[]
+) {
   const counts = new Map<number, number>();
 
   if (postIds.length === 0) {
@@ -128,7 +132,10 @@ async function loadCommentCountsByPostId(supabase: any, postIds: number[]) {
   return counts;
 }
 
-async function loadReactionCountsByPostId(supabase: any, postIds: number[]) {
+async function loadReactionCountsByPostId(
+  supabase: SupabaseClient<Database>,
+  postIds: number[]
+) {
   const countsByPostId = new Map<number, ReactionCounts>();
 
   if (postIds.length === 0) {
@@ -153,7 +160,10 @@ async function loadReactionCountsByPostId(supabase: any, postIds: number[]) {
   return countsByPostId;
 }
 
-async function loadProfilesById(supabase: any, authorIds: string[]) {
+async function loadProfilesById(
+  supabase: SupabaseClient<Database>,
+  authorIds: string[]
+) {
   const profileMap = new Map<string, ProfileRow>();
 
   if (authorIds.length === 0) {
@@ -190,7 +200,7 @@ async function recomputeAffectedWinners(
 }
 
 export async function snapshotDailyWinner(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   {
     winnerDate,
     startIso,

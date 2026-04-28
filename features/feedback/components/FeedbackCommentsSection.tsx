@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRef, useState, useMemo, useEffect, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
@@ -8,6 +9,7 @@ import {
   addFeatureRequestComment,
   deleteFeatureRequestComment,
 } from "@/app/actions/feedback";
+import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { FeedbackComment } from "@/features/feedback/lib/feedback-data";
 
 type FeedbackCommentsSectionProps = {
@@ -187,7 +189,7 @@ export default function FeedbackCommentsSection({
       }
 
       startTransition(() => {
-        router.refresh();
+        scheduleRefresh(router);
       });
     } catch {
       setLocalComments(previousComments);
@@ -255,9 +257,13 @@ export default function FeedbackCommentsSection({
         <div className="mb-4 flex items-center gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-bold text-neutral-400">
             {node.avatar_url ? (
-              <img
+              <Image
                 src={node.avatar_url}
                 alt="avatar"
+                width={32}
+                height={32}
+                sizes="32px"
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -328,7 +334,7 @@ export default function FeedbackCommentsSection({
               await addFeatureRequestComment(fd);
               setActiveReplyId(null);
               startTransition(() => {
-                router.refresh();
+                scheduleRefresh(router);
               });
             }}
             className="animate-in slide-in-from-top-2 mt-6 border-t border-neutral-50 pt-6 duration-300 fade-in"
@@ -383,7 +389,7 @@ export default function FeedbackCommentsSection({
         action={async (fd) => {
           await addFeatureRequestComment(fd);
           startTransition(() => {
-            router.refresh();
+            scheduleRefresh(router);
           });
         }}
       >

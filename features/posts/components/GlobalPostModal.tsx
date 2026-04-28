@@ -4,7 +4,18 @@ import { useEffect, useState } from "react";
 import CreatePostForm from "./CreatePostForm";
 import { useRouter, usePathname } from "next/navigation";
 
-export default function GlobalPostModal({ isLoggedIn, currentUserProfile }: any) {
+type GlobalPostModalProps = {
+  isLoggedIn: boolean;
+  currentUserProfile?: {
+    username: string;
+    avatar_url: string | null;
+  } | null;
+};
+
+export default function GlobalPostModal({
+  isLoggedIn,
+  currentUserProfile,
+}: GlobalPostModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();

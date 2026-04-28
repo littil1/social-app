@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import Image from "next/image";
+import { memo, useCallback, useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import FeedbackCommentsSection from "@/features/feedback/components/FeedbackCommentsSection";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
@@ -17,7 +18,7 @@ type FeedbackCardProps = {
   currentUserIsAdmin: boolean;
 };
 
-export default function FeedbackCard({
+function FeedbackCard({
   item,
   currentUserId,
   currentUserIsAdmin,
@@ -43,7 +44,7 @@ export default function FeedbackCard({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function handleLikeClick() {
+  const handleLikeClick = useCallback(() => {
     if (!currentUserId) {
       requireLoginAndResume(
         () => likeFormRef.current?.requestSubmit(),
@@ -52,7 +53,11 @@ export default function FeedbackCard({
       return;
     }
     likeFormRef.current?.requestSubmit();
-  }
+  }, [currentUserId, requireLoginAndResume]);
+
+  const handleToggleComments = useCallback(() => {
+    setShowComments((prev) => !prev);
+  }, []);
 
   return (
     <article className="relative rounded-[32px] border border-neutral-100 bg-white p-5 shadow-sm transition-all hover:shadow-md sm:p-6">
@@ -62,7 +67,15 @@ export default function FeedbackCard({
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-sm font-bold text-neutral-400">
             {item.avatar_url ? (
-              <img src={item.avatar_url} alt="avatar" className="h-full w-full object-cover" />
+              <Image
+                src={item.avatar_url}
+                alt="avatar"
+                width={40}
+                height={40}
+                sizes="40px"
+                unoptimized
+                className="h-full w-full object-cover"
+              />
             ) : (
               (item.username ?? "U").charAt(0).toUpperCase()
             )}
@@ -153,7 +166,7 @@ export default function FeedbackCard({
         </form>
 
         <button
-          onClick={() => setShowComments(!showComments)}
+          onClick={handleToggleComments}
           aria-label={`${showComments ? "Hide" : "Show"} idea comments, ${item.commentCount} comments`}
             className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
             showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
@@ -180,4 +193,6 @@ export default function FeedbackCard({
     </article>
   );
 }
+
+export default memo(FeedbackCard);
 

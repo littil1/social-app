@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
 
@@ -89,7 +90,7 @@ function getRankStyles(position: 1 | 2 | 3) {
   };
 }
 
-export default function LeaderboardPodiumCard({
+function LeaderboardPodiumCard({
   position,
   post,
   isLoggedIn = false,
@@ -259,3 +260,5 @@ export default function LeaderboardPodiumCard({
     </article>
   );
 }
+
+export default memo(LeaderboardPodiumCard);

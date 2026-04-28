@@ -34,7 +34,7 @@ export default function LoginModal() {
 
   useEffect(() => {
     if (!isOpen) {
-      setMode("login");
+      queueMicrotask(() => setMode("login"));
       authSuccessHandledRef.current = false;
       return;
     }

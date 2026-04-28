@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { logout } from "@/app/actions/social";
 
@@ -65,9 +66,13 @@ export default function UserMenu({
         }`}
       >
         {avatarUrl ? (
-          <img
+          <Image
             src={avatarUrl}
             alt="Your avatar"
+            width={48}
+            height={48}
+            sizes="(min-width: 640px) 48px, 40px"
+            unoptimized
             className="h-full w-full object-cover"
           />
         ) : (

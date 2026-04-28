@@ -113,7 +113,7 @@ export default async function VibePage() {
               </h2>
 
               <p className="mt-5 text-2xl font-black tracking-tight text-amber-300">
-                what's really worth it
+                what&apos;s really worth it
               </p>
 
               <div className="mt-6 grid gap-2.5">

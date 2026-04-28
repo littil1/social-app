@@ -81,7 +81,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
     const postAuthorId = postAuthorData?.user_id ?? null;
     const deletedAt = new Date().toISOString();
 
-    const { data: updatedCommentData, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from("comments")
       .update({
         deleted_at: deletedAt,

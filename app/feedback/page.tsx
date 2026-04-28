@@ -1,3 +1,4 @@
+import Link from "next/link";
 import NavBar from "@/shared/components/layout/navbar";
 import FeedbackCard from "@/features/feedback/components/FeedbackCard";
 import { addFeatureRequest } from "@/app/actions/feedback";
@@ -146,7 +147,7 @@ export default async function FeedbackPage() {
             ) : (
               <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 px-4 py-10 text-center sm:py-12">
                 <p className="text-neutral-500 font-medium">Log in to help us build.</p>
-                <a href="/login" className="mt-4 rounded-xl bg-neutral-950 px-8 py-3 text-sm font-bold text-white">Login</a>
+                <Link href="/login" className="mt-4 rounded-xl bg-neutral-950 px-8 py-3 text-sm font-bold text-white">Login</Link>
               </div>
             )}
           </div>

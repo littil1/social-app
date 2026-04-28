@@ -75,7 +75,7 @@ export async function POST(request: Request, context: RouteContext) {
       requestedFamilies.length > 0 ? requestedFamilies : [...ALL_BADGE_FAMILIES];
 
     await recomputeUserBadgeFamilies(
-      supabase as any,
+      supabase,
       targetUserId,
       familiesToRecompute
     );

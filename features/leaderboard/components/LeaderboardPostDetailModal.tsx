@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PostCard from "@/features/posts/components/PostCard";
+import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { FeedPost, ReactionCounts, ReactionType } from "@/shared/types/feed";
 
 type LeaderboardPost = {
@@ -180,7 +181,7 @@ export default function LeaderboardPostDetailModal({
             isLoggedIn={isLoggedIn}
             disableRouterRefresh
             initialShowComments
-            onMutationCommitted={() => router.refresh()}
+            onMutationCommitted={() => scheduleRefresh(router)}
           />
         </div>
       </div>

@@ -79,12 +79,12 @@ export async function POST(request: Request, context: RouteContext) {
           return new NextResponse(deleteError.message, { status: 500 });
         }
 
-        await recomputeUserBadgeFamilies(supabase as any, user.id, [
+        await recomputeUserBadgeFamilies(supabase, user.id, [
           "top_reactor",
         ]);
 
         if (comment.user_id) {
-          await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+          await recomputeUserBadgeFamilies(supabase, comment.user_id, [
             "most_reacted",
           ]);
         }
@@ -102,12 +102,12 @@ export async function POST(request: Request, context: RouteContext) {
         return new NextResponse(updateError.message, { status: 500 });
       }
 
-      await recomputeUserBadgeFamilies(supabase as any, user.id, [
+      await recomputeUserBadgeFamilies(supabase, user.id, [
         "top_reactor",
       ]);
 
       if (comment.user_id) {
-        await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+        await recomputeUserBadgeFamilies(supabase, comment.user_id, [
           "most_reacted",
         ]);
       }
@@ -129,12 +129,12 @@ export async function POST(request: Request, context: RouteContext) {
       return new NextResponse(insertError.message, { status: 500 });
     }
 
-    await recomputeUserBadgeFamilies(supabase as any, user.id, [
+    await recomputeUserBadgeFamilies(supabase, user.id, [
       "top_reactor",
     ]);
 
     if (comment.user_id) {
-      await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+      await recomputeUserBadgeFamilies(supabase, comment.user_id, [
         "most_reacted",
       ]);
     }

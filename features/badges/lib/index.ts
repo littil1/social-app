@@ -18,7 +18,17 @@ type UserBadgeRecord = {
   badge_id: number;
 };
 
-async function getExactCount(query: any): Promise<number> {
+type CountQuery = PromiseLike<{
+  count: number | null;
+  error: { message: string } | null;
+}>;
+
+type NumberIdQuery = PromiseLike<{
+  data: Array<{ id: number }> | null;
+  error: { message: string } | null;
+}>;
+
+async function getExactCount(query: CountQuery): Promise<number> {
   const { count, error } = await query;
 
   if (error) {
@@ -29,9 +39,7 @@ async function getExactCount(query: any): Promise<number> {
   return count ?? 0;
 }
 
-async function getNumberIds(
-  query: any
-): Promise<number[]> {
+async function getNumberIds(query: NumberIdQuery): Promise<number[]> {
   const { data, error } = await query;
 
   if (error) {
@@ -39,7 +47,7 @@ async function getNumberIds(
     return [];
   }
 
-  return (data ?? []).map((row: any) => row.id).filter(Boolean);
+  return (data ?? []).map((row) => row.id).filter(Boolean);
 }
 
 async function getHighestBadgeForProgress(

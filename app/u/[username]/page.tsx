@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
 import NavBar from "@/shared/components/layout/navbar";
@@ -250,9 +251,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 <div className="absolute inset-0 rounded-[32px] bg-amber-400/20 blur-2xl" />
                 <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border-[6px] border-white bg-neutral-100 text-4xl font-black text-neutral-400 shadow-xl sm:h-36 sm:w-36">
                   {typedProfile.avatar_url ? (
-                    <img
+                    <Image
                       src={typedProfile.avatar_url}
                       alt={`${typedProfile.username} avatar`}
+                      width={144}
+                      height={144}
+                      sizes="(min-width: 640px) 144px, 112px"
+                      priority
+                      unoptimized
                       className="h-full w-full object-cover"
                     />
                   ) : (

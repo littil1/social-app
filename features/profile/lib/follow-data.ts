@@ -1,4 +1,6 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/shared/types/database";
 
 export type ProfileSummary = {
   id: string;
@@ -8,7 +10,10 @@ export type ProfileSummary = {
   isCurrentUser: boolean;
 };
 
-export async function getFollowCounts(supabase: any, userId: string) {
+export async function getFollowCounts(
+  supabase: SupabaseClient<Database>,
+  userId: string
+) {
   const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
     supabase
       .from("follows")
@@ -27,7 +32,7 @@ export async function getFollowCounts(supabase: any, userId: string) {
 }
 
 export async function isFollowingUser(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   viewerId: string | null | undefined,
   targetUserId: string
 ) {
@@ -44,7 +49,7 @@ export async function isFollowingUser(
 }
 
 export async function getFollowersList(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   userId: string,
   viewerId?: string | null
 ) {
@@ -56,7 +61,7 @@ export async function getFollowersList(
 
   if (error) throw new Error(error.message);
 
-  const ids = (follows ?? []).map((row: any) => row.follower_id as string);
+  const ids = (follows ?? []).map((row) => row.follower_id);
 
   if (ids.length === 0) return [] as ProfileSummary[];
 
@@ -88,7 +93,7 @@ export async function getFollowersList(
 }
 
 export async function getFollowingList(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   userId: string,
   viewerId?: string | null
 ) {
@@ -100,7 +105,7 @@ export async function getFollowingList(
 
   if (error) throw new Error(error.message);
 
-  const ids = (follows ?? []).map((row: any) => row.following_id as string);
+  const ids = (follows ?? []).map((row) => row.following_id);
 
   if (ids.length === 0) return [] as ProfileSummary[];
 

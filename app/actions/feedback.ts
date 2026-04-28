@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import type { Database } from "@/shared/types/database";
 
 function revalidateMany(paths: Array<string | null | undefined>) {
   const uniquePaths = [...new Set(paths.filter(Boolean))] as string[];
@@ -12,7 +14,10 @@ function revalidateMany(paths: Array<string | null | undefined>) {
   }
 }
 
-async function isCurrentUserAdmin(supabase: any, userId: string) {
+async function isCurrentUserAdmin(
+  supabase: SupabaseClient<Database>,
+  userId: string
+) {
   const { data } = await supabase
     .from("profiles")
     .select("is_admin")
@@ -22,7 +27,10 @@ async function isCurrentUserAdmin(supabase: any, userId: string) {
   return !!data?.is_admin;
 }
 
-async function getProfileUsernameByUserId(supabase: any, userId: string | null) {
+async function getProfileUsernameByUserId(
+  supabase: SupabaseClient<Database>,
+  userId: string | null
+) {
   if (!userId) return null;
 
   const { data: profile } = await supabase
@@ -34,7 +42,10 @@ async function getProfileUsernameByUserId(supabase: any, userId: string | null) 
   return profile?.username ?? null;
 }
 
-async function getFeatureRequestAuthorInfo(supabase: any, requestId: number) {
+async function getFeatureRequestAuthorInfo(
+  supabase: SupabaseClient<Database>,
+  requestId: number
+) {
   const { data: request } = await supabase
     .from("feature_requests")
     .select("user_id")
@@ -80,7 +91,7 @@ export async function addFeatureRequest(formData: FormData) {
     },
   ]);
 
-  await recomputeUserBadgeFamilies(supabase as any, user.id, ["contributor"]);
+  await recomputeUserBadgeFamilies(supabase, user.id, ["contributor"]);
 
   const ownUsername = await getProfileUsernameByUserId(supabase, user.id);
 
@@ -102,7 +113,7 @@ export async function deleteFeatureRequest(formData: FormData) {
   await supabase.from("feature_requests").delete().eq("id", requestId);
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase as any, authorId, [
+    await recomputeUserBadgeFamilies(supabase, authorId, [
       "contributor",
       "builder",
       "most_discussed",
@@ -185,12 +196,12 @@ export async function addFeatureRequestComment(formData: FormData) {
     },
   ]);
 
-  await recomputeUserBadgeFamilies(supabase as any, user.id, [
+  await recomputeUserBadgeFamilies(supabase, user.id, [
     "top_commentator",
   ]);
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase as any, authorId, [
+    await recomputeUserBadgeFamilies(supabase, authorId, [
       "most_discussed",
     ]);
   }
@@ -232,13 +243,13 @@ export async function deleteFeatureRequestComment(formData: FormData) {
   await supabase.from("feature_request_comments").delete().eq("id", commentId);
 
   if (comment.user_id) {
-    await recomputeUserBadgeFamilies(supabase as any, comment.user_id, [
+    await recomputeUserBadgeFamilies(supabase, comment.user_id, [
       "top_commentator",
     ]);
   }
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase as any, authorId, [
+    await recomputeUserBadgeFamilies(supabase, authorId, [
       "most_discussed",
     ]);
   }
@@ -283,7 +294,7 @@ export async function updateFeatureRequestStatus(formData: FormData) {
     .eq("id", requestId);
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase as any, authorId, ["builder"]);
+    await recomputeUserBadgeFamilies(supabase, authorId, ["builder"]);
   }
 
   revalidateMany([

@@ -25,8 +25,12 @@ const geistMono = Geist_Mono({
 // =====================================================
 
 export const metadata: Metadata = {
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
+  },
   title: "APP - A Perfect Place",
-  description: "Impact over Fame. Join the daily race.",
+  description: "Impact over Fame. Join today.",
 };
 
 export const viewport: Viewport = {
@@ -85,4 +89,3 @@ export default async function RootLayout({
     </html>
   );
 }
-

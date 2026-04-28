@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { FeedComment, ReactionType } from "@/shared/types/feed";
@@ -149,7 +150,33 @@ function markCommentAsDeleted(comment: FeedComment, deletedAt: string) {
   };
 }
 
-function CommentItem({
+function createOptimisticComment(
+  id: number,
+  content: string,
+  parentId: number | null
+): FeedComment {
+  return {
+    id,
+    content,
+    created_at: new Date().toISOString(),
+    deleted_at: null,
+    is_deleted: false,
+    parent_id: parentId,
+    reactions_count: 0,
+    reaction_counts: {
+      like: 0,
+      funny: 0,
+      wow: 0,
+      fire: 0,
+    },
+    viewer_reaction: null,
+    can_delete: true,
+    author_username: null,
+    author_avatar_url: null,
+  };
+}
+
+const CommentItem = memo(function CommentItem({
   node,
   depth,
   isLoggedIn,
@@ -200,9 +227,13 @@ function CommentItem({
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-xs font-bold text-neutral-400 shadow-inner">
             {node.author_avatar_url ? (
-              <img
+              <Image
                 src={node.author_avatar_url}
                 alt="avatar"
+                width={36}
+                height={36}
+                sizes="36px"
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -358,7 +389,7 @@ function CommentItem({
       )}
     </div>
   );
-}
+});
 
 export default function CommentsSection({
   postId,
@@ -396,6 +427,16 @@ export default function CommentsSection({
     () => comments.filter((comment) => !comment.is_deleted).length,
     [comments]
   );
+
+  const handleReplyOpen = useCallback((id: number) => {
+    setReplyParentId(id);
+    setReplyContent("");
+  }, []);
+
+  const handleReplyCancel = useCallback(() => {
+    setReplyParentId(null);
+    setReplyContent("");
+  }, []);
 
   async function loadComments(requestPostId: number) {
     const freshUrl = `/api/posts/${requestPostId}/comments?_=${Date.now()}`;
@@ -472,6 +513,15 @@ export default function CommentsSection({
       return;
     }
 
+    const optimisticId = -Date.now();
+    const optimisticComment = createOptimisticComment(
+      optimisticId,
+      trimmed,
+      null
+    );
+
+    setComments((prev) => [optimisticComment, ...prev]);
+    setContent("");
     setSubmitting(true);
 
     try {
@@ -482,6 +532,10 @@ export default function CommentsSection({
       });
 
       if (res.status === 401 || res.status === 403) {
+        setComments((prev) =>
+          prev.filter((comment) => comment.id !== optimisticId)
+        );
+        setContent(trimmed);
         requireLoginAndResume(() => void createComment(trimmed), pathname);
         return;
       }
@@ -492,10 +546,17 @@ export default function CommentsSection({
 
       const newComment: FeedComment = await res.json();
 
-      setComments((prev) => [newComment, ...prev]);
-      setContent("");
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === optimisticId ? newComment : comment
+        )
+      );
       onCommentCreated();
     } catch {
+      setComments((prev) =>
+        prev.filter((comment) => comment.id !== optimisticId)
+      );
+      setContent(trimmed);
       alert("Comment could not be saved.");
     } finally {
       setSubmitting(false);
@@ -508,6 +569,16 @@ export default function CommentsSection({
       return;
     }
 
+    const optimisticId = -Date.now();
+    const optimisticReply = createOptimisticComment(
+      optimisticId,
+      trimmed,
+      parentId
+    );
+
+    setComments((prev) => [...prev, optimisticReply]);
+    setReplyContent("");
+    setReplyParentId(null);
     setReplySubmitting(true);
 
     try {
@@ -518,6 +589,11 @@ export default function CommentsSection({
       });
 
       if (res.status === 401 || res.status === 403) {
+        setComments((prev) =>
+          prev.filter((comment) => comment.id !== optimisticId)
+        );
+        setReplyContent(trimmed);
+        setReplyParentId(parentId);
         requireLoginAndResume(
           () => void createReply(parentId, trimmed),
           pathname
@@ -531,11 +607,18 @@ export default function CommentsSection({
 
       const newComment: FeedComment = await res.json();
 
-      setComments((prev) => [...prev, newComment]);
-      setReplyContent("");
-      setReplyParentId(null);
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === optimisticId ? newComment : comment
+        )
+      );
       onCommentCreated();
     } catch {
+      setComments((prev) =>
+        prev.filter((comment) => comment.id !== optimisticId)
+      );
+      setReplyContent(trimmed);
+      setReplyParentId(parentId);
       alert("Reply could not be saved.");
     } finally {
       setReplySubmitting(false);
@@ -712,14 +795,8 @@ export default function CommentsSection({
               replyParentId={replyParentId}
               replyContent={replyContent}
               replySubmitting={replySubmitting}
-              onReplyOpen={(id) => {
-                setReplyParentId(id);
-                setReplyContent("");
-              }}
-              onReplyCancel={() => {
-                setReplyParentId(null);
-                setReplyContent("");
-              }}
+              onReplyOpen={handleReplyOpen}
+              onReplyCancel={handleReplyCancel}
               onReplyContentChange={setReplyContent}
               onReplySubmit={(id) => createReply(id)}
               onDeleteComment={handleDeleteComment}

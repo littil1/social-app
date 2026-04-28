@@ -57,7 +57,7 @@ async function seedPosts() {
     console.log("🚀 Starte Seed...");
 
     // Test Query (wichtig für Debug)
-    const { data: test, error: testError } = await supabase
+    const { error: testError } = await supabase
       .from("posts")
       .select("id")
       .limit(1);

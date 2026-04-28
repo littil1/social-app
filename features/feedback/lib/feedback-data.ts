@@ -1,4 +1,6 @@
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/shared/types/database";
 
 export type FeedbackReactionType = "like" | "funny" | "wow" | "fire";
 
@@ -89,7 +91,7 @@ function emptyReactionCounts(): FeedbackReactionCounts {
 }
 
 export async function getFeedbackBundle(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   viewerId?: string | null
 ): Promise<FeedbackItem[]> {
   const { data: requests, error: requestsError } = await supabase
@@ -201,7 +203,7 @@ export async function getFeedbackBundle(
 }
 
 export async function getImplementedIdeaCountByUserId(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   userId: string
 ) {
   const { count, error } = await supabase

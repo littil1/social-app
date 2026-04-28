@@ -86,12 +86,12 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const recomputeBadges = async () => {
-      await recomputeUserBadgeFamilies(supabase as any, user.id, [
+      await recomputeUserBadgeFamilies(supabase, user.id, [
         "top_reactor",
       ]);
 
       if (post.user_id) {
-        await recomputeUserBadgeFamilies(supabase as any, post.user_id, [
+        await recomputeUserBadgeFamilies(supabase, post.user_id, [
           "most_reacted",
         ]);
       }

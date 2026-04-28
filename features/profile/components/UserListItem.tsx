@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ProfileSummary } from "@/features/profile/lib/follow-data";
 
 export default function UserListItem({
@@ -11,10 +12,13 @@ export default function UserListItem({
       <div className="flex items-center gap-4">
         <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-gray-200 text-lg font-semibold text-gray-600">
           {user.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={user.avatar_url}
               alt={`${user.username ?? "User"} avatar`}
+              width={56}
+              height={56}
+              sizes="56px"
+              unoptimized
               className="h-full w-full object-cover"
             />
           ) : (

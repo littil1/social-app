@@ -7,6 +7,7 @@ import CommentsSection from "@/features/comments/components/CommentsSection";
 import PostReportButton from "@/features/posts/components/PostReportButton";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import { useRouter } from "next/navigation";
+import { scheduleRefresh } from "@/lib/refresh-batcher";
 
 type PostCardProps = {
   post: FeedPost;
@@ -36,6 +37,49 @@ const REACTIONS: Array<{
   { value: "wow", emoji: "🤯", label: "Wow", countKey: "wow" },
   { value: "fire", emoji: "🔥", label: "Strong", countKey: "fire" },
 ];
+
+type OptimisticReactionState = {
+  viewerReaction: ReactionType | null;
+  reactionCounts: NonNullable<FeedPost["reaction_counts"]>;
+};
+
+function getReactionStateFromPost(post: FeedPost): OptimisticReactionState {
+  return {
+    viewerReaction: post.viewer_reaction,
+    reactionCounts: {
+      like: post.reaction_counts?.like ?? 0,
+      funny: post.reaction_counts?.funny ?? 0,
+      wow: post.reaction_counts?.wow ?? 0,
+      fire: post.reaction_counts?.fire ?? 0,
+    },
+  };
+}
+
+function applyOptimisticReaction(
+  state: OptimisticReactionState,
+  nextReaction: ReactionType | null
+): OptimisticReactionState {
+  const previousReaction = state.viewerReaction;
+  if (previousReaction === nextReaction) return state;
+
+  const reactionCounts = { ...state.reactionCounts };
+
+  if (previousReaction) {
+    reactionCounts[previousReaction] = Math.max(
+      0,
+      reactionCounts[previousReaction] - 1
+    );
+  }
+
+  if (nextReaction) {
+    reactionCounts[nextReaction] += 1;
+  }
+
+  return {
+    viewerReaction: nextReaction,
+    reactionCounts,
+  };
+}
 
 function formatRelativeTime(dateString: string) {
   const date = new Date(dateString);
@@ -104,6 +148,9 @@ function PostCardComponent({
   const [reactionLoading, setReactionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showComments, setShowComments] = useState(initialShowComments);
+  const [optimisticReactions, setOptimisticReactions] = useState(() =>
+    getReactionStateFromPost(post)
+  );
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post.comments_count
   );
@@ -116,6 +163,10 @@ function PostCardComponent({
     localCommentsCountRef.current = post.comments_count;
     setLocalCommentsCount(post.comments_count);
   }, [post.comments_count]);
+
+  useEffect(() => {
+    setOptimisticReactions(getReactionStateFromPost(post));
+  }, [post]);
 
   const handleCommentCreated = useCallback(() => {
     setLocalCommentsCount((prev) => {
@@ -142,9 +193,13 @@ function PostCardComponent({
 
   async function submitReaction(reaction: ReactionType) {
     if (reactionLoading) return;
-    const previousReaction = post.viewer_reaction;
+    const previousReaction = optimisticReactions.viewerReaction;
     const nextReaction = previousReaction === reaction ? null : reaction;
+    const previousOptimisticReactions = optimisticReactions;
 
+    setOptimisticReactions((current) =>
+      applyOptimisticReaction(current, nextReaction)
+    );
     onReactionUpdated(post.id, nextReaction);
     setReactionLoading(true);
 
@@ -156,6 +211,7 @@ function PostCardComponent({
       });
 
       if (res.status === 401 || res.status === 403) {
+        setOptimisticReactions(previousOptimisticReactions);
         onReactionUpdated(post.id, previousReaction);
         requireLoginAndResume(
           () => submitReaction(reaction),
@@ -171,9 +227,10 @@ function PostCardComponent({
       onMutationCommitted?.();
 
       if (!showComments && !disableRouterRefresh) {
-        router.refresh();
+        scheduleRefresh(router);
       }
     } catch {
+      setOptimisticReactions(previousOptimisticReactions);
       onReactionUpdated(post.id, previousReaction);
     } finally {
       setReactionLoading(false);
@@ -255,8 +312,10 @@ function PostCardComponent({
 
       <div className="flex flex-wrap items-center gap-2">
         {REACTIONS.map((reaction) => {
-          const isActive = post.viewer_reaction === reaction.value;
-          const count = post.reaction_counts?.[reaction.countKey] ?? 0;
+          const isActive =
+            optimisticReactions.viewerReaction === reaction.value;
+          const count =
+            optimisticReactions.reactionCounts[reaction.countKey] ?? 0;
           return (
             <button
               key={reaction.value}

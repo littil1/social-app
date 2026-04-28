@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedPost, FeedResponse, ReactionType } from "@/shared/types/feed";
 import { getZurichHourBucket } from "@/features/winners/lib/daily-ranking";
 import PostCard from "@/features/posts/components/PostCard";
 import { KNOW_EVERYTHING_BADGE_KEY } from "@/features/badges/lib/profile-badges";
+import { scheduleRefresh } from "@/lib/refresh-batcher";
 
 type HomeFeedProps = {
   initialTopThreeToday: FeedPost[];
@@ -25,6 +26,8 @@ type RankedFeedSection = {
   sectionClassName: string;
 };
 
+const FEED_SCROLL_STORAGE_KEY = "app-feed-scroll-y";
+
 function deduplicatePosts(posts: FeedPost[]): FeedPost[] {
   const seen = new Set<number>();
   return posts.filter((post) => {
@@ -34,6 +37,59 @@ function deduplicatePosts(posts: FeedPost[]): FeedPost[] {
 
     seen.add(post.id);
     return true;
+  });
+}
+
+function getFeedSignature(posts: FeedPost[]) {
+  return posts
+    .map((post) =>
+      [
+        post.id,
+        post.created_at,
+        post.content,
+        post.comments_count,
+        post.reactions_count,
+        post.viewer_reaction ?? "",
+        post.reaction_counts?.like ?? 0,
+        post.reaction_counts?.funny ?? 0,
+        post.reaction_counts?.wow ?? 0,
+        post.reaction_counts?.fire ?? 0,
+        post.can_delete ? 1 : 0,
+      ].join(":")
+    )
+    .join("|");
+}
+
+function areFeedsEqual(currentPosts: FeedPost[], nextPosts: FeedPost[]) {
+  return getFeedSignature(currentPosts) === getFeedSignature(nextPosts);
+}
+
+function mergeVisibleFeed(currentPosts: FeedPost[], nextPosts: FeedPost[]) {
+  if (currentPosts.length <= nextPosts.length) {
+    return nextPosts;
+  }
+
+  const nextPostIds = new Set(nextPosts.map((post) => post.id));
+  const preservedPosts = currentPosts.filter((post) => !nextPostIds.has(post.id));
+
+  return [...nextPosts, ...preservedPosts];
+}
+
+function rememberFeedScroll() {
+  window.sessionStorage.setItem(
+    FEED_SCROLL_STORAGE_KEY,
+    String(window.scrollY)
+  );
+}
+
+function restoreFeedScroll() {
+  const savedScroll = window.sessionStorage.getItem(FEED_SCROLL_STORAGE_KEY);
+  if (!savedScroll) return;
+
+  window.sessionStorage.removeItem(FEED_SCROLL_STORAGE_KEY);
+
+  window.requestAnimationFrame(() => {
+    window.scrollTo(0, Number(savedScroll));
   });
 }
 
@@ -199,16 +255,26 @@ export default function HomeFeed({
   const router = useRouter();
 
   useEffect(() => {
-    setTopThreeToday(deduplicatePosts(initialTopThreeToday));
+    const nextTopThreeToday = deduplicatePosts(initialTopThreeToday);
+    setTopThreeToday((prev) =>
+      areFeedsEqual(prev, nextTopThreeToday) ? prev : nextTopThreeToday
+    );
   }, [initialTopThreeToday]);
 
   useEffect(() => {
-    setTodayFeed(deduplicatePosts(initialTodayFeed));
+    const nextTodayFeed = deduplicatePosts(initialTodayFeed);
+    setTodayFeed((prev) =>
+      areFeedsEqual(prev, nextTodayFeed) ? prev : nextTodayFeed
+    );
   }, [initialTodayFeed]);
 
   useEffect(() => {
-    setOlderFeed(deduplicatePosts(initialOlderFeed));
-    setOffset(initialOlderFeed.length);
+    const nextOlderFeed = deduplicatePosts(initialOlderFeed);
+    setOlderFeed((prev) => {
+      const mergedFeed = mergeVisibleFeed(prev, nextOlderFeed);
+      return areFeedsEqual(prev, mergedFeed) ? prev : mergedFeed;
+    });
+    setOffset((prev) => Math.max(prev, nextOlderFeed.length));
     setHasMore(initialOlderHasMore);
   }, [initialOlderFeed, initialOlderHasMore]);
 
@@ -226,11 +292,16 @@ export default function HomeFeed({
       }
 
       currentBucket = nextBucket;
+      rememberFeedScroll();
       router.refresh();
     }, 30000);
 
     return () => window.clearInterval(interval);
   }, [router]);
+
+  useEffect(() => {
+    restoreFeedScroll();
+  });
 
   const updatePostLists = useCallback(
     (updater: (post: FeedPost) => FeedPost) => {
@@ -331,7 +402,8 @@ export default function HomeFeed({
   }, []);
 
   const handlePostMutationCommitted = useCallback(() => {
-    router.refresh();
+    rememberFeedScroll();
+    scheduleRefresh(router);
   }, [router]);
 
   const handleClaimKnowEverythingBadge = useCallback(async () => {
@@ -357,6 +429,7 @@ export default function HomeFeed({
       }
 
       setHasKnowEverythingBadge(true);
+      rememberFeedScroll();
       router.refresh();
     } catch (error) {
       console.error(error);
@@ -373,7 +446,10 @@ export default function HomeFeed({
     router,
   ]);
 
-  const todaySections = buildTodayRankingSections(todayFeed, todaysPostsCount);
+  const todaySections = useMemo(
+    () => buildTodayRankingSections(todayFeed, todaysPostsCount),
+    [todayFeed, todaysPostsCount]
+  );
 
   return (
     <div className="space-y-8 sm:space-y-12">

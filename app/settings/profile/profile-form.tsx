@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   updateProfile,
@@ -59,7 +60,6 @@ export default function ProfileForm({
   const [bio, setBio] = useState(initialBio ?? "");
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState(initialAvatarUrl ?? "");
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
@@ -67,17 +67,19 @@ export default function ProfileForm({
     initialState
   );
 
+  const avatarObjectUrl = useMemo(
+    () => (avatarFile ? URL.createObjectURL(avatarFile) : null),
+    [avatarFile]
+  );
+  const previewUrl = avatarObjectUrl ?? (removeAvatar ? "" : initialAvatarUrl ?? "");
+
   useEffect(() => {
-    if (!avatarFile) {
-      setPreviewUrl(removeAvatar ? "" : initialAvatarUrl ?? "");
-      return;
-    }
-
-    const objectUrl = URL.createObjectURL(avatarFile);
-    setPreviewUrl(objectUrl);
-
-    return () => URL.revokeObjectURL(objectUrl);
-  }, [avatarFile, removeAvatar, initialAvatarUrl]);
+    return () => {
+      if (avatarObjectUrl) {
+        URL.revokeObjectURL(avatarObjectUrl);
+      }
+    };
+  }, [avatarObjectUrl]);
 
   useEffect(() => {
     function handleOutsideClick(event: MouseEvent) {
@@ -132,7 +134,6 @@ export default function ProfileForm({
   function handleRemovePicture() {
     setRemoveAvatar(true);
     setAvatarFile(null);
-    setPreviewUrl("");
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -153,9 +154,13 @@ export default function ProfileForm({
             aria-label="Open profile picture options"
           >
             {previewUrl ? (
-              <img
+              <Image
                 src={previewUrl}
                 alt="Avatar preview"
+                width={112}
+                height={112}
+                sizes="(min-width: 640px) 112px, 96px"
+                unoptimized
                 className="h-full w-full object-cover"
               />
             ) : (
