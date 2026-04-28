@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import NavBar from "@/shared/components/layout/navbar";
 import SinglePostView from "@/features/posts/components/SinglePostView";
 import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
 import { createClient } from "@/lib/supabase/server";
@@ -72,7 +71,7 @@ export default async function PostDetailPage({ params }: PageProps) {
   }
 
   // =====================================================
-  // Auth / Nav User
+  // Auth / Viewer Permissions
   // =====================================================
 
   const supabase = await createClient();
@@ -82,12 +81,6 @@ export default async function PostDetailPage({ params }: PageProps) {
   } = await supabase.auth.getUser();
 
   let viewerIsAdmin = false;
-
-  let navUser: {
-    username: string;
-    avatar_url: string | null;
-    is_admin: boolean;
-  } | null = null;
 
   if (user) {
     const { data: profile, error: profileError } = await supabase
@@ -104,13 +97,6 @@ export default async function PostDetailPage({ params }: PageProps) {
 
     viewerIsAdmin = typedProfile?.is_admin ?? false;
 
-    if (typedProfile?.username) {
-      navUser = {
-        username: typedProfile.username,
-        avatar_url: typedProfile.avatar_url ?? null,
-        is_admin: typedProfile.is_admin ?? false,
-      };
-    }
   }
 
   // =====================================================
@@ -180,27 +166,23 @@ export default async function PostDetailPage({ params }: PageProps) {
   // =====================================================
 
   return (
-    <>
-      <NavBar user={navUser} />
+    <main className="mx-auto max-w-2xl p-6">
+      {!user && (
+        <div className="mb-6 rounded-xl bg-white p-4 shadow">
+          <p className="mb-3 text-gray-700">
+            You need to be signed in to interact.
+          </p>
+          <Link
+            href="/login"
+            className="inline-block rounded-lg bg-black px-4 py-2 text-white"
+          >
+            Sign In / Register
+          </Link>
+        </div>
+      )}
 
-      <main className="mx-auto max-w-2xl p-6">
-        {!user && (
-          <div className="mb-6 rounded-xl bg-white p-4 shadow">
-            <p className="mb-3 text-gray-700">
-              You need to be signed in to interact.
-            </p>
-            <Link
-              href="/login"
-              className="inline-block rounded-lg bg-black px-4 py-2 text-white"
-            >
-              Sign In / Register
-            </Link>
-          </div>
-        )}
-
-        <SinglePostView initialPost={initialPost} />
-      </main>
-    </>
+      <SinglePostView initialPost={initialPost} />
+    </main>
   );
 }
 

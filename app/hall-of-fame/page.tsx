@@ -1,4 +1,3 @@
-import NavBar from "@/shared/components/layout/navbar";
 import {
   ARCHIVED_DAILY_WINNER_RANK,
   getZurichDayKey,
@@ -57,42 +56,11 @@ function countTotalReactions(reactionCounts: ReactionCounts) {
 
 export default async function HallOfFamePage() {
   const supabase = await createClient();
-  const userPromise = supabase.auth.getUser();
   const winnersPromise = supabase
     .from("daily_post_winners")
     .select("*")
     .order("winner_date", { ascending: false })
     .order("rank_position", { ascending: true });
-
-  const {
-    data: { user },
-  } = await userPromise;
-
-  let navUser: {
-    username: string;
-    avatar_url: string | null;
-    is_admin: boolean;
-  } | null = null;
-
-  if (user) {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("username, avatar_url, is_admin")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      throw new Error(profileError.message);
-    }
-
-    if (profile?.username) {
-      navUser = {
-        username: profile.username,
-        avatar_url: profile.avatar_url ?? null,
-        is_admin: profile.is_admin ?? false,
-      };
-    }
-  }
 
   const { data, error } = await winnersPromise;
 
@@ -203,8 +171,6 @@ export default async function HallOfFamePage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <NavBar user={navUser} />
-
       <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-14">
         {dailyWinners.length === 0 ? (
           <section className="relative overflow-hidden rounded-[32px] border border-neutral-200 bg-white p-8 text-center shadow-sm sm:rounded-[40px] sm:p-12">

@@ -1,40 +1,12 @@
 import Link from "next/link";
-import NavBar from "@/shared/components/layout/navbar";
-import { createClient } from "@/lib/supabase/server";
 
 // =====================================================
 // Page Component
 // =====================================================
 
-export default async function VibePage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let navUser = null;
-
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username, avatar_url, is_admin")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profile) {
-      navUser = {
-        username: profile.username,
-        avatar_url: profile.avatar_url ?? null,
-        is_admin: profile.is_admin ?? false,
-      };
-    }
-  }
-
+export default function VibePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#fafafa]">
-      <NavBar user={navUser} />
-
       {/* Background Decor */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-[-10%] h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-amber-100/40 blur-[120px]" />

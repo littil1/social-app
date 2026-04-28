@@ -1,4 +1,3 @@
-import NavBar from "@/shared/components/layout/navbar";
 import UserListItem from "@/features/profile/components/UserListItem";
 import { createClient } from "@/lib/supabase/server";
 import { getFollowingList } from "@/features/profile/lib/follow-data";
@@ -33,24 +32,18 @@ export default async function FollowingListPage({
 
   if (!profile) {
     return (
-      <>
-        <NavBar />
-        <main className="mx-auto max-w-2xl p-6">
-          <div className="rounded-xl bg-white p-6 shadow">
-            <h1 className="text-2xl font-bold">Profile not found</h1>
-          </div>
-        </main>
-      </>
+      <main className="mx-auto max-w-2xl p-6">
+        <div className="rounded-xl bg-white p-6 shadow">
+          <h1 className="text-2xl font-bold">Profile not found</h1>
+        </div>
+      </main>
     );
   }
 
   const following = await getFollowingList(supabase, profile.id, currentUserId);
 
   return (
-    <>
-      <NavBar />
-
-      <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10">
+    <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10">
         <section className="relative mb-6 overflow-hidden rounded-[32px] border border-amber-100 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.14),transparent_34%),linear-gradient(135deg,#fffdf8,#ffffff)] p-6 shadow-sm sm:p-8">
           <Link
             href={`/u/${profile.username}`}
@@ -100,8 +93,7 @@ export default async function FollowingListPage({
             </div>
           )}
         </div>
-      </main>
-    </>
+    </main>
   );
 }
 

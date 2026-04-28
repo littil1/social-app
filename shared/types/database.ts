@@ -782,74 +782,12 @@ export type Database = {
           },
         ]
       }
-      weekly_post_hall_of_fame: {
-        Row: {
-          author_id: string | null
-          author_username: string | null
-          category: string
-          comments_count: number
-          id: number
-          inducted_at: string
-          likes_count: number
-          post_content: string
-          post_created_at: string
-          post_id: number
-          rank_position: number
-          relevance_score: number
-          week_end: string
-          week_label: string
-          week_start: string
-        }
-        Insert: {
-          author_id?: string | null
-          author_username?: string | null
-          category: string
-          comments_count?: number
-          id?: never
-          inducted_at?: string
-          likes_count?: number
-          post_content: string
-          post_created_at: string
-          post_id: number
-          rank_position?: number
-          relevance_score?: number
-          week_end: string
-          week_label: string
-          week_start: string
-        }
-        Update: {
-          author_id?: string | null
-          author_username?: string | null
-          category?: string
-          comments_count?: number
-          id?: never
-          inducted_at?: string
-          likes_count?: number
-          post_content?: string
-          post_created_at?: string
-          post_id?: number
-          rank_position?: number
-          relevance_score?: number
-          week_end?: string
-          week_label?: string
-          week_start?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "weekly_post_hall_of_fame_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      capture_weekly_post_hall_of_fame: { Args: never; Returns: undefined }
+      [_ in never]: never
     }
     Enums: {
       reaction_type: "like" | "funny" | "wow" | "fire"

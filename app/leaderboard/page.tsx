@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import NavBar from "@/shared/components/layout/navbar";
 import { createClient } from "@/lib/supabase/server";
 import { getLiveScore, getZurichDayRange } from "@/features/winners/lib/daily-ranking";
 import LeaderboardLiveHeader from "@/features/leaderboard/components/LeaderboardLiveHeader";
@@ -116,21 +115,13 @@ export default async function LeaderboardPage() {
     data: { user },
   } = await userPromise;
 
-  let navUser = null;
   let hasKnowEverythingBadge = false;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("username, avatar_url, is_admin, badges")
+      .select("badges")
       .eq("id", user.id)
       .maybeSingle();
-    if (profile?.username) {
-      navUser = {
-        username: profile.username,
-        avatar_url: profile.avatar_url ?? null,
-        is_admin: profile.is_admin ?? false,
-      };
-    }
 
     hasKnowEverythingBadge = Array.isArray(profile?.badges)
       ? profile.badges.includes(KNOW_EVERYTHING_BADGE_KEY)
@@ -180,31 +171,28 @@ export default async function LeaderboardPage() {
   const todayLabel = formatDate(`${todayKey}T00:00:00`);
 
   return (
-    <>
-      <NavBar user={navUser} />
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pb-28 pt-4 sm:px-6 sm:py-6 lg:gap-7 lg:px-8 lg:py-6">
-        {!user && <LoginCta />}
+    <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pb-28 pt-4 sm:px-6 sm:py-6 lg:gap-7 lg:px-8 lg:py-6">
+      {!user && <LoginCta />}
 
-        {hasPostsToday && (
-          <div className="flex flex-col gap-4 lg:gap-6">
-            <LeaderboardLiveHeader todayLabel={todayLabel} />
-            <LeaderboardPodiumSection
-              mobileItems={mobilePodium}
-              desktopItems={desktopPodium}
-              isLoggedIn={!!user}
-            />
-          </div>
-        )}
-
-        <Suspense fallback={<section className="mx-auto w-full max-w-5xl" />}>
-          <LeaderboardFeedSection
-            homeFeedDataPromise={Promise.resolve(homeFeedData)}
+      {hasPostsToday && (
+        <div className="flex flex-col gap-4 lg:gap-6">
+          <LeaderboardLiveHeader todayLabel={todayLabel} />
+          <LeaderboardPodiumSection
+            mobileItems={mobilePodium}
+            desktopItems={desktopPodium}
             isLoggedIn={!!user}
-            hasKnowEverythingBadge={hasKnowEverythingBadge}
           />
-        </Suspense>
-      </main>
-    </>
+        </div>
+      )}
+
+      <Suspense fallback={<section className="mx-auto w-full max-w-5xl" />}>
+        <LeaderboardFeedSection
+          homeFeedDataPromise={Promise.resolve(homeFeedData)}
+          isLoggedIn={!!user}
+          hasKnowEverythingBadge={hasKnowEverythingBadge}
+        />
+      </Suspense>
+    </main>
   );
 }
 

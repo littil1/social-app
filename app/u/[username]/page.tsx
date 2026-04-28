@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
-import NavBar from "@/shared/components/layout/navbar";
 import FollowButton from "@/features/profile/components/FollowButton";
 import { getCurrentZurichDayStartIso } from "@/features/winners/lib/daily-ranking";
 import {
@@ -61,11 +60,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     data: { user },
   } = await userPromise;
 
-  let navUser: {
-    username: string;
-    avatar_url: string | null;
-    is_admin: boolean;
-  } | null = null;
   let viewerIsAdmin = false;
 
   if (user) {
@@ -79,13 +73,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       throw new Error(profileError.message);
     }
 
-    if (profile?.username) {
-      navUser = {
-        username: profile.username,
-        avatar_url: profile.avatar_url ?? null,
-        is_admin: profile.is_admin ?? false,
-      };
-    }
     viewerIsAdmin = profile?.is_admin ?? false;
   }
 
@@ -100,16 +87,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   if (profileError || !profile) {
     return (
-      <>
-        <NavBar user={navUser} />
-        <main className="mx-auto max-w-2xl p-6">
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-12 text-center shadow-sm">
-            <h1 className="text-2xl font-black tracking-tight text-neutral-950">
-              Profile not found
-            </h1>
-          </div>
-        </main>
-      </>
+      <main className="mx-auto max-w-2xl p-6">
+        <div className="rounded-[32px] border border-neutral-200 bg-white p-12 text-center shadow-sm">
+          <h1 className="text-2xl font-black tracking-tight text-neutral-950">
+            Profile not found
+          </h1>
+        </div>
+      </main>
     );
   }
 
@@ -237,7 +221,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <NavBar user={navUser} />
       <main className="mx-auto max-w-4xl px-4 pb-28 pt-8 sm:py-16">
         <div className="overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
           <div className="relative h-32 overflow-hidden bg-neutral-950">

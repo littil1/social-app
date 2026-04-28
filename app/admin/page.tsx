@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import NavBar from "@/shared/components/layout/navbar";
 import AdminRecomputeButton from "@/features/admin/components/AdminRecomputeButton";
 import AdminReportsPanel, {
   type ModerationReport,
@@ -131,32 +130,19 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   if (!viewerProfile?.is_admin) {
     return (
-      <>
-        <NavBar
-          user={
-            viewerProfile?.username
-              ? {
-                  username: viewerProfile.username,
-                  avatar_url: viewerProfile.avatar_url ?? null,
-                  is_admin: viewerProfile.is_admin ?? false,
-                }
-              : null
-          }
-        />
-        <main className="mx-auto w-full max-w-4xl overflow-x-hidden px-4 pb-28 pt-8 sm:px-6 sm:pt-12">
-          <section className="rounded-[32px] border border-red-200 bg-red-50 p-8 text-center shadow-sm">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
-              403
-            </p>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-neutral-950">
-              No access to the admin panel
-            </h1>
-            <p className="mt-3 text-sm font-medium text-neutral-600">
-              This area is only available to admins.
-            </p>
-          </section>
-        </main>
-      </>
+      <main className="mx-auto w-full max-w-4xl overflow-x-hidden px-4 pb-28 pt-8 sm:px-6 sm:pt-12">
+        <section className="rounded-[32px] border border-red-200 bg-red-50 p-8 text-center shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
+            403
+          </p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight text-neutral-950">
+            No access to the admin panel
+          </h1>
+          <p className="mt-3 text-sm font-medium text-neutral-600">
+            This area is only available to admins.
+          </p>
+        </section>
+      </main>
     );
   }
 
@@ -662,16 +648,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   );
 
   return (
-    <>
-      <NavBar
-        user={{
-          username: viewerProfile.username,
-          avatar_url: viewerProfile.avatar_url ?? null,
-          is_admin: viewerProfile.is_admin ?? false,
-        }}
-      />
-
-      <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 overflow-x-hidden px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:gap-5 lg:px-8 lg:pt-8">
+    <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 overflow-x-hidden px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:gap-5 lg:px-8 lg:pt-8">
         <section className="overflow-hidden rounded-[32px] border border-amber-100 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_34%),linear-gradient(135deg,#fffdf8,#ffffff)] p-5 shadow-sm sm:rounded-[36px] sm:p-6">
           <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
@@ -715,8 +692,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             { id: "badges", label: "Badges", content: badgesTab },
           ]}
         />
-      </main>
-    </>
+    </main>
   );
 }
 

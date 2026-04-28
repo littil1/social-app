@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import NavBar from "@/shared/components/layout/navbar";
 import ProfileForm from "./profile-form";
 
 export const dynamic = "force-dynamic";
@@ -26,16 +25,8 @@ export default async function ProfileSettingsPage() {
     throw new Error(profileError.message);
   }
 
-  const navUser = {
-    username: profile?.username ?? "user",
-    avatar_url: profile?.avatar_url ?? null,
-    is_admin: profile?.is_admin ?? false,
-  };
-
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <NavBar user={navUser} />
-
       <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10 lg:pt-14">
         <section className="relative mb-6 overflow-hidden rounded-[32px] bg-neutral-950 px-5 py-8 text-white shadow-2xl sm:mb-8 sm:rounded-[40px] sm:px-8 sm:py-12 lg:px-12">
           <div className="pointer-events-none absolute inset-0">

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import NavBar from "@/shared/components/layout/navbar";
 import FeedbackCard from "@/features/feedback/components/FeedbackCard";
 import { addFeatureRequest } from "@/app/actions/feedback";
 import { createClient } from "@/lib/supabase/server";
@@ -48,14 +47,6 @@ export default async function FeedbackPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <NavBar
-        user={user ? {
-          username: viewerProfile?.username ?? "user",
-          avatar_url: viewerProfile?.avatar_url ?? null,
-          is_admin: viewerProfile?.is_admin ?? false,
-        } : null}
-      />
-
       <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-14">
         
         {/* HERO SECTION */}

@@ -101,16 +101,32 @@ export async function addFeatureRequest(formData: FormData) {
 export async function deleteFeatureRequest(formData: FormData) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const requestId = Number(formData.get("request_id"));
 
-  if (!requestId) return;
+  if (!user || !requestId) return;
 
   const { authorId, authorUsername } = await getFeatureRequestAuthorInfo(
     supabase,
     requestId
   );
 
-  await supabase.from("feature_requests").delete().eq("id", requestId);
+  const isAdmin = await isCurrentUserAdmin(supabase, user.id);
+  if (!isAdmin && authorId !== user.id) return;
+
+  let deleteRequestQuery = supabase
+    .from("feature_requests")
+    .delete()
+    .eq("id", requestId);
+
+  if (!isAdmin) {
+    deleteRequestQuery = deleteRequestQuery.eq("user_id", user.id);
+  }
+
+  await deleteRequestQuery;
 
   if (authorId) {
     await recomputeUserBadgeFamilies(supabase, authorId, [
@@ -218,9 +234,13 @@ export async function addFeatureRequestComment(formData: FormData) {
 export async function deleteFeatureRequestComment(formData: FormData) {
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const commentId = Number(formData.get("comment_id"));
 
-  if (!commentId) return;
+  if (!user || !commentId) return;
 
   const { data: comment } = await supabase
     .from("feature_request_comments")
@@ -229,6 +249,9 @@ export async function deleteFeatureRequestComment(formData: FormData) {
     .maybeSingle();
 
   if (!comment) return;
+
+  const isAdmin = await isCurrentUserAdmin(supabase, user.id);
+  if (!isAdmin && comment.user_id !== user.id) return;
 
   const { authorId, authorUsername } = await getFeatureRequestAuthorInfo(
     supabase,
@@ -240,7 +263,16 @@ export async function deleteFeatureRequestComment(formData: FormData) {
     comment.user_id
   );
 
-  await supabase.from("feature_request_comments").delete().eq("id", commentId);
+  let deleteCommentQuery = supabase
+    .from("feature_request_comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (!isAdmin) {
+    deleteCommentQuery = deleteCommentQuery.eq("user_id", user.id);
+  }
+
+  await deleteCommentQuery;
 
   if (comment.user_id) {
     await recomputeUserBadgeFamilies(supabase, comment.user_id, [

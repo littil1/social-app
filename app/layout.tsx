@@ -4,6 +4,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import AuthModalProvider from "@/features/auth/components/AuthModalProvider";
 import GlobalPostModal from "@/features/posts/components/GlobalPostModal";
+import NavBar from "@/shared/components/layout/navbar";
 import { createClient } from "@/lib/supabase/server";
 
 // =====================================================
@@ -57,22 +58,34 @@ export default async function RootLayout({
   if (user) {
     const { data } = await supabase
       .from("profiles")
-      .select("username, avatar_url")
+      .select("username, avatar_url, is_admin")
       .eq("id", user.id)
       .single();
     profile = data;
   }
 
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth bg-[#fafafa]">
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[#fafafa] text-neutral-950 antialiased`}
       >
         <AuthModalProvider>
+          <NavBar
+            user={
+              profile?.username
+                ? {
+                    username: profile.username,
+                    avatar_url: profile.avatar_url ?? null,
+                    is_admin: profile.is_admin ?? false,
+                  }
+                : null
+            }
+          />
+
           {/* Padding-Bottom (pb-32):
               Wichtig für die Floating NavBar. 
           */}
-          <main className="pb-28 sm:pb-32">
+          <main className="app-page-enter min-h-screen bg-[#fafafa] pb-28 sm:pb-32">
             {children}
           </main>
 
