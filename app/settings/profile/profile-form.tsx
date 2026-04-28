@@ -190,7 +190,7 @@ export default function ProfileForm({
 
         <div className="flex flex-col gap-1">
           <p className="text-xs font-black uppercase tracking-widest text-neutral-950">Avatar</p>
-          <p className="text-xs font-medium text-neutral-400">JPG, PNG or GIF. Max 4MB.</p>
+          <p className="text-xs font-medium text-neutral-500">JPG, PNG or GIF. Max 4MB.</p>
           <button
             type="button"
             onClick={handleChangePicture}
@@ -229,10 +229,10 @@ export default function ProfileForm({
             onChange={(e) => setUsername(e.target.value)}
             required
             placeholder="e.g. champion_01"
-            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
           />
 
-          <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-tight">
+          <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-tight">
             Only a–z, 0–9 and underscores allowed.
           </p>
         </div>
@@ -253,14 +253,14 @@ export default function ProfileForm({
             onChange={(e) => setBio(e.target.value)}
             maxLength={200}
             placeholder="Tell the community about your journey..."
-            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
           />
 
           <div className="flex justify-between">
-            <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-tight">
+            <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-tight">
               A brief introduction.
             </p>
-            <p className={`text-[10px] font-bold ${bio.length > 180 ? 'text-amber-600' : 'text-neutral-400'}`}>
+            <p className={`text-[10px] font-bold ${bio.length > 180 ? 'text-amber-600' : 'text-neutral-500'}`}>
               {bio.length} / 200
             </p>
           </div>

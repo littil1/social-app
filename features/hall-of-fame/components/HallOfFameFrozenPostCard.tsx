@@ -188,17 +188,17 @@ function HallOfFameFrozenPostCardContent({
           </p>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-1.5 sm:gap-2">
           <span
             aria-label={`Impact reactions, ${post.reaction_counts.like}`}
-            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+            className="inline-flex items-center gap-1.5 rounded-full bg-neutral-50 px-3 py-2 text-sm font-bold text-neutral-500 sm:gap-2 sm:px-4"
           >
             <span>{"\u2764\uFE0F"}</span>
             <span className="text-neutral-900">{post.reaction_counts.like}</span>
           </span>
           <span
             aria-label={`Funny reactions, ${post.reaction_counts.funny}`}
-            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+            className="inline-flex items-center gap-1.5 rounded-full bg-neutral-50 px-3 py-2 text-sm font-bold text-neutral-500 sm:gap-2 sm:px-4"
           >
             <span>{"\uD83D\uDE02"}</span>
             <span className="text-neutral-900">
@@ -207,14 +207,14 @@ function HallOfFameFrozenPostCardContent({
           </span>
           <span
             aria-label={`Wow reactions, ${post.reaction_counts.wow}`}
-            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+            className="inline-flex items-center gap-1.5 rounded-full bg-neutral-50 px-3 py-2 text-sm font-bold text-neutral-500 sm:gap-2 sm:px-4"
           >
             <span>{"\uD83E\uDD2F"}</span>
             <span className="text-neutral-900">{post.reaction_counts.wow}</span>
           </span>
           <span
             aria-label={`Strong reactions, ${post.reaction_counts.fire}`}
-            className="inline-flex items-center gap-2 rounded-full bg-neutral-50 px-4 py-2 text-sm font-bold text-neutral-500"
+            className="inline-flex items-center gap-1.5 rounded-full bg-neutral-50 px-3 py-2 text-sm font-bold text-neutral-500 sm:gap-2 sm:px-4"
           >
             <span>{"\uD83D\uDD25"}</span>
             <span className="text-neutral-900">{post.reaction_counts.fire}</span>
@@ -223,7 +223,7 @@ function HallOfFameFrozenPostCardContent({
             type="button"
             onClick={() => setShowComments((prev) => !prev)}
             aria-label={`${showComments ? "Hide" : "Show"} comments, ${localCommentsCount} comments`}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-all sm:gap-2 sm:px-4 ${
               showComments
                 ? "bg-neutral-200 text-neutral-900"
                 : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"

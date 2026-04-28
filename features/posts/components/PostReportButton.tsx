@@ -96,7 +96,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
         className={`text-[10px] font-black uppercase tracking-widest transition ${
           hasReported
             ? "cursor-default text-emerald-600"
-            : "text-neutral-300 hover:text-amber-600"
+            : "text-neutral-400 hover:text-amber-600"
         }`}
       >
         {hasReported ? "Reported" : "Report"}
@@ -145,7 +145,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
                 rows={4}
                 placeholder="Optional details"
                 disabled={submitting}
-                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
               />
 
               <div className="flex justify-end gap-2">

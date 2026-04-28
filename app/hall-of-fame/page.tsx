@@ -192,9 +192,9 @@ export default async function HallOfFamePage() {
     <div className="min-h-screen bg-[#fafafa]">
       <NavBar user={navUser} />
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-8 lg:py-16">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-14">
         {dailyWinners.length === 0 ? (
-          <section className="relative overflow-hidden rounded-[40px] border border-neutral-200 bg-white p-12 text-center shadow-sm">
+          <section className="relative overflow-hidden rounded-[32px] border border-neutral-200 bg-white p-8 text-center shadow-sm sm:rounded-[40px] sm:p-12">
             <span className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400">
               Hall of Fame
             </span>
@@ -206,8 +206,8 @@ export default async function HallOfFamePage() {
             </p>
           </section>
         ) : (
-          <div className="space-y-14">
-            <section className="relative overflow-hidden rounded-[36px] bg-neutral-950 px-6 py-10 text-white shadow-2xl sm:px-8 lg:px-12 lg:py-12">
+          <div className="space-y-10 sm:space-y-14">
+            <section className="relative overflow-hidden rounded-[32px] bg-neutral-950 px-5 py-8 text-white shadow-2xl sm:rounded-[36px] sm:px-8 sm:py-10 lg:px-12 lg:py-12">
               <div className="pointer-events-none absolute inset-0">
                 <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-amber-400/10 blur-[110px]" />
                 <div className="absolute bottom-0 left-0 h-52 w-52 rounded-full bg-white/5 blur-[90px]" />
@@ -217,13 +217,13 @@ export default async function HallOfFamePage() {
                 <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
                   Hall of Fame
                 </span>
-                <h1 className="mt-6 text-4xl font-black tracking-tighter sm:text-6xl lg:text-7xl">
+                <h1 className="mt-5 text-4xl font-black tracking-tighter sm:mt-6 sm:text-6xl lg:text-7xl">
                   Legends stay <br />
                   <span className="text-glow-neutral text-neutral-500">
                     visible forever.
                   </span>
                 </h1>
-                <p className="mt-5 max-w-2xl text-base font-medium leading-relaxed text-neutral-400 sm:text-lg">
+                <p className="mt-4 max-w-2xl text-base font-medium leading-relaxed text-neutral-400 sm:mt-5 sm:text-lg">
                   Every day, one post becomes legendary. Join the hall and secure your badge today!
                 </p>
 
@@ -241,16 +241,7 @@ export default async function HallOfFamePage() {
             </section>
 
             {latestWinner && (
-              <section className="space-y-8">
-                <div className="flex items-end justify-between border-b border-neutral-200 pb-6">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">
-                    </span>
-                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">
-                      Current Champion
-                    </h2>
-                  </div>
-                </div>
+              <section className="space-y-5 sm:space-y-8">
                 <HallOfFameFrozenPostCard
                   post={latestWinner.winner}
                   dayLabel={latestWinner.dayLabel}
@@ -260,16 +251,7 @@ export default async function HallOfFamePage() {
             )}
 
             {olderWinners.length > 0 && (
-              <section className="space-y-8">
-                <div className="flex items-end justify-between border-b border-neutral-200 pb-6">
-                  <div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
-                    </span>
-                    <h2 className="mt-2 text-4xl font-black tracking-tight text-neutral-950">
-                      Previous Legends
-                    </h2>
-                  </div>
-                </div>
+              <section className="space-y-5 sm:space-y-8">
                 <HallOfFameWinnersTimeline items={olderWinners} />
               </section>
             )}
@@ -279,4 +261,3 @@ export default async function HallOfFamePage() {
     </div>
   );
 }
-

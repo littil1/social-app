@@ -50,36 +50,35 @@ export default async function FeedbackPage() {
         } : null}
       />
 
-      <main className="mx-auto max-w-6xl px-4 py-8 lg:py-16">
+      <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-14">
         
         {/* HERO SECTION */}
-        <section className="relative mb-16 overflow-hidden rounded-[40px] bg-neutral-950 px-6 py-12 text-white shadow-2xl lg:px-16 lg:py-20">
+        <section className="relative mb-10 overflow-hidden rounded-[32px] bg-neutral-950 px-5 py-8 text-white shadow-2xl sm:mb-14 sm:rounded-[40px] sm:px-6 sm:py-12 lg:mb-16 lg:px-16 lg:py-16">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-amber-400/10 blur-[100px]" />
             <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-indigo-500/10 blur-[100px]" />
           </div>
 
-          <div className="relative grid gap-12 lg:grid-cols-[1fr_auto]">
+          <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:gap-12">
             <div className="max-w-2xl">
               <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
                 Co-Creation
               </span>
-              <h1 className="mt-6 text-4xl font-black tracking-tight sm:text-7xl">
+              <h1 className="mt-5 text-4xl font-black tracking-tight sm:mt-6 sm:text-6xl lg:text-7xl">
                 Help us build the <span className="text-amber-400">Future</span> of APP.
               </h1>
-              <p className="mt-6 text-lg leading-relaxed text-neutral-400">
-                The community decides what stays, but you decide what comes next. 
-                Share your ideas, support what matters, and let’s craft the ultimate noise-free arena together.
+              <p className="mt-5 text-base leading-relaxed text-neutral-400 sm:mt-6 sm:text-lg">
+               Share your ideas and support what matters to you.
               </p>
             </div>
 
-            <div className="flex flex-col justify-center gap-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:flex lg:flex-col lg:justify-center lg:gap-6">
                <div className="text-center lg:text-right">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Live Feedback</p>
                   <p className="mt-1 text-5xl font-black text-white">{openIdeas.length}</p>
                   <p className="text-sm font-medium text-neutral-400">Open ideas</p>
                </div>
-               <div className="text-center lg:text-right border-t border-white/10 pt-6">
+               <div className="border-t border-white/10 pt-4 text-center sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0 lg:border-l-0 lg:border-t lg:pl-0 lg:pt-6 lg:text-right">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Community Power</p>
                   <p className="mt-1 text-5xl font-black text-amber-400">{totalSupporters}</p>
                   <p className="text-sm font-medium text-neutral-400">Supports cast</p>
@@ -89,36 +88,36 @@ export default async function FeedbackPage() {
         </section>
 
         {/* INPUT AREA */}
-        <section className="mb-20 grid gap-8 lg:grid-cols-2">
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-8 shadow-sm">
+        <section className="mb-12 grid gap-6 lg:mb-16 lg:grid-cols-2 lg:gap-8">
+          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">How to contribute</h2>
             <div className="mt-8 space-y-4">
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🎨</span>
                 <div>
                   <p className="font-bold text-neutral-900">Be Creative</p>
-                  <p className="text-sm text-neutral-500">Tell us about your dream. We are here to listen and build the future together.</p>
+                  <p className="text-sm text-neutral-500">Tell us about your idea - we are here to listen.</p>
                 </div>
               </div>
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🎯</span>
                 <div>
                   <p className="font-bold text-neutral-900">Be Specific</p>
-                  <p className="text-sm text-neutral-500">Vague ideas are hard to build. Describe the problem, then the solution.</p>
+                  <p className="text-sm text-neutral-500">Vague ideas are hard to build. Describe the problem and your solution.</p>
                 </div>
               </div>
               <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
                 <span className="text-xl">🤝</span>
                 <div>
                   <p className="font-bold text-neutral-900">Get support</p>
-                  <p className="text-sm text-neutral-500">Support ideas that benefit the entire community.</p>
+                  <p className="text-sm text-neutral-500">Support ideas you like and make the relevance visible.</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-8 shadow-sm">
-            <h2 className="text-2xl font-black tracking-tight text-neutral-950">Submit an idea</h2>
+          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+            <h2 className="text-2xl font-black tracking-tight text-neutral-950">Submit your idea</h2>
             {user ? (
               <form action={addFeatureRequest} className="mt-6 space-y-4">
                 <input
@@ -126,26 +125,26 @@ export default async function FeedbackPage() {
                   name="title"
                   placeholder="Idea title (e.g., Save for Later)"
                   required
-                  className="w-full rounded-2xl border border-neutral-200 px-5 py-4 font-medium outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full rounded-2xl border border-neutral-200 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
                 <textarea
                   name="description"
                   placeholder="Describe your idea in detail..."
                   required
                   rows={4}
-                  className="w-full rounded-2xl border border-neutral-200 px-5 py-4 font-medium outline-none transition focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full rounded-2xl border border-neutral-200 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
                 />
-                <div className="flex items-center justify-between gap-4 rounded-2xl bg-amber-50 p-4">
+                <div className="flex flex-col gap-4 rounded-2xl bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs font-bold text-amber-900 uppercase tracking-tight">
                     Posting as @{viewerProfile?.username ?? "user"}
                   </p>
-                  <button type="submit" className="rounded-full bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:scale-105">
+                  <button type="submit" className="w-full rounded-full bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:scale-105 sm:w-auto">
                     Submit idea
                   </button>
                 </div>
               </form>
             ) : (
-              <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 py-12 text-center">
+              <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 px-4 py-10 text-center sm:py-12">
                 <p className="text-neutral-500 font-medium">Log in to help us build.</p>
                 <a href="/login" className="mt-4 rounded-xl bg-neutral-950 px-8 py-3 text-sm font-bold text-white">Login</a>
               </div>
@@ -154,7 +153,7 @@ export default async function FeedbackPage() {
         </section>
 
         {/* FEEDBACK BOARD */}
-        <div className="grid gap-12 xl:grid-cols-2">
+        <div className="grid gap-8 xl:grid-cols-2 xl:gap-12">
           {/* OPEN IDEAS */}
           <section>
             <div className="mb-6 flex items-center justify-between">
@@ -200,7 +199,7 @@ export default async function FeedbackPage() {
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="rounded-[32px] border border-neutral-100 bg-white p-12 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-300 shadow-sm">
+    <div className="rounded-[32px] border border-neutral-100 bg-white p-8 text-center text-[10px] font-black uppercase tracking-[0.24em] text-neutral-300 shadow-sm sm:p-12 sm:tracking-[0.3em]">
       {text}
     </div>
   );

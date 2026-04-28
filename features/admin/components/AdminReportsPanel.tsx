@@ -486,7 +486,7 @@ export default function AdminReportsPanel({
                   rows={4}
                   placeholder="Internal admin note"
                   disabled={updatingReportId === selectedReport.id}
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none"
+                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-neutral-500"
                 />
 
                 <button

@@ -45,6 +45,13 @@ type ProfileRow = {
   badges: string[];
 };
 
+function formatProfileMonth(dateString: string) {
+  return new Date(dateString).toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const supabase = await createClient();
   const {
@@ -215,11 +222,21 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         .map((badgeKey) => getProfileBadge(badgeKey))
         .filter((badge): badge is NonNullable<typeof badge> => badge !== null)
     : [];
+  const badgeCount = profileBadges.length + specialBadges.length;
+  const legendWins =
+    profileBadges.find((badge) => badge.family === "legend")?.total.count ?? 0;
+  const legacyStartedLabel = formatProfileMonth(typedProfile.created_at);
+  const heroStats = [
+    { label: "Top posts", value: legendWins },
+    { label: "Badges", value: badgeCount },
+    { label: "Posts", value: posts.length },
+    { label: "Followers", value: followersCount },
+  ];
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
       <NavBar user={navUser} />
-      <main className="mx-auto max-w-2xl px-4 pb-28 pt-8 sm:py-16">
+      <main className="mx-auto max-w-4xl px-4 pb-28 pt-8 sm:py-16">
         <div className="overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
           <div className="relative h-32 overflow-hidden bg-neutral-950">
             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
@@ -265,7 +282,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
             </div>
 
-            <div>
+            <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
               <div>
                 <div className="flex flex-wrap items-center gap-3">
                   <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
@@ -285,14 +302,26 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
                 <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">
                   Legacy started -{" "}
-                  {new Date(typedProfile.created_at).toLocaleDateString(
-                    "en-GB",
-                    {
-                      month: "long",
-                      year: "numeric",
-                    }
-                  )}
+                  {legacyStartedLabel}
                 </p>
+              </div>
+
+              <div className="w-full max-w-full rounded-[28px] border border-neutral-100 bg-neutral-50/70 px-2.5 py-3 sm:px-4 lg:mb-1 lg:w-[420px]">
+                <div className="grid grid-cols-4 divide-x divide-neutral-200/70">
+                  {heroStats.map((stat) => (
+                    <div
+                      key={stat.label}
+                      className="min-w-0 px-1.5 text-center sm:px-3"
+                    >
+                      <p className="text-base font-black leading-none tabular-nums text-neutral-950 sm:text-lg">
+                        {stat.value}
+                      </p>
+                      <p className="mt-1 whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.06em] text-neutral-500 sm:text-[10px] sm:tracking-[0.1em] lg:text-[11px] lg:tracking-[0.08em]">
+                        {stat.label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -306,7 +335,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           />
         </div>
 
-        <div className="mt-12">
+        <div className="mx-auto mt-10 max-w-2xl">
+          <div className="mb-5 px-1">
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-neutral-400">
+              RECENT POSTS
+            </p>
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-neutral-950">
+              Latest from @{typedProfile.username}
+            </h2>
+          </div>
           <UserProfileContent initialPosts={posts} />
         </div>
       </main>

@@ -376,7 +376,7 @@ export default function HomeFeed({
   const todaySections = buildTodayRankingSections(todayFeed, todaysPostsCount);
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-8 sm:space-y-12">
       {showTopSection && topThreeToday.length > 0 && (
         <section className="space-y-4">
           {topThreeToday.map((post, index) => (
@@ -397,7 +397,7 @@ export default function HomeFeed({
       )}
 
       {remainingTodayPostsCount > 0 && (
-        <div className="rounded-full border border-neutral-200 bg-white/80 px-4 py-2 text-sm font-medium text-neutral-600 shadow-sm backdrop-blur">
+        <div className="rounded-[22px] border border-neutral-200 bg-white/80 px-4 py-2 text-sm font-medium text-neutral-600 shadow-sm backdrop-blur sm:rounded-full">
           {remainingTodayPostsCount} more posts in the race — {remainingTodayPostsCount + 3} today
         </div>
       )}
@@ -434,10 +434,14 @@ export default function HomeFeed({
         </div>
       )}
 
-      <div className="rounded-[32px] border border-neutral-200 bg-white p-10 text-center shadow-sm">
+      <div className="rounded-[32px] border border-neutral-200 bg-white p-6 text-center shadow-sm sm:p-10">
         {todaysPostsCount > 0 ? (
           <p className="text-lg font-black text-neutral-950">
             That’s everything for today.
+            <br />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-neutral-500">
+             It&apos;s your turn now
+            </span>
           </p>
         ) : (
           <>
@@ -451,7 +455,7 @@ export default function HomeFeed({
           </>
         )}
 
-        <div className="mt-8 flex justify-center gap-3">
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <button
             onClick={() =>
               window.dispatchEvent(new CustomEvent("open-create-post"))
@@ -506,11 +510,11 @@ export default function HomeFeed({
       )}
 
       {!hasMore && olderFeed.length > 0 && showOlderPosts && (
-        <div className="py-16 px-4 text-center">
-          <div className="mx-auto flex max-w-2xl flex-col items-center gap-8 rounded-[40px] border border-neutral-100 bg-white p-12 shadow-sm">
+        <div className="px-2 py-10 text-center sm:px-4 sm:py-16">
+          <div className="mx-auto flex max-w-2xl flex-col items-center gap-6 rounded-[32px] border border-neutral-100 bg-white p-6 shadow-sm sm:gap-8 sm:rounded-[40px] sm:p-12">
             <div className="space-y-4">
               <h3 className="text-lg font-black tracking-tight text-neutral-950">
-                That is actually the end.
+                This is actually the end.
               </h3>
 
               <div className="inline-flex items-center gap-3">

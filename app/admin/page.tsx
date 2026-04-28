@@ -143,7 +143,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               : null
           }
         />
-        <main className="mx-auto max-w-4xl px-4 py-10 sm:py-16">
+        <main className="mx-auto max-w-4xl px-4 pb-28 pt-8 sm:px-6 sm:pt-12">
           <section className="rounded-[32px] border border-red-200 bg-red-50 p-8 text-center shadow-sm">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
               403
@@ -392,8 +392,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   ];
 
   const usersTab = (
-    <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-      <section className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm">
+    <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-8">
+      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
@@ -404,14 +404,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </h2>
           </div>
 
-          <form action="/admin" className="flex gap-2">
+          <form action="/admin" className="flex flex-col gap-2 sm:flex-row">
             <input type="hidden" name="tab" value="users" />
             <input
               type="text"
               name="q"
               defaultValue={searchQuery}
               placeholder="Search username..."
-              className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+              className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
             />
             <button
               type="submit"
@@ -439,7 +439,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <Link
                   key={profile.id}
                   href={href}
-                  className={`flex items-center justify-between rounded-2xl border px-4 py-3 transition ${
+                  className={`flex min-w-0 items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition ${
                     isActive
                       ? "border-neutral-950 bg-neutral-950 text-white"
                       : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50"
@@ -461,7 +461,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   <span
                     className={`text-[10px] font-black uppercase tracking-[0.18em] ${
                       isActive ? "text-emerald-300" : "text-neutral-400"
-                    }`}
+                    } shrink-0`}
                   >
                     {isActive ? "Active" : "Open"}
                   </span>
@@ -472,7 +472,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm">
+      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           User Detail
         </p>
@@ -492,7 +492,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </p>
               <div className="mt-3 grid gap-2 text-sm text-neutral-600">
                 <p>
-                  User ID: <span className="font-mono">{selectedUser.id}</span>
+                  User ID: <span className="break-all font-mono">{selectedUser.id}</span>
                 </p>
                 <p>Status: {selectedUser.is_admin ? "Admin" : "User"}</p>
                 <p>
@@ -616,7 +616,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   );
 
   const badgesTab = (
-    <section className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm">
+    <section className="rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:p-6">
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
         Definitions
       </p>
@@ -624,7 +624,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         Badge Definitions
       </h2>
 
-      <div className="mt-6 overflow-x-auto">
+      <div className="mt-6 -mx-2 overflow-x-auto px-2">
         <table className="min-w-full text-left text-sm">
           <thead className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
             <tr>
@@ -666,8 +666,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         }}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        <section className="rounded-[36px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:gap-8 lg:px-8 lg:pt-10">
+        <section className="rounded-[32px] border border-neutral-200 bg-white p-5 shadow-sm sm:rounded-[36px] sm:p-8">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
             Admin
           </p>

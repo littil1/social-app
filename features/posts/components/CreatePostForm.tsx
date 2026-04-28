@@ -168,12 +168,12 @@ export default function CreatePostForm({
               }}
               placeholder={
                 effectiveIsLoggedIn
-                  ? "What's actually on your mind?"
+                  ? "What's on your mind today?"
                   : "Log in to post"
               }
               rows={4}
               disabled={loading}
-              className="w-full resize-none border-0 bg-transparent px-0 py-0.5 text-[16px] leading-7 text-gray-900 outline-none placeholder:text-gray-400"
+              className="w-full resize-none border-0 bg-transparent px-0 py-0.5 text-[16px] leading-7 text-gray-900 outline-none placeholder:text-gray-500"
               style={{
                 maxHeight: "220px",
                 scrollbarWidth: "none",
@@ -184,7 +184,7 @@ export default function CreatePostForm({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <span className="text-sm text-gray-400">{remainingCharacters}</span>
+        <span className="text-sm text-gray-500">{remainingCharacters}</span>
 
         <button
           type="submit"

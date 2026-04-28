@@ -104,8 +104,13 @@ export default function LeaderboardPodiumCard({
 
   if (!post) {
     return (
-      <article
-        className={`relative flex h-full flex-col justify-between overflow-hidden border ${styles.shell}`}
+      <button
+        type="button"
+        onClick={() =>
+          window.dispatchEvent(new CustomEvent("open-create-post"))
+        }
+        className={`relative flex h-full w-full flex-col justify-between overflow-hidden border text-left transition duration-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 ${styles.shell}`}
+        aria-label={`Create a post for rank ${position}`}
       >
         <div className="absolute inset-x-8 top-0 h-16 rounded-full bg-neutral-200/40 blur-2xl" />
         <div className="relative">
@@ -118,7 +123,7 @@ export default function LeaderboardPodiumCard({
             Your spot. Take it.
           </p>
         </div>
-      </article>
+      </button>
     );
   }
 

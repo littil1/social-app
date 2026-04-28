@@ -141,7 +141,7 @@ export default function LoginModal() {
                   type="email"
                   required
                   placeholder="name@example.com"
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
                 />
               </div>
 
@@ -156,7 +156,7 @@ export default function LoginModal() {
                   required
                   minLength={mode === "signup" ? 6 : undefined}
                   placeholder="••••••••"
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
+                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
                 />
               </div>
 

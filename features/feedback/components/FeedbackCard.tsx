@@ -55,10 +55,10 @@ export default function FeedbackCard({
   }
 
   return (
-    <article className="relative rounded-[32px] border border-neutral-100 bg-white p-6 shadow-sm transition-all hover:shadow-md">
+    <article className="relative rounded-[32px] border border-neutral-100 bg-white p-5 shadow-sm transition-all hover:shadow-md sm:p-6">
       
       {/* HEADER: Profile & Actions */}
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-100 text-sm font-bold text-neutral-400">
             {item.avatar_url ? (
@@ -75,7 +75,7 @@ export default function FeedbackCard({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Status Badge */}
           {isImplemented ? (
             <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-600">Deployed</span>
@@ -119,7 +119,7 @@ export default function FeedbackCard({
       </div>
 
       {/* CONTENT AREA */}
-      <div className="mb-6 rounded-[24px] border border-neutral-50 bg-neutral-50/50 p-5 sm:p-6">
+      <div className="mb-5 rounded-[24px] border border-neutral-50 bg-neutral-50/50 p-4 sm:mb-6 sm:p-6">
         <h3 className="text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
           {item.title}
         </h3>
@@ -129,14 +129,14 @@ export default function FeedbackCard({
       </div>
 
       {/* ACTIONS */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <form ref={likeFormRef} action={toggleFeatureRequestLike}>
           <input type="hidden" name="request_id" value={item.id} />
           <button
             type="button"
             onClick={handleLikeClick}
             aria-label={`${item.likedByViewer ? "Remove support from" : "Support"} idea, ${item.likeCount} supporters`}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all active:scale-90 ${
+            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all active:scale-90 sm:px-4 ${
               item.likedByViewer 
                 ? "bg-neutral-950 text-white shadow-lg" 
                 : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
@@ -155,7 +155,7 @@ export default function FeedbackCard({
         <button
           onClick={() => setShowComments(!showComments)}
           aria-label={`${showComments ? "Hide" : "Show"} idea comments, ${item.commentCount} comments`}
-          className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
+            className={`inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
             showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
           }`}
         >

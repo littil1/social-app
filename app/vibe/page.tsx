@@ -55,13 +55,16 @@ export default async function VibePage() {
           </h1>
 
           <p className="mx-auto mt-10 max-w-2xl text-lg font-medium leading-relaxed text-neutral-500">
-            Great ideas Don&apos;t need a following.
+            Great ideas don&apos;t need a following.
+            <br />
             We built A Perfect Place to give you the stage you deserve.
+            <br />
             On APP, your content speaks for itself.
-            Post anonymously, let your content speak for itself, and prove what you&apos;ve got.
+            Post anonymously and prove yourself.
+            <br />
             Only the daily winner is revealed and immortalized forever.
             <br />
-            <span className="font-black text-neutral-950">Your talent. Your stage.</span>
+            <span className="font-black text-neutral-950">Your idea. Your stage.</span>
           </p>
         </section>
 
@@ -104,16 +107,13 @@ export default async function VibePage() {
 
           <div className="relative grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
             <div>
-              <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-amber-300">
-                ECHO
-              </span>
 
               <h2 className="mt-5 text-4xl font-black tracking-tight sm:text-5xl">
-                What is ECHO?
+                ECHO shows,
               </h2>
 
               <p className="mt-5 text-2xl font-black tracking-tight text-amber-300">
-                One post wins. Every day.
+                what's really worth it
               </p>
 
               <div className="mt-6 grid gap-2.5">
@@ -121,7 +121,7 @@ export default async function VibePage() {
                   "Reactions boost your score.",
                   "Comments carry more weight.",
                   "New posts can still break through.",
-                  "The highest ECHO wins the day.",
+                  "The most ECHO wins the day.",
                 ].map((text) => (
                   <div
                     key={text}
@@ -174,12 +174,12 @@ export default async function VibePage() {
           <FeatureCard
             badge="02"
             title="Win the Day"
-            text="Our live-ranked feed ensures the best content rises to the top. Every 24 hours, the clock resets, giving everyone a fresh shot at the title."
+            text="Our live-ranked feed ensures the best content rises to the top. Every 24 hours, the feed resets."
           />
           <FeatureCard
             badge="03"
             title="Become a Legend"
-            text="Only the daily champion is revealed, saved in the Hall and awarded the Legend badge. That makes first place rare, memorable and worth talking about."
+            text="Only the daily champion is revealed, saved in the Hall and awarded the Legend badge."
           />
         </div>
 
@@ -243,22 +243,22 @@ export default async function VibePage() {
               <InfoRow
                 emoji="⚡"
                 title="Quality at a glance - See the best first."
-                text="The best content greets you first. No noise, no filler—just the posts that resonated most with the community. Dive in or keep scrolling to find the next rising star."
+                text="The best content greets you first. No noise, no filler — just the posts that resonated most with the community."
               />
               <InfoRow
                 emoji="🎭"
                 title="Content over Character."
-                text="Every post begins in total anonymity. We judge ideas, humor, and insight—not the person or their follower count. Here, your thoughts carry the weight."
+                text="Every post begins in total anonymity. We judge ideas, humor, and insight — not the person or their follower count."
               />
               <InfoRow
                 emoji="🔥"
                 title="The Wisdom of the Crowd."
-                text="The feed is alive. As people react and engage, the most impactful ideas naturally rise. It’s a dynamic reflection of what truly matters right now."
+                text="As people react and engage, the most impactful ideas naturally rise. It’s a dynamic reflection of what truly matters today."
               />
               <InfoRow
                 emoji="🏆"
                 title="The Daily Revelation."
-                text="Each day, only the most resonant voice is unmasked. It’s a rare moment of recognition—a chance to be discovered and remembered for what you’ve created."
+                text="Each day, only the most resonant voice is unmasked."
               />
             </div>
           </div>
@@ -270,7 +270,6 @@ export default async function VibePage() {
               </h3>
               <p className="mt-4 leading-relaxed text-neutral-400">
                 APP brings clarity to the chaos of social media.
-                You don’t have to sift through clutter to find value.
                 Here, the best content rises naturally, creating a curated space where quality is the only currency.
               </p>
             </div>
@@ -288,107 +287,14 @@ export default async function VibePage() {
           </div>
         </section>
 
-        {/* What wins / what loses */}
-        <section className="mt-16 mb-14 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="text-2xl font-black tracking-tight text-neutral-950">
-              What rises
-            </h2>
-
-            <div className="mt-6 space-y-3">
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                <span className="text-xl">💡</span>
-                <div>
-                  <p className="font-bold text-neutral-900">Sharp thoughts</p>
-                  <p className="text-sm text-neutral-500">
-                    Posts that are clear, specific, memorable, or instantly
-                    useful.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                <span className="text-xl">😂</span>
-                <div>
-                  <p className="font-bold text-neutral-900">
-                    Humor with punch
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    Funny posts can rise too if people genuinely react to
-                    them.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                <span className="text-xl">🧠</span>
-                <div>
-                  <p className="font-bold text-neutral-900">
-                    Honest perspective
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    Insight, truth, lived experience, and strong takes that make
-                    people stop scrolling.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="text-2xl font-black tracking-tight text-neutral-950">
-              What fades
-            </h2>
-
-            <div className="mt-6 space-y-3">
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                <span className="text-xl">🤖</span>
-                <div>
-                  <p className="font-bold text-neutral-900">Spammy filler</p>
-                  <p className="text-sm text-neutral-500">
-                    Low-effort noise, empty filler, and obvious slop lose fast.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                <span className="text-xl">📢</span>
-                <div>
-                  <p className="font-bold text-neutral-900">
-                    Cheap self-promotion
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    APP is not built for clout farming. The post has to carry
-                    itself.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
-                <span className="text-xl">🥱</span>
-                <div>
-                  <p className="font-bold text-neutral-900">
-                    Forgettable one-liners
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    If it does not hit, help, entertain, or provoke thought, it
-                    sinks.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Final CTA */}
         <section className="mt-16 pb-24 text-center sm:mt-20 sm:pb-20">
           <h2 className="text-[8vw] font-black tracking-tight text-neutral-950 sm:text-[5vw] lg:text-5xl">
-            Welcome to APP <span className="block sm:inline">- A Perfect Place</span>
+            Welcome to APP
           </h2>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg font-medium leading-relaxed text-neutral-500">
-            Check the top posts. See what is rising. Then post something strong
-            enough to take the day.
+            A Perfect Place
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
