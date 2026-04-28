@@ -41,7 +41,12 @@ export default function GlobalPostModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm soft-enter sm:items-center sm:p-6">
+    <div
+      role="dialog"
+      aria-modal="true"
+      data-modal-open="true"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm soft-enter sm:items-center sm:p-6"
+    >
       <div className="absolute inset-0" onClick={() => setIsOpen(false)} />
       <div className="soft-enter relative z-10 w-full rounded-t-[32px] bg-white p-6 shadow-2xl sm:max-w-xl sm:rounded-[32px]">
         <CreatePostForm

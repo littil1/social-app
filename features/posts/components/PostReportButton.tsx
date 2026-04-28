@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ReportDialog from "@/features/reports/components/ReportDialog";
 
 const REPORT_REASONS = [
   { value: "spam", label: "Spam" },
@@ -113,65 +114,21 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
       )}
 
       {open && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-neutral-950/40 px-4">
-          <div className="w-full max-w-md rounded-[32px] border border-neutral-200 bg-white p-5 shadow-2xl">
-            <p className="text-sm font-black text-neutral-950">Report post</p>
-            <p className="mt-1 text-xs text-neutral-500">
-              Send problematic content straight to the admin team.
-            </p>
-
-            <div className="mt-4 space-y-3">
-              <select
-                value={reason}
-                onChange={(event) =>
-                  setReason(
-                    event.target.value as (typeof REPORT_REASONS)[number]["value"]
-                  )
-                }
-                disabled={submitting}
-                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition focus:border-neutral-950 focus:bg-white"
-              >
-                {REPORT_REASONS.map((entry) => (
-                  <option key={entry.value} value={entry.value}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-
-              <textarea
-                value={details}
-                onChange={(event) => setDetails(event.target.value)}
-                maxLength={1000}
-                rows={4}
-                placeholder="Optional details"
-                disabled={submitting}
-                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
-              />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    setFeedback(null);
-                  }}
-                  disabled={submitting}
-                  className="rounded-2xl border border-neutral-200 px-4 py-2 text-sm font-bold text-neutral-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="rounded-2xl bg-neutral-950 px-4 py-2 text-sm font-bold text-white disabled:opacity-60"
-                >
-                  {submitting ? "Sending..." : "Report"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ReportDialog
+          title="Report post"
+          description="Send problematic content straight to the admin team."
+          reasons={REPORT_REASONS}
+          reason={reason}
+          details={details}
+          submitting={submitting}
+          onReasonChange={setReason}
+          onDetailsChange={setDetails}
+          onClose={() => {
+            setOpen(false);
+            setFeedback(null);
+          }}
+          onSubmit={handleSubmit}
+        />
       )}
     </div>
   );

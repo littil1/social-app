@@ -217,8 +217,8 @@ export default function AdminReportsPanel({
   }
 
   return (
-    <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
-      <section className="rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+    <section className="grid w-full min-w-0 gap-5 overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6">
+      <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           Reports
         </p>
@@ -260,7 +260,7 @@ export default function AdminReportsPanel({
                   : "No reports for this filter."}
               </div>
             ) : (
-              <div className="mt-5 grid gap-2.5">
+              <div className="mt-5 grid min-w-0 gap-2.5">
                 {visibleReports.map((report) => {
                   const isActive = selectedReport?.id === report.id;
                   const statusStyle = STATUS_STYLES[report.status];
@@ -278,16 +278,16 @@ export default function AdminReportsPanel({
                         setSelectedReportId(report.id);
                         setFeedback(null);
                       }}
-                      className={`motion-card w-full rounded-2xl border px-4 py-3 text-left transition ${
+                      className={`motion-card w-full min-w-0 overflow-hidden rounded-2xl border px-4 py-3 text-left transition ${
                         isActive
                           ? "border-emerald-200 bg-emerald-950/90 text-white shadow-[0_18px_36px_-28px_rgba(6,95,70,0.75)]"
                           : "border-neutral-200 bg-white/90 hover:border-amber-200 hover:bg-amber-50/30"
                       }`}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-bold">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <p className="min-w-0 break-words text-sm font-bold [overflow-wrap:anywhere]">
                               {report.reason}
                             </p>
                             <span
@@ -301,14 +301,14 @@ export default function AdminReportsPanel({
                             </span>
                           </div>
                           <p
-                            className={`mt-1 truncate text-xs ${
+                            className={`mt-1 line-clamp-2 break-words text-xs [overflow-wrap:anywhere] ${
                               isActive ? "text-white/80" : "text-neutral-600"
                             }`}
                           >
                             {targetPreview}
                           </p>
                           <p
-                            className={`mt-2 text-xs ${
+                            className={`mt-2 break-words text-xs [overflow-wrap:anywhere] ${
                               isActive ? "text-white/70" : "text-neutral-500"
                             }`}
                           >
@@ -316,7 +316,7 @@ export default function AdminReportsPanel({
                           </p>
                         </div>
                         <span
-                          className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                          className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
                             isActive
                               ? "border-white/20 bg-white/10 text-white"
                               : statusStyle.chip
@@ -334,7 +334,7 @@ export default function AdminReportsPanel({
         )}
       </section>
 
-      <section className="rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+      <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           Report Detail
         </p>
@@ -351,9 +351,9 @@ export default function AdminReportsPanel({
             Select a report on the left.
           </div>
         ) : (
-          <div className="mt-5 space-y-5">
-            <section className="rounded-3xl border border-neutral-200 bg-neutral-50 p-5">
-              <div className="flex flex-wrap items-center gap-2">
+          <div className="mt-5 min-w-0 space-y-5">
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-neutral-200 bg-neutral-50 p-5">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <span
                   className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${STATUS_STYLES[selectedReport.status].chip}`}
                 >
@@ -362,19 +362,19 @@ export default function AdminReportsPanel({
                 <span className="rounded-full border border-neutral-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-neutral-500">
                   {getTargetLabel(selectedReport.target_type)}
                 </span>
-                <span className="text-xs text-neutral-500">
+                <span className="min-w-0 break-words text-xs text-neutral-500 [overflow-wrap:anywhere]">
                   Reported on {formatDateTime(selectedReport.created_at)}
                 </span>
               </div>
 
-              <div className="mt-4 grid gap-2 text-sm text-neutral-600">
-                <p>
+              <div className="mt-4 grid min-w-0 gap-2 text-sm text-neutral-600">
+                <p className="min-w-0 break-words [overflow-wrap:anywhere]">
                   Reporter:{" "}
                   <span className="font-medium text-neutral-950">
                     @{usernamesById[selectedReport.reporter_user_id] ?? "unknown"}
                   </span>
                 </p>
-                <p>
+                <p className="min-w-0 break-words [overflow-wrap:anywhere]">
                   Owner:{" "}
                   <span className="font-medium text-neutral-950">
                     {selectedReport.owner_user_id
@@ -382,7 +382,7 @@ export default function AdminReportsPanel({
                       : "unknown"}
                   </span>
                 </p>
-                <p>
+                <p className="min-w-0 break-words [overflow-wrap:anywhere]">
                   Reviewed by:{" "}
                   <span className="font-medium text-neutral-950">
                     {selectedReport.reviewed_by
@@ -390,7 +390,7 @@ export default function AdminReportsPanel({
                       : "-"}
                   </span>
                 </p>
-                <p>
+                <p className="min-w-0 break-words [overflow-wrap:anywhere]">
                   Review time:{" "}
                   <span className="font-medium text-neutral-950">
                     {selectedReport.reviewed_at
@@ -401,11 +401,11 @@ export default function AdminReportsPanel({
               </div>
             </section>
 
-            <section className="rounded-3xl border border-neutral-200 bg-white p-5">
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5">
               <p className="text-sm font-black uppercase tracking-[0.18em] text-neutral-400">
                 {getTargetLabel(selectedReport.target_type)}
               </p>
-              <p className="mt-4 whitespace-pre-wrap break-words text-sm font-medium text-neutral-800">
+              <p className="mt-4 whitespace-pre-wrap break-words text-sm font-medium text-neutral-800 [overflow-wrap:anywhere]">
                 {targetPreviewsByKey[getTargetKey(selectedReport)] ??
                   "Content is no longer available."}
               </p>
@@ -421,28 +421,28 @@ export default function AdminReportsPanel({
               )}
             </section>
 
-            <section className="rounded-3xl border border-neutral-200 bg-white p-5">
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5">
               <p className="text-sm font-black uppercase tracking-[0.18em] text-neutral-400">
                 Report
               </p>
-              <p className="mt-4 text-base font-bold text-neutral-950">
+              <p className="mt-4 break-words text-base font-bold text-neutral-950 [overflow-wrap:anywhere]">
                 {selectedReport.reason}
               </p>
               {selectedReport.details && (
-                <p className="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-700">
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-700 [overflow-wrap:anywhere]">
                   {selectedReport.details}
                 </p>
               )}
             </section>
 
-            <section className="rounded-3xl border border-neutral-200 bg-white p-5">
-              <div className="flex items-center justify-between gap-3">
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-neutral-400">
                   Actions
                 </p>
                 {feedback && (
                   <p
-                    className={`text-xs font-medium ${
+                    className={`min-w-0 break-words text-xs font-medium [overflow-wrap:anywhere] ${
                       feedback.tone === "success"
                         ? "text-emerald-700"
                         : "text-red-600"
@@ -453,7 +453,7 @@ export default function AdminReportsPanel({
                 )}
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 min-w-0 space-y-3">
                 <select
                   value={statusDraft[selectedReport.id] ?? selectedReport.status}
                   onChange={(event) =>
@@ -463,7 +463,7 @@ export default function AdminReportsPanel({
                     }))
                   }
                   disabled={updatingReportId === selectedReport.id}
-                  className={`w-full rounded-2xl border px-4 py-3 text-sm font-medium outline-none ${STATUS_STYLES[statusDraft[selectedReport.id] ?? selectedReport.status].select}`}
+                  className={`w-full min-w-0 rounded-2xl border px-4 py-3 text-sm font-medium outline-none ${STATUS_STYLES[statusDraft[selectedReport.id] ?? selectedReport.status].select}`}
                 >
                   <option value="open">open</option>
                   <option value="reviewing">reviewing</option>
@@ -486,7 +486,7 @@ export default function AdminReportsPanel({
                   rows={4}
                   placeholder="Internal admin note"
                   disabled={updatingReportId === selectedReport.id}
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-neutral-500"
+                  className="w-full min-w-0 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-neutral-500"
                 />
 
                 <button

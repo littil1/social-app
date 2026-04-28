@@ -106,7 +106,7 @@ function getInitialTab(value: string | undefined): AdminTabId {
     return value;
   }
 
-  return "users";
+  return "reports";
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -143,7 +143,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               : null
           }
         />
-        <main className="mx-auto max-w-4xl px-4 pb-28 pt-8 sm:px-6 sm:pt-12">
+        <main className="mx-auto w-full max-w-4xl overflow-x-hidden px-4 pb-28 pt-8 sm:px-6 sm:pt-12">
           <section className="rounded-[32px] border border-red-200 bg-red-50 p-8 text-center shadow-sm">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
               403
@@ -392,8 +392,8 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   ];
 
   const usersTab = (
-    <section className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] lg:gap-6">
-      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+    <section className="grid w-full min-w-0 gap-5 overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6">
+      <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
@@ -404,7 +404,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </h2>
           </div>
 
-          <form action="/admin" className="flex flex-col gap-2 sm:flex-row">
+          <form action="/admin" className="flex min-w-0 flex-col gap-2 sm:flex-row">
             <input type="hidden" name="tab" value="users" />
             <input
               type="text"
@@ -450,7 +450,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       @{profile.username}
                     </p>
                     <p
-                      className={`text-xs ${
+                      className={`break-words text-xs [overflow-wrap:anywhere] ${
                         isActive ? "text-white/70" : "text-neutral-500"
                       }`}
                     >
@@ -472,7 +472,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       </section>
 
-      <section className="min-w-0 rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+      <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           User Detail
         </p>
@@ -490,13 +490,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             </p>
           </div>
         ) : (
-          <div className="mt-5 space-y-5">
-            <section className="rounded-3xl border border-neutral-200 bg-neutral-50 p-5">
-              <p className="text-xl font-black text-neutral-950">
+          <div className="mt-5 min-w-0 space-y-5">
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-neutral-200 bg-neutral-50 p-5">
+              <p className="break-words text-xl font-black text-neutral-950 [overflow-wrap:anywhere]">
                 @{selectedUser.username}
               </p>
-              <div className="mt-3 grid gap-2 text-sm text-neutral-600">
-                <p>
+              <div className="mt-3 grid min-w-0 gap-2 text-sm text-neutral-600">
+                <p className="min-w-0">
                   User ID: <span className="break-all font-mono">{selectedUser.id}</span>
                 </p>
                 <p>Status: {selectedUser.is_admin ? "Admin" : "User"}</p>
@@ -515,7 +515,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-neutral-200 bg-white p-5">
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5">
               <p className="text-sm font-black uppercase tracking-[0.18em] text-neutral-400">
                 Badge Actions
               </p>
@@ -531,7 +531,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </p>
             </section>
 
-            <section className="rounded-3xl border border-neutral-200 bg-white p-5">
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-neutral-200 bg-white p-5">
               <p className="text-sm font-black uppercase tracking-[0.18em] text-neutral-400">
                 Badge Details
               </p>
@@ -545,7 +545,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   {selectedUserBadges.map((badge) => (
                     <div
                       key={badge.id}
-                      className="rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
+                      className="min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-4"
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span
@@ -555,7 +555,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                           <span aria-hidden="true">{badge.icon}</span>
                           <span>{badge.label}</span>
                         </span>
-                        <span className="text-xs font-bold uppercase tracking-[0.16em] text-neutral-400">
+                        <span className="min-w-0 break-words text-xs font-bold uppercase tracking-[0.16em] text-neutral-400 [overflow-wrap:anywhere]">
                           {badge.family}
                         </span>
                       </div>
@@ -621,7 +621,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   );
 
   const badgesTab = (
-    <section className="rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+    <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
         Definitions
       </p>
@@ -671,22 +671,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         }}
       />
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:gap-5 lg:px-8 lg:pt-8">
+      <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 overflow-x-hidden px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:gap-5 lg:px-8 lg:pt-8">
         <section className="overflow-hidden rounded-[32px] border border-amber-100 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_34%),linear-gradient(135deg,#fffdf8,#ffffff)] p-5 shadow-sm sm:rounded-[36px] sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
                 Admin
               </p>
               <h1 className="mt-2 text-3xl font-black tracking-tight text-neutral-950 sm:text-4xl">
                 Control Panel
               </h1>
-              <p className="mt-2 max-w-3xl text-sm font-medium text-neutral-600">
+              <p className="mt-2 max-w-3xl break-words text-sm font-medium text-neutral-600">
                 A clear surface for moderation, user diagnostics, and badge
                 management using the existing server helpers.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-2 rounded-[26px] border border-amber-100 bg-white/70 p-2 text-center shadow-sm">
+            <div className="grid min-w-0 shrink-0 grid-cols-2 gap-2 rounded-[26px] border border-amber-100 bg-white/70 p-2 text-center shadow-sm">
               <div className="px-3 py-2">
                 <p className="text-lg font-black tabular-nums text-neutral-950">
                   {users.length}

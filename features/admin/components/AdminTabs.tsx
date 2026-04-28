@@ -14,7 +14,7 @@ type AdminTabsProps = {
 };
 
 export default function AdminTabs({
-  initialTab = "users",
+  initialTab = "reports",
   tabs,
 }: AdminTabsProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>(initialTab);
@@ -24,8 +24,8 @@ export default function AdminTabs({
   }, [initialTab]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2 rounded-[28px] border border-amber-100 bg-[#fffdf8] p-2 shadow-sm">
+    <div className="w-full min-w-0 space-y-4 overflow-hidden">
+      <div className="flex min-w-0 flex-wrap gap-2 overflow-hidden rounded-[28px] border border-amber-100 bg-[#fffdf8] p-2 shadow-sm">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTab;
 
@@ -46,10 +46,10 @@ export default function AdminTabs({
         })}
       </div>
 
-      <div>
+      <div className="min-w-0 overflow-hidden">
         {tabs.map((tab) =>
           tab.id === activeTab ? (
-            <div key={tab.id} className="soft-enter">
+            <div key={tab.id} className="soft-enter min-w-0 overflow-hidden">
               {tab.content}
             </div>
           ) : null
