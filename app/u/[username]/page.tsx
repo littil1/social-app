@@ -317,13 +317,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
 
-              <div className="w-full max-w-full rounded-[28px] border border-neutral-100 bg-neutral-50/80 p-2 shadow-inner lg:w-[460px]">
-                <div className="grid grid-cols-5 divide-x divide-neutral-200/70 overflow-hidden rounded-[22px] bg-white/80">
+              <div className="w-full max-w-full rounded-[28px] border border-neutral-100 bg-neutral-50/80 p-2 shadow-inner lg:w-[560px]">
+                <div className="overflow-x-auto rounded-[22px]">
+                  <div className="grid min-w-[500px] grid-cols-5 divide-x divide-neutral-200/70 overflow-hidden rounded-[22px] bg-white/80 sm:min-w-0">
                   {heroStats.map((stat) => (
                     <Link
                       key={stat.label}
                       href={stat.href ?? `/u/${username}`}
-                      className={`min-w-0 px-1.5 py-3 text-center sm:px-3 ${
+                      className={`min-w-[96px] px-3 py-3 text-center sm:min-w-0 sm:px-4 ${
                         stat.href
                           ? "transition hover:bg-amber-50/70"
                           : "pointer-events-none"
@@ -337,6 +338,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                       </p>
                     </Link>
                   ))}
+                  </div>
                 </div>
               </div>
             </div>
