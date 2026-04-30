@@ -205,7 +205,7 @@ function LeaderboardPodiumCard({
         <button
           type="button"
           onClick={onOpenPost}
-          className="motion-button relative mt-5 flex-1 overflow-hidden rounded-[26px] border border-white/80 bg-white/72 p-4 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
+          className="motion-button relative mt-5 flex-1 overflow-hidden rounded-[26px] border border-white/80 bg-white/78 p-4 text-left shadow-sm ring-1 ring-white/50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
         >
           <p
             className={`[display:-webkit-box] overflow-hidden whitespace-pre-wrap break-words font-semibold tracking-tight text-neutral-950 [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${styles.preview}`}
@@ -215,7 +215,7 @@ function LeaderboardPodiumCard({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white via-white/80 to-transparent" />
         </button>
 
-        <div className="mt-4 grid grid-cols-5 items-center gap-1.5 sm:gap-2">
+        <div className="mt-4 grid grid-cols-5 items-center gap-1.5 rounded-[22px] border border-white/70 bg-white/55 p-1.5 sm:gap-2">
           {REACTION_SUMMARY.map((reaction) => {
             const isActive = post.viewer_reaction === reaction.key;
 
@@ -249,7 +249,7 @@ function LeaderboardPodiumCard({
             type="button"
             onClick={onOpenComments}
             aria-label={`Open comments, ${post.comments_count} comments`}
-            className="motion-button inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-neutral-50 px-2 py-2 text-xs font-bold text-neutral-500 transition-all hover:bg-neutral-100 sm:gap-1.5 sm:px-2.5"
+            className="motion-button inline-flex min-w-0 items-center justify-center gap-1 rounded-full border border-neutral-200/70 bg-white px-2 py-2 text-xs font-bold text-neutral-500 shadow-sm transition-all hover:border-amber-200 hover:bg-amber-50/70 sm:gap-1.5 sm:px-2.5"
           >
             <span>{"\uD83D\uDCAC"}</span>
             <span className="tabular-nums text-neutral-900">

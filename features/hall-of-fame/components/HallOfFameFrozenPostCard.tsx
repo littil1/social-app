@@ -183,16 +183,16 @@ function HallOfFameFrozenPostCardContent({
         </div>
 
         <div
-          className={`mt-4 rounded-[24px] border p-4 shadow-sm sm:p-5 ${styles.contentBox}`}
+          className={`mt-4 rounded-[24px] border p-4 shadow-sm ring-1 ring-white/60 sm:p-5 ${styles.contentBox}`}
         >
           <p
-            className={`whitespace-pre-wrap break-words text-gray-900 ${styles.contentText}`}
+            className={`min-h-[4rem] whitespace-pre-wrap break-words font-medium tracking-tight text-gray-900 ${styles.contentText}`}
           >
             {post.post_content}
           </p>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <div className="mt-4 flex flex-wrap items-center gap-1.5 rounded-[24px] border border-neutral-100 bg-white/70 p-1.5 sm:gap-2">
           <span
             aria-label={`Impact reactions, ${post.reaction_counts.like}`}
             className="inline-flex items-center gap-1.5 rounded-full bg-neutral-50 px-3 py-2 text-sm font-bold text-neutral-500 sm:gap-2 sm:px-4"

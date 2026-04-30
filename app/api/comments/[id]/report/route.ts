@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import {
+  checkRateLimit,
+  getActorRateLimitKey,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -44,6 +49,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!user) {
       return new NextResponse("Not signed in.", { status: 401 });
+    }
+
+    const rateLimit = checkRateLimit({
+      key: await getActorRateLimitKey("report", user.id),
+      limit: 10,
+      windowMs: 60 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return new NextResponse(RATE_LIMIT_MESSAGE, { status: 429 });
     }
 
     const body = await request.json().catch(() => null);
@@ -105,7 +120,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         );
       }
 
-      return new NextResponse(insertError.message, { status: 500 });
+      console.error(insertError);
+      return new NextResponse("Comment could not be reported.", { status: 500 });
     }
 
     return NextResponse.json({ success: true });

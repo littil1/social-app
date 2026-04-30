@@ -216,3 +216,17 @@ export async function getImplementedIdeaCountByUserId(
 
   return count ?? 0;
 }
+
+export async function getIdeaCountByUserId(
+  supabase: SupabaseClient<Database>,
+  userId: string
+) {
+  const { count, error } = await supabase
+    .from("feature_requests")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+
+  if (error) throw new Error(error.message);
+
+  return count ?? 0;
+}

@@ -42,6 +42,7 @@ export default function CreatePostForm({
 
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -77,8 +78,14 @@ export default function CreatePostForm({
       return;
     }
 
-    if (!canSubmit || loading) return;
+    if (!canSubmit || loading) {
+      if (trimmed.length < 2) {
+        setError("Write at least two characters before posting.");
+      }
+      return;
+    }
 
+    setError(null);
     setLoading(true);
 
     try {
@@ -109,7 +116,8 @@ export default function CreatePostForm({
       }
 
       if (!res.ok) {
-        throw new Error("Post could not be created.");
+        const message = await res.text();
+        throw new Error(message || "Post could not be created.");
       }
 
       const newPost: FeedPost = await res.json();
@@ -124,9 +132,9 @@ export default function CreatePostForm({
         error instanceof Error &&
         error.message === "AUTH_NOT_READY_AFTER_LOGIN"
       ) {
-        alert("Please try again.");
+        setError("Please try again.");
       } else {
-        alert("Post could not be saved.");
+        setError(error instanceof Error ? error.message : "Post could not be saved.");
       }
     } finally {
       setLoading(false);
@@ -199,6 +207,12 @@ export default function CreatePostForm({
           {loading ? "Posting..." : "Post"}
         </button>
       </div>
+
+      {error && (
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
+          {error}
+        </div>
+      )}
     </form>
   );
 }

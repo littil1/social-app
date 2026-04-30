@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { loginAction, signupAction, type AuthState } from "@/app/login/actions";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 
@@ -78,39 +79,42 @@ export default function LoginModal() {
       role="dialog"
       aria-modal="true"
       data-modal-open="true"
-      className="soft-enter fixed inset-0 z-[110] flex items-end justify-center overflow-y-auto bg-neutral-950/45 px-3 pb-4 pt-10 backdrop-blur-sm sm:items-center sm:p-6"
+      className="soft-enter fixed inset-0 z-[110] flex items-end justify-center overflow-y-auto bg-neutral-950/50 px-3 pb-4 pt-10 backdrop-blur-md sm:items-center sm:p-6"
       onClick={closeLogin}
     >
       <div
-        className="soft-enter relative w-full max-w-md overflow-hidden rounded-t-[28px] border border-neutral-200 bg-white shadow-2xl sm:rounded-[28px]"
+        className="soft-enter relative w-full max-w-md overflow-hidden rounded-t-[30px] border border-white/70 bg-white shadow-[0_28px_90px_-42px_rgba(245,158,11,0.42),0_24px_70px_-46px_rgba(15,23,42,0.7)] sm:rounded-[30px]"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.22),transparent_62%)]" />
         <button
           type="button"
           onClick={closeLogin}
-          className="motion-button absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-lg leading-none text-neutral-500 transition hover:bg-neutral-200 hover:text-black"
+          className="motion-button absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-lg leading-none text-neutral-500 shadow-sm transition hover:bg-neutral-100 hover:text-black"
           aria-label="Close"
         >
           x
         </button>
 
-        <section className="flex flex-col justify-center p-6 sm:p-7">
+        <section className="relative flex flex-col justify-center p-6 sm:p-7">
           <div className="mx-auto w-full max-w-sm">
             <div className="mb-6 pr-10">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
-                Identity Portal
+              <span className="inline-flex rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-amber-700">
+                Impact over fame
               </span>
               <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950 sm:text-3xl">
                 {mode === "login"
-                  ? "Welcome back."
-                  : "Create your account now."}
+                  ? "Enter the Place."
+                  : "Take the stage."}
               </h2>
               <p className="mt-2 text-sm leading-6 text-neutral-500">
-                Impact over Fame. Resonance is the only currency.
+                {mode === "login"
+                  ? "Post anonymously. Be remembered by impact."
+                  : "Create your identity. Let the idea speak first."}
               </p>
             </div>
 
-            <div className="mb-6 grid grid-cols-2 rounded-2xl bg-neutral-100 p-1">
+            <div className="mb-6 grid grid-cols-2 rounded-2xl border border-neutral-100 bg-neutral-100/80 p-1 shadow-inner">
               <button
                 type="button"
                 onClick={() => setMode("login")}
@@ -155,7 +159,7 @@ export default function LoginModal() {
                   required
                   autoComplete="email"
                   placeholder="name@example.com"
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
+                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white focus:shadow-[0_0_0_4px_rgba(245,158,11,0.08)]"
                 />
               </div>
 
@@ -176,7 +180,7 @@ export default function LoginModal() {
                     mode === "login" ? "current-password" : "new-password"
                   }
                   placeholder="********"
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
+                className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white focus:shadow-[0_0_0_4px_rgba(245,158,11,0.08)]"
                 />
               </div>
 
@@ -194,17 +198,28 @@ export default function LoginModal() {
               <button
                 type="submit"
                 disabled={loginPending || signupPending}
-                className="motion-button w-full rounded-2xl bg-neutral-950 py-3.5 text-sm font-bold text-white shadow-[0_14px_28px_-16px_rgba(0,0,0,0.55)] transition-all hover:bg-neutral-800 disabled:opacity-50"
+                className="motion-button w-full rounded-2xl bg-neutral-950 py-3.5 text-sm font-black text-white shadow-[0_18px_36px_-22px_rgba(0,0,0,0.78)] transition-all hover:bg-neutral-800 disabled:opacity-50"
               >
                 {mode === "login"
                   ? loginPending
                     ? "Syncing..."
-                    : "Enter the Place"
+                    : "Enter APP"
                   : signupPending
                     ? "Initializing..."
-                    : "Create Identity"}
+                    : "Create identity"}
               </button>
             </form>
+            <p className="mt-4 text-center text-[11px] font-medium leading-5 text-neutral-400">
+              By continuing, you agree to the{" "}
+              <Link href="/terms" className="font-bold text-neutral-600 hover:text-neutral-950">
+                Terms
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="font-bold text-neutral-600 hover:text-neutral-950">
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </div>
         </section>
       </div>

@@ -417,6 +417,7 @@ export default function CommentsSection({
     null
   );
   const [content, setContent] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [replyParentId, setReplyParentId] = useState<number | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [replySubmitting, setReplySubmitting] = useState(false);
@@ -517,6 +518,9 @@ export default function CommentsSection({
   async function createComment(textToSubmit?: string) {
     const trimmed = (textToSubmit || content).trim();
     if (!trimmed || submitting) {
+      if (!trimmed) {
+        setError("Write a comment before sending.");
+      }
       return;
     }
 
@@ -529,6 +533,7 @@ export default function CommentsSection({
 
     setComments((prev) => [optimisticComment, ...prev]);
     setContent("");
+    setError(null);
     setSubmitting(true);
 
     try {
@@ -548,7 +553,8 @@ export default function CommentsSection({
       }
 
       if (!res.ok) {
-        throw new Error("Comment creation failed.");
+        const message = await res.text();
+        throw new Error(message || "Comment creation failed.");
       }
 
       const newComment: FeedComment = await res.json();
@@ -559,12 +565,14 @@ export default function CommentsSection({
         )
       );
       onCommentCreated();
-    } catch {
+    } catch (error) {
       setComments((prev) =>
         prev.filter((comment) => comment.id !== optimisticId)
       );
       setContent(trimmed);
-      alert("Comment could not be saved.");
+      setError(
+        error instanceof Error ? error.message : "Comment could not be saved."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -573,6 +581,9 @@ export default function CommentsSection({
   async function createReply(parentId: number, textToSubmit?: string) {
     const trimmed = (textToSubmit || replyContent).trim();
     if (!trimmed || replySubmitting) {
+      if (!trimmed) {
+        setError("Write a reply before sending.");
+      }
       return;
     }
 
@@ -585,6 +596,7 @@ export default function CommentsSection({
 
     setComments((prev) => [...prev, optimisticReply]);
     setReplyContent("");
+    setError(null);
     setReplyParentId(null);
     setReplySubmitting(true);
 
@@ -609,7 +621,8 @@ export default function CommentsSection({
       }
 
       if (!res.ok) {
-        throw new Error("Reply creation failed.");
+        const message = await res.text();
+        throw new Error(message || "Reply creation failed.");
       }
 
       const newComment: FeedComment = await res.json();
@@ -620,13 +633,13 @@ export default function CommentsSection({
         )
       );
       onCommentCreated();
-    } catch {
+    } catch (error) {
       setComments((prev) =>
         prev.filter((comment) => comment.id !== optimisticId)
       );
       setReplyContent(trimmed);
       setReplyParentId(parentId);
-      alert("Reply could not be saved.");
+      setError(error instanceof Error ? error.message : "Reply could not be saved.");
     } finally {
       setReplySubmitting(false);
     }
@@ -780,6 +793,12 @@ export default function CommentsSection({
           {200 - content.length} chars left
         </p>
       </form>
+
+      {error && (
+        <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="soft-enter animate-pulse py-16 text-center text-[10px] font-black uppercase tracking-[0.3em] text-neutral-400">

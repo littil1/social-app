@@ -257,7 +257,7 @@ function PostCardComponent({
 
   return (
     <article
-      className={`motion-card soft-enter group relative overflow-hidden rounded-[32px] border p-6 transition-all duration-300 hover:shadow-md ${rankStyles.articleClass}`}
+      className={`motion-card soft-enter group relative overflow-hidden rounded-[30px] border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:rounded-[32px] sm:p-6 ${rankStyles.articleClass}`}
     >
       {dailyRank && (
         <div
@@ -293,24 +293,24 @@ function PostCardComponent({
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-5 rounded-[24px] border border-neutral-100/80 bg-neutral-50/45 px-4 py-4 sm:mb-6 sm:px-5 sm:py-5">
         {detailHref ? (
           <Link
             href={detailHref}
             className="block transition-opacity hover:opacity-70"
           >
-            <p className="whitespace-pre-wrap break-words text-lg font-medium leading-relaxed tracking-tight text-neutral-900 sm:text-xl">
+            <p className="min-h-[3.25rem] whitespace-pre-wrap break-words text-lg font-medium leading-relaxed tracking-tight text-neutral-900 sm:text-xl">
               {post.content}
             </p>
           </Link>
         ) : (
-          <p className="whitespace-pre-wrap break-words text-lg font-medium leading-relaxed tracking-tight text-neutral-900 sm:text-xl">
+          <p className="min-h-[3.25rem] whitespace-pre-wrap break-words text-lg font-medium leading-relaxed tracking-tight text-neutral-900 sm:text-xl">
             {post.content}
           </p>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5 rounded-[24px] border border-neutral-100 bg-white/70 p-1.5 sm:gap-2">
         {REACTIONS.map((reaction) => {
           const isActive =
             optimisticReactions.viewerReaction === reaction.value;
@@ -323,7 +323,7 @@ function PostCardComponent({
               disabled={reactionLoading}
               data-active={isActive}
               aria-label={`React with ${reaction.label}, ${count} reactions`}
-              className={`motion-reaction inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${isActive ? "bg-neutral-950 text-white shadow-lg" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+              className={`motion-reaction inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-bold transition-all sm:px-4 ${isActive ? "bg-neutral-950 text-white shadow-lg" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
             >
               <span>{reaction.emoji}</span>
               <span className={isActive ? "text-white" : "text-neutral-900"}>
@@ -335,7 +335,7 @@ function PostCardComponent({
         <button
           onClick={() => setShowComments(!showComments)}
           aria-label={`${showComments ? "Hide" : "Show"} comments, ${localCommentsCount} comments`}
-          className={`motion-button inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"}`}
+          className={`motion-button inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-bold transition-all sm:px-4 ${showComments ? "border-neutral-200 bg-neutral-200 text-neutral-900" : "border-neutral-200/70 bg-white text-neutral-500 shadow-sm hover:border-amber-200 hover:bg-amber-50/60 hover:text-neutral-900"}`}
         >
           <span>💬</span>
           <span className="text-neutral-900">{localCommentsCount}</span>
@@ -343,7 +343,7 @@ function PostCardComponent({
       </div>
 
       {showComments && (
-        <div className="mt-2 border-t border-neutral-100 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="mt-4 border-t border-neutral-100 pt-4 animate-in fade-in slide-in-from-top-2 duration-300">
           <CommentsSection
             postId={post.id}
             onCommentCreated={handleCommentCreated}

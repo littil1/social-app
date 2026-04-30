@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import {
+  checkRateLimit,
+  getActorRateLimitKey,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -41,6 +46,16 @@ export async function POST(request: Request, context: RouteContext) {
 
     if (!user) {
       return new NextResponse("Not signed in.", { status: 401 });
+    }
+
+    const rateLimit = checkRateLimit({
+      key: await getActorRateLimitKey("reaction", user.id),
+      limit: 100,
+      windowMs: 10 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return new NextResponse(RATE_LIMIT_MESSAGE, { status: 429 });
     }
 
     const { data: post, error: postError } = await supabase

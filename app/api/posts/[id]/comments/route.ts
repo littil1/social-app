@@ -9,6 +9,11 @@ import type {
 } from "@/shared/types/feed";
 import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
 import { getUserBadges } from "@/features/badges/lib/getUserBadges";
+import {
+  checkRateLimit,
+  getActorRateLimitKey,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -252,6 +257,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!user) {
       return new NextResponse("Not signed in.", { status: 401 });
+    }
+
+    const rateLimit = checkRateLimit({
+      key: await getActorRateLimitKey("create-comment", user.id),
+      limit: 20,
+      windowMs: 10 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return new NextResponse(RATE_LIMIT_MESSAGE, { status: 429 });
     }
 
     const body = await request.json().catch(() => null);

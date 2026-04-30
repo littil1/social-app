@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { FeedPost, ReactionCounts } from "@/shared/types/feed";
+import {
+  checkRateLimit,
+  getActorRateLimitKey,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 
 // =====================================================
 // Helpers
@@ -31,6 +36,16 @@ export async function POST(request: NextRequest) {
       return new NextResponse("Not signed in.", { status: 401 });
     }
 
+    const rateLimit = checkRateLimit({
+      key: await getActorRateLimitKey("create-post", user.id),
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return new NextResponse(RATE_LIMIT_MESSAGE, { status: 429 });
+    }
+
     const body = await request.json().catch(() => null);
     const content = String(body?.content ?? "").trim();
 
@@ -59,10 +74,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertError || !insertedPost) {
-      return new NextResponse(
-        insertError?.message ?? "Post could not be created.",
-        { status: 500 }
-      );
+      console.error(insertError);
+      return new NextResponse("Post could not be created.", { status: 500 });
     }
 
     const { data: profileData, error: profileError } = await supabase
@@ -72,7 +85,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (profileError) {
-      return new NextResponse(profileError.message, { status: 500 });
+      console.error(profileError);
+      return new NextResponse("Post could not be created.", { status: 500 });
     }
 
     const response: FeedPost = {

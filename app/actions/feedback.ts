@@ -5,6 +5,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
 import type { Database } from "@/shared/types/database";
+import {
+  checkRateLimit,
+  getActorRateLimitKey,
+} from "@/lib/rate-limit";
 
 function revalidateMany(paths: Array<string | null | undefined>) {
   const uniquePaths = [...new Set(paths.filter(Boolean))] as string[];
@@ -82,6 +86,14 @@ export async function addFeatureRequest(formData: FormData) {
 
   if (!user || title.length < 3 || description.length < 3) return;
 
+  const rateLimit = checkRateLimit({
+    key: await getActorRateLimitKey("feedback-idea", user.id),
+    limit: 3,
+    windowMs: 60 * 60 * 1000,
+  });
+
+  if (!rateLimit.allowed) return;
+
   await supabase.from("feature_requests").insert([
     {
       title,
@@ -108,6 +120,14 @@ export async function deleteFeatureRequest(formData: FormData) {
   const requestId = Number(formData.get("request_id"));
 
   if (!user || !requestId) return;
+
+  const rateLimit = checkRateLimit({
+    key: await getActorRateLimitKey("reaction", user.id),
+    limit: 100,
+    windowMs: 10 * 60 * 1000,
+  });
+
+  if (!rateLimit.allowed) return;
 
   const { authorId, authorUsername } = await getFeatureRequestAuthorInfo(
     supabase,
@@ -197,6 +217,14 @@ export async function addFeatureRequestComment(formData: FormData) {
 
   if (!user || !requestId || content.length < 1 || content.length > 500) return;
   if (parentId !== null && !Number.isFinite(parentId)) return;
+
+  const rateLimit = checkRateLimit({
+    key: await getActorRateLimitKey("create-comment", user.id),
+    limit: 20,
+    windowMs: 10 * 60 * 1000,
+  });
+
+  if (!rateLimit.allowed) return;
 
   const { authorId, authorUsername } = await getFeatureRequestAuthorInfo(
     supabase,

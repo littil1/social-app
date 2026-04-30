@@ -144,6 +144,11 @@ export default function ProfileForm({
 
   return (
     <form action={formAction} className="space-y-8">
+      <input
+        type="hidden"
+        name="remove_avatar"
+        value={removeAvatar ? "on" : ""}
+      />
       {/* Avatar Section */}
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
         <div ref={avatarMenuRef} className="relative">

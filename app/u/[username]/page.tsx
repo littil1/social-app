@@ -14,6 +14,7 @@ import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import UserProfileContent from "@/features/profile/components/UserProfileContent";
 import ProfileBadgesSection from "@/features/profile/components/ProfileBadgesSection";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
+import { getIdeaCountByUserId } from "@/features/feedback/lib/feedback-data";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,13 @@ function formatProfileMonth(dateString: string) {
     month: "long",
     year: "numeric",
   });
+}
+
+function formatStatValue(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    notation: value >= 1000 ? "compact" : "standard",
+    maximumFractionDigits: 1,
+  }).format(value);
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
@@ -133,6 +141,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     typedProfile.id
   );
   const followCountsPromise = getFollowCounts(supabase, typedProfile.id);
+  const ideaCountPromise = getIdeaCountByUserId(supabase, typedProfile.id);
   const isOwnProfile = user?.id === typedProfile.id;
   const profileBadgesPromise = getComputedUserBadges(supabase, typedProfile.id, {
     includeProgress: isOwnProfile,
@@ -143,12 +152,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     { data: reactionsData, error: reactionsError },
     isFollowing,
     { followersCount, followingCount },
+    ideaCount,
     profileBadges,
   ] = await Promise.all([
     commentCountPromise,
     reactionsPromise,
     followStatusPromise,
     followCountsPromise,
+    ideaCountPromise,
     profileBadgesPromise,
   ]);
 
@@ -214,35 +225,40 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     profileBadges.find((badge) => badge.family === "legend")?.total.count ?? 0;
   const hasLegendBadge = legendWins > 0;
   const legacyStartedLabel = formatProfileMonth(typedProfile.created_at);
+  const echoScore = posts.reduce(
+    (total, post) => total + post.reactions_count + post.comments_count * 2,
+    0
+  );
   const heroStats = [
-    { label: "Top posts", value: legendWins },
-    { label: "Badges", value: badgeCount },
+    { label: "ECHO", value: echoScore },
+    { label: "Followers", value: followersCount, href: `/u/${username}/followers` },
+    { label: "Following", value: followingCount, href: `/u/${username}/following` },
     { label: "Posts", value: posts.length },
-    { label: "Followers", value: followersCount },
+    { label: "Ideas", value: ideaCount },
   ];
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <main className="mx-auto max-w-4xl px-4 pb-28 pt-8 sm:py-16">
-        <div className="overflow-hidden rounded-[40px] border border-neutral-200 bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)]">
-          <div className="relative h-32 overflow-hidden bg-neutral-950">
+      <main className="mx-auto max-w-5xl px-4 pb-32 pt-6 sm:py-14">
+        <section className="overflow-hidden rounded-[34px] border border-neutral-200 bg-white shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:rounded-[40px]">
+          <div className="relative h-36 overflow-hidden bg-neutral-950 sm:h-44">
             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
             <div className="absolute bottom-0 left-0 h-full w-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_40%)]" />
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
           </div>
 
-          <div className="relative px-6 pb-10 sm:px-10">
-            <div className="relative -mt-16 mb-8 flex items-end justify-between gap-4">
+          <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
+            <div className="relative -mt-20 mb-6 flex flex-col gap-5 sm:-mt-24 sm:flex-row sm:items-end sm:justify-between">
               <div className="relative">
-                <div className="absolute inset-0 rounded-[32px] bg-amber-400/20 blur-2xl" />
-                <div className="relative flex h-28 w-28 items-center justify-center overflow-hidden rounded-[32px] border-[6px] border-white bg-neutral-100 text-4xl font-black text-neutral-400 shadow-xl sm:h-36 sm:w-36">
+                <div className="absolute inset-0 rounded-[36px] bg-amber-400/25 blur-2xl" />
+                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-[34px] border-[7px] border-white bg-neutral-100 text-5xl font-black text-neutral-400 shadow-[0_22px_52px_-28px_rgba(15,23,42,0.7)] ring-1 ring-amber-100/70 sm:h-40 sm:w-40 sm:rounded-[38px]">
                   {typedProfile.avatar_url ? (
                     <Image
                       src={typedProfile.avatar_url}
                       alt={`${typedProfile.username} avatar`}
-                      width={144}
-                      height={144}
-                      sizes="(min-width: 640px) 144px, 112px"
+                      width={160}
+                      height={160}
+                      sizes="(min-width: 640px) 160px, 128px"
                       priority
                       unoptimized
                       className="h-full w-full object-cover"
@@ -253,7 +269,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
 
-              <div className="mb-2">
+              <div className="sm:mb-2">
                 {isOwnProfile ? (
                   <Link
                     href="/settings/profile"
@@ -262,7 +278,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                     Edit Profile
                   </Link>
                 ) : user ? (
-                  <div className="origin-bottom-right scale-110">
+                  <div className="origin-bottom-left sm:origin-bottom-right sm:scale-105">
                     <FollowButton
                       isFollowing={isFollowing}
                       targetUserId={typedProfile.id}
@@ -274,10 +290,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
+            <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
+                  <h1 className="break-words text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
                     @{typedProfile.username}
                   </h1>
                   {hasLegendBadge && (
@@ -285,42 +301,47 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   )}
                 </div>
 
-                <p className="mt-2 text-sm text-neutral-500">
-                  <Link href={`/u/${username}/followers`} className="hover:underline">
-                    {followersCount} followers
-                  </Link>
-                    {" · "}
-                  <Link href={`/u/${username}/following`} className="hover:underline">
-                    {followingCount} following
-                  </Link>
+                <p className="mt-3 max-w-2xl text-[15px] font-medium leading-6 text-neutral-600">
+                  {typedProfile.bio || "No bio yet."}
                 </p>
 
-                <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">
-                  Legacy started -{" "}
-                  {legacyStartedLabel}
-                </p>
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
+                  <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5">
+                    Since {legacyStartedLabel}
+                  </span>
+                  {badgeCount > 0 && (
+                    <span className="rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-amber-700">
+                      {badgeCount} honors
+                    </span>
+                  )}
+                </div>
               </div>
 
-              <div className="w-full max-w-full rounded-[28px] border border-neutral-100 bg-neutral-50/70 px-2.5 py-3 sm:px-4 lg:mb-1 lg:w-[420px]">
-                <div className="grid grid-cols-4 divide-x divide-neutral-200/70">
+              <div className="w-full max-w-full rounded-[28px] border border-neutral-100 bg-neutral-50/80 p-2 shadow-inner lg:w-[460px]">
+                <div className="grid grid-cols-5 divide-x divide-neutral-200/70 overflow-hidden rounded-[22px] bg-white/80">
                   {heroStats.map((stat) => (
-                    <div
+                    <Link
                       key={stat.label}
-                      className="min-w-0 px-1.5 text-center sm:px-3"
+                      href={stat.href ?? `/u/${username}`}
+                      className={`min-w-0 px-1.5 py-3 text-center sm:px-3 ${
+                        stat.href
+                          ? "transition hover:bg-amber-50/70"
+                          : "pointer-events-none"
+                      }`}
                     >
                       <p className="text-base font-black leading-none tabular-nums text-neutral-950 sm:text-lg">
-                        {stat.value}
+                        {formatStatValue(stat.value)}
                       </p>
                       <p className="mt-1 whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.06em] text-neutral-500 sm:text-[10px] sm:tracking-[0.1em] lg:text-[11px] lg:tracking-[0.08em]">
                         {stat.label}
                       </p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         <div className="mt-8">
           <ProfileBadgesSection
@@ -330,7 +351,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           />
         </div>
 
-        <div className="mx-auto mt-10 max-w-2xl">
+        <section className="mx-auto mt-10 max-w-2xl border-t border-neutral-200/70 pt-8">
           <div className="mb-5 px-1">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-neutral-400">
               RECENT POSTS
@@ -340,10 +361,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </h2>
           </div>
           <UserProfileContent initialPosts={posts} />
-        </div>
+        </section>
       </main>
     </div>
   );
 }
-
-

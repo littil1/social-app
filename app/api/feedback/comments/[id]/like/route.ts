@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import {
+  checkRateLimit,
+  getActorRateLimitKey,
+  RATE_LIMIT_MESSAGE,
+} from "@/lib/rate-limit";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -25,7 +30,17 @@ export async function POST(request: Request, context: RouteContext) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return new NextResponse("Not signed in.", { status: 401 });
+    }
+
+    const rateLimit = checkRateLimit({
+      key: await getActorRateLimitKey("reaction", user.id),
+      limit: 100,
+      windowMs: 10 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return new NextResponse(RATE_LIMIT_MESSAGE, { status: 429 });
     }
 
     const { id } = await context.params;
@@ -49,7 +64,9 @@ export async function POST(request: Request, context: RouteContext) {
       .maybeSingle();
 
     if (commentError) {
-      return new NextResponse(commentError.message, { status: 500 });
+      return new NextResponse("Comment reaction could not be saved.", {
+        status: 500,
+      });
     }
 
     if (!comment) {
@@ -64,7 +81,9 @@ export async function POST(request: Request, context: RouteContext) {
       .maybeSingle();
 
     if (existingReactionError) {
-      return new NextResponse(existingReactionError.message, { status: 500 });
+      return new NextResponse("Comment reaction could not be saved.", {
+        status: 500,
+      });
     }
 
     if (existingReaction) {
@@ -76,7 +95,9 @@ export async function POST(request: Request, context: RouteContext) {
           .eq("user_id", user.id);
 
         if (deleteError) {
-          return new NextResponse(deleteError.message, { status: 500 });
+          return new NextResponse("Comment reaction could not be saved.", {
+            status: 500,
+          });
         }
 
         await recomputeUserBadgeFamilies(supabase, user.id, [
@@ -99,7 +120,9 @@ export async function POST(request: Request, context: RouteContext) {
         .eq("user_id", user.id);
 
       if (updateError) {
-        return new NextResponse(updateError.message, { status: 500 });
+        return new NextResponse("Comment reaction could not be saved.", {
+          status: 500,
+        });
       }
 
       await recomputeUserBadgeFamilies(supabase, user.id, [
@@ -126,7 +149,9 @@ export async function POST(request: Request, context: RouteContext) {
       ]);
 
     if (insertError) {
-      return new NextResponse(insertError.message, { status: 500 });
+      return new NextResponse("Comment reaction could not be saved.", {
+        status: 500,
+      });
     }
 
     await recomputeUserBadgeFamilies(supabase, user.id, [
@@ -141,9 +166,10 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ success: true, viewer_reaction: reaction });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error.";
-    return new NextResponse(message, { status: 500 });
+    console.error(error);
+    return new NextResponse("Comment reaction could not be saved.", {
+      status: 500,
+    });
   }
 }
 

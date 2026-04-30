@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ProfileForm from "./profile-form";
+import DeleteAccountForm from "./delete-account-form";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,22 @@ export default async function ProfileSettingsPage() {
           <p className="mt-2 text-sm font-medium text-neutral-500">
             Strong contributors with a clear bio often see higher engagement on their thoughts.
           </p>
+        </section>
+
+        <section className="mt-6 rounded-[32px] border border-red-100 bg-red-50/50 p-6 sm:mt-8 sm:p-8">
+          <p className="text-xs font-black uppercase tracking-widest text-red-500">
+            Danger Zone
+          </p>
+          <h2 className="mt-2 text-xl font-black tracking-tight text-neutral-950">
+            Delete account
+          </h2>
+          <p className="mt-2 text-sm font-medium leading-6 text-neutral-600">
+            This permanently removes your account and personal profile data.
+            Hall of Fame snapshots are kept as historical records and anonymized.
+          </p>
+          <div className="mt-5">
+            <DeleteAccountForm />
+          </div>
         </section>
       </main>
     </div>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -85,8 +86,19 @@ export default async function RootLayout({
           {/* Padding-Bottom (pb-32):
               Wichtig für die Floating NavBar. 
           */}
-          <main className="app-page-enter min-h-screen bg-[#fafafa] pb-28 sm:pb-32">
+          <main className="app-page-enter min-h-screen bg-[#fafafa] pb-32 sm:pb-32">
             {children}
+            <footer className="mx-auto flex max-w-4xl flex-wrap justify-center gap-x-4 gap-y-2 px-4 pb-8 pt-4 text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-400">
+              <Link href="/imprint" className="transition hover:text-neutral-950">
+                Impressum
+              </Link>
+              <Link href="/privacy" className="transition hover:text-neutral-950">
+                Datenschutz
+              </Link>
+              <Link href="/terms" className="transition hover:text-neutral-950">
+                Terms
+              </Link>
+            </footer>
           </main>
 
           {/* GLOBAL POST MODAL:
