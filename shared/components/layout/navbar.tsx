@@ -78,7 +78,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
 
   const navItems = [
     { name: "Live", href: "/leaderboard", icon: "🔥" },
-    { name: "Legends", href: "/hall-of-fame", icon: "🏆" },
+    { name: "Legends", href: "/hall-of-fame", icon: "👑" },
     { name: "Input", href: "/feedback", icon: "💡" },
     { name: "Vibe", href: "/vibe", icon: "✨" },
   ];
@@ -104,7 +104,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
               href={item.href}
               className={getLinkClass(item.href)}
             >
-              <div className="flex min-w-0 flex-col items-center justify-center sm:flex-row sm:gap-1.5">
+              <div className="flex min-w-0 flex-col items-center justify-center gap-1 sm:flex-row sm:gap-1.5">
                 <span className="shrink-0 text-sm leading-none sm:text-base">
                   {item.icon}
                 </span>

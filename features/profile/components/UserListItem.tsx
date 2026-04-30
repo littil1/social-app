@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { ProfileSummary } from "@/features/profile/lib/follow-data";
+import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 
 export default function UserListItem({
   user,
@@ -37,6 +38,7 @@ export default function UserListItem({
                 You
               </span>
             )}
+            {user.hasLegendBadge && <LegendBadgeMarker className="text-sm" />}
           </div>
 
           <p className="mt-1 truncate text-sm font-medium text-neutral-500">

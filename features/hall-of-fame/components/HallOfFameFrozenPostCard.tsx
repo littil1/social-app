@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import CommentsSection from "@/features/comments/components/CommentsSection";
 import type { ReactionCounts } from "@/shared/types/feed";
+import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 
 type FrozenHallOfFamePost = {
   id: number;
@@ -164,12 +165,15 @@ function HallOfFameFrozenPostCardContent({
         <div className="mt-5">
           <div className="min-w-0">
             {post.author_username ? (
-              <Link
-                href={`/u/${encodeURIComponent(post.author_username)}`}
-                className="truncate text-2xl font-black tracking-tight text-gray-950 transition hover:opacity-75 sm:text-3xl"
-              >
-                @{post.author_username}
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/u/${encodeURIComponent(post.author_username)}`}
+                  className="truncate text-2xl font-black tracking-tight text-gray-950 transition hover:opacity-75 sm:text-3xl"
+                >
+                  @{post.author_username}
+                </Link>
+                <LegendBadgeMarker className="text-lg sm:text-xl" />
+              </div>
             ) : (
               <h3 className="text-2xl font-black tracking-tight text-gray-950 sm:text-3xl">
                 Unknown

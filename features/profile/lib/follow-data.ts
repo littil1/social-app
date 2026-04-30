@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/shared/types/database";
+import { getUserBadges } from "@/features/badges/lib/getUserBadges";
 
 export type ProfileSummary = {
   id: string;
@@ -8,6 +9,7 @@ export type ProfileSummary = {
   avatar_url: string | null;
   bio: string | null;
   isCurrentUser: boolean;
+  hasLegendBadge: boolean;
 };
 
 export async function getFollowCounts(
@@ -72,6 +74,7 @@ export async function getFollowersList(
 
   if (profilesError) throw new Error(profilesError.message);
 
+  const badgesMap = await getUserBadges(ids);
   const profileMap = new Map(
     ((profiles ?? []) as Array<{
       id: string;
@@ -83,6 +86,9 @@ export async function getFollowersList(
       {
         ...profile,
         isCurrentUser: profile.id === viewerId,
+        hasLegendBadge:
+          badgesMap.get(profile.id)?.some((badge) => badge.family === "legend") ??
+          false,
       } satisfies ProfileSummary,
     ])
   );
@@ -116,6 +122,7 @@ export async function getFollowingList(
 
   if (profilesError) throw new Error(profilesError.message);
 
+  const badgesMap = await getUserBadges(ids);
   const profileMap = new Map(
     ((profiles ?? []) as Array<{
       id: string;
@@ -127,6 +134,9 @@ export async function getFollowingList(
       {
         ...profile,
         isCurrentUser: profile.id === viewerId,
+        hasLegendBadge:
+          badgesMap.get(profile.id)?.some((badge) => badge.family === "legend") ??
+          false,
       } satisfies ProfileSummary,
     ])
   );

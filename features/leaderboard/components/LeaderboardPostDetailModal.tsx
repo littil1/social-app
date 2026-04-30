@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import PostCard from "@/features/posts/components/PostCard";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
@@ -99,7 +100,18 @@ export default function LeaderboardPostDetailModal({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose, post]);
 
-  if (!post || !modalPost) {
+  useEffect(() => {
+    if (!post) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [post]);
+
+  if (typeof document === "undefined" || !post || !modalPost) {
     return null;
   }
 
@@ -143,16 +155,21 @@ export default function LeaderboardPostDetailModal({
     }
   }
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       data-comments-panel-open="true"
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 px-3 pb-4 pt-10 backdrop-blur-md sm:items-center sm:p-6"
-      onClick={onClose}
+      className="fixed inset-0 z-[150] flex items-end justify-center px-3 pb-4 pt-10 sm:items-center sm:p-6"
     >
+      <button
+        type="button"
+        aria-label="Close post detail"
+        className="absolute inset-0 z-0 bg-black/60 backdrop-blur-md"
+        onClick={onClose}
+      />
       <div
-        className="relative flex max-h-[calc(100dvh-7rem)] w-full max-w-2xl flex-col rounded-t-[32px] bg-white shadow-2xl sm:max-h-[calc(100dvh-4rem)] sm:rounded-[32px]"
+        className="relative z-10 flex max-h-[calc(100dvh-7rem)] w-full max-w-2xl flex-col overflow-hidden rounded-t-[32px] bg-white shadow-2xl sm:max-h-[calc(100dvh-4rem)] sm:rounded-[32px]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-neutral-100 px-5 py-4 sm:px-6">
@@ -185,6 +202,7 @@ export default function LeaderboardPostDetailModal({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

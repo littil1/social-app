@@ -13,6 +13,7 @@ import { getProfileBadge } from "@/features/badges/lib/profile-badges";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import UserProfileContent from "@/features/profile/components/UserProfileContent";
 import ProfileBadgesSection from "@/features/profile/components/ProfileBadgesSection";
+import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 
 export const dynamic = "force-dynamic";
 
@@ -211,6 +212,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const badgeCount = profileBadges.length + specialBadges.length;
   const legendWins =
     profileBadges.find((badge) => badge.family === "legend")?.total.count ?? 0;
+  const hasLegendBadge = legendWins > 0;
   const legacyStartedLabel = formatProfileMonth(typedProfile.created_at);
   const heroStats = [
     { label: "Top posts", value: legendWins },
@@ -278,6 +280,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   <h1 className="text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
                     @{typedProfile.username}
                   </h1>
+                  {hasLegendBadge && (
+                    <LegendBadgeMarker className="text-xl sm:text-2xl" />
+                  )}
                 </div>
 
                 <p className="mt-2 text-sm text-neutral-500">

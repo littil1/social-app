@@ -35,6 +35,7 @@ export type HomeFeedData = {
 
 export type FeedCommentBadge = {
   key: string;
+  family: string;
   label: string;
   icon: string;
   description: string;

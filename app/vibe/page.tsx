@@ -183,7 +183,7 @@ export default function VibePage() {
                   👤 Your name is revealed
                 </li>
                 <li className="flex items-center gap-3 font-semibold text-neutral-800">
-                  🏆 Your post is remembered
+                  👑 Your post is remembered
                 </li>
                 <li className="flex items-center gap-3 font-semibold text-neutral-800">
                   🔥 You become a Legend
@@ -193,7 +193,7 @@ export default function VibePage() {
 
             <div className="relative flex justify-center lg:justify-end">
               <div className="relative flex h-52 w-52 items-center justify-center rounded-[42px] bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner sm:h-60 sm:w-60 sm:rounded-[48px]">
-                <span className="animate-bounce text-7xl sm:text-8xl">🏆</span>
+                <span className="animate-bounce text-7xl sm:text-8xl">👑</span>
                 <div className="absolute -bottom-4 rounded-2xl border border-amber-100 bg-white px-6 py-3 shadow-xl">
                   <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-amber-200 bg-white px-5 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-amber-700 shadow-sm">
                     Legend Status
@@ -228,7 +228,7 @@ export default function VibePage() {
                 text="As people react and engage, the most impactful ideas naturally rise. It’s a dynamic reflection of what truly matters today."
               />
               <InfoRow
-                emoji="🏆"
+                emoji="👑"
                 title="The Daily Revelation."
                 text="Each day, only the most resonant voice is unmasked."
               />

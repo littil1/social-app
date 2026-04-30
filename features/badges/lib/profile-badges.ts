@@ -10,12 +10,13 @@ export type BadgeColorToken =
   | "teal";
 
 export const KNOW_EVERYTHING_BADGE_KEY = "know_everything";
+export const LEGEND_BADGE_ICON = "👑";
 
 export const PROFILE_BADGES = [
   {
     key: "daily_winner",
     label: "Daily Winner",
-    emoji: "🏆",
+    emoji: "👑",
     className: "border-amber-200 bg-amber-50 text-amber-800",
   },
   {
@@ -134,7 +135,7 @@ export function mapBadgeToDisplay(
     threshold: badge.threshold,
     label: badge.short_label,
     description: badge.description ?? badge.name,
-    icon: badge.icon ?? "🏅",
+    icon: badge.family === "legend" ? LEGEND_BADGE_ICON : badge.icon ?? "🏅",
     colorToken,
     className: getBadgeClassName(colorToken, badge.level),
     sortOrder: badge.sort_order,

@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/shared/types/database";
+import { LEGEND_BADGE_ICON } from "@/features/badges/lib/profile-badges";
 
 export type BadgeFamily =
   | "legend"
@@ -97,7 +98,7 @@ export const BADGE_FAMILY_DEFINITIONS: Record<
   legend: {
     family: "legend",
     label: "Legend",
-    icon: "\u265B",
+    icon: LEGEND_BADGE_ICON,
     sortPriority: 10,
     thresholds: [1, 3, 5, 10, 25],
     totalLabel: (current) =>

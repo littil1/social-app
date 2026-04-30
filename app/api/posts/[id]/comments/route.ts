@@ -52,6 +52,7 @@ function toFeedCommentBadges(
 ): FeedCommentBadge[] {
   return (badges ?? []).map((badge) => ({
     key: badge.key,
+    family: badge.family,
     label: badge.label,
     icon: badge.icon,
     description: badge.description,
@@ -184,7 +185,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
       }
     }
 
-    const badgesMap = await getUserBadges(authorIds, { limitPerUser: 3 });
+    const badgesMap = await getUserBadges(authorIds);
 
     const comments: FeedComment[] = commentRows.map((comment) => {
       const profile =
@@ -348,7 +349,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new NextResponse(profileError.message, { status: 500 });
     }
 
-    const badgesMap = await getUserBadges([user.id], { limitPerUser: 3 });
+    const badgesMap = await getUserBadges([user.id]);
     const authorBadges = toFeedCommentBadges(badgesMap.get(user.id) ?? []);
 
     const response: FeedComment = {

@@ -102,7 +102,7 @@ function getRankStyles(dailyRank?: 1 | 2 | 3) {
       articleClass:
         "border-amber-200 bg-white shadow-[0_8px_30px_rgb(251,191,36,0.08)]",
       badgeClass: "bg-amber-100 text-amber-900 border-amber-200",
-      badgeText: "🏆 Winner",
+      badgeText: "👑 Winner",
       accentClass: "bg-amber-400",
     };
   if (dailyRank === 2)

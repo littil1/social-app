@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import type { FeedComment, ReactionType } from "@/shared/types/feed";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import CommentReportButton from "@/features/comments/components/CommentReportButton";
+import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 
 type CommentsSectionProps = {
   postId: number;
@@ -194,6 +195,10 @@ const CommentItem = memo(function CommentItem({
 }: CommentItemProps) {
   const maxIndentLevel = 4;
   const effectiveDepth = Math.min(depth, maxIndentLevel);
+  const hasLegendBadge =
+    node.author_badges?.some(
+      (badge) => badge.family === "legend" || badge.key.startsWith("legend_")
+    ) ?? false;
 
   return (
     <div
@@ -256,6 +261,7 @@ const CommentItem = memo(function CommentItem({
                     @anonymous
                   </span>
                 )}
+                {hasLegendBadge && <LegendBadgeMarker className="text-sm" />}
 
               </div>
 

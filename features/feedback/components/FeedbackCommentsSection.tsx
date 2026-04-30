@@ -11,6 +11,7 @@ import {
 } from "@/app/actions/feedback";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { FeedbackComment } from "@/features/feedback/lib/feedback-data";
+import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 
 type FeedbackCommentsSectionProps = {
   requestId: number;
@@ -279,11 +280,7 @@ export default function FeedbackCommentsSection({
               @{node.username ?? "anonymous"}
             </Link>
 
-            {isLegend && (
-              <span className="rounded-full border border-amber-200/50 bg-amber-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-600 shadow-sm">
-                Legend
-              </span>
-            )}
+            {isLegend && <LegendBadgeMarker />}
           </div>
         </div>
 
