@@ -33,8 +33,8 @@ export default async function FollowingListPage({
   if (!profile) {
     return (
       <main className="mx-auto max-w-2xl p-6">
-        <div className="rounded-xl bg-white p-6 shadow">
-          <h1 className="text-2xl font-bold">Profile not found</h1>
+        <div className="rounded-[32px] border border-neutral-200 bg-white p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-black tracking-tight text-neutral-950">Profile not found</h1>
         </div>
       </main>
     );
@@ -43,8 +43,8 @@ export default async function FollowingListPage({
   const following = await getFollowingList(supabase, profile.id, currentUserId);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 pb-28 pt-6 sm:px-6 sm:pt-10">
-        <section className="relative mb-6 overflow-hidden rounded-[32px] border border-amber-100 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.14),transparent_34%),linear-gradient(135deg,#fffdf8,#ffffff)] p-6 shadow-sm sm:p-8">
+    <main className="mx-auto max-w-2xl px-4 pb-32 pt-6 sm:px-6 sm:pt-10">
+        <section className="relative mb-6 overflow-hidden rounded-[32px] border border-neutral-100 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.10),transparent_36%),linear-gradient(135deg,#ffffff,#fffdf8)] p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-8">
           <Link
             href={`/u/${profile.username}`}
             className="text-[10px] font-black uppercase tracking-[0.22em] text-neutral-400 hover:text-neutral-950"
@@ -60,7 +60,7 @@ export default async function FollowingListPage({
                 Following
               </h1>
             </div>
-            <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3 text-center">
+            <div className="rounded-2xl border border-neutral-100 bg-white/80 px-4 py-3 text-center shadow-inner">
               <p className="text-2xl font-black leading-none tabular-nums text-neutral-950">
                 {following.length}
               </p>
@@ -83,7 +83,7 @@ export default async function FollowingListPage({
           ))}
 
           {following.length === 0 && (
-            <div className="rounded-[32px] border border-dashed border-amber-100 bg-[linear-gradient(135deg,#fffdf8,#ffffff)] p-8 text-center shadow-sm">
+            <div className="rounded-[32px] border border-dashed border-neutral-200 bg-white p-8 text-center shadow-[0_18px_50px_-42px_rgba(15,23,42,0.48)]">
               <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-amber-50 text-lg">
                 +
               </div>

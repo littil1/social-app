@@ -67,7 +67,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       typeof body?.details === "string" ? body.details.trim() : "";
 
     if (!isReportReason(reason)) {
-      return new NextResponse("Invalid report reason.", { status: 400 });
+      return new NextResponse("Choose a reason before submitting.", { status: 400 });
     }
 
     if (details.length > 1000) {
@@ -81,7 +81,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (commentError) {
-      return new NextResponse(commentError.message, { status: 500 });
+      return new NextResponse("Could not submit the report. Try again.", {
+        status: 500,
+      });
     }
 
     if (!comment) {
@@ -121,13 +123,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
 
       console.error(insertError);
-      return new NextResponse("Comment could not be reported.", { status: 500 });
+      return new NextResponse("Could not submit the report. Try again.", {
+        status: 500,
+      });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Comment could not be reported.", {
+    return new NextResponse("Could not submit the report. Try again.", {
       status: 500,
     });
   }

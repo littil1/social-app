@@ -64,7 +64,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (commentError) {
-      return new NextResponse(commentError.message, { status: 500 });
+      return new NextResponse("Comment reaction could not be saved.", {
+        status: 500,
+      });
     }
 
     if (!comment) {
@@ -86,7 +88,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .maybeSingle();
 
     if (existingReactionError) {
-      return new NextResponse(existingReactionError.message, { status: 500 });
+      return new NextResponse("Comment reaction could not be saved.", {
+        status: 500,
+      });
     }
 
     const recomputeBadges = async () => {
@@ -115,7 +119,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .eq("id", existingReaction.id);
 
       if (deleteError) {
-        return new NextResponse(deleteError.message, { status: 500 });
+        return new NextResponse("Comment reaction could not be saved.", {
+          status: 500,
+        });
       }
 
       await recomputeBadges();
@@ -133,7 +139,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .eq("id", existingReaction.id);
 
       if (updateError) {
-        return new NextResponse(updateError.message, { status: 500 });
+        return new NextResponse("Comment reaction could not be saved.", {
+          status: 500,
+        });
       }
 
       await recomputeBadges();
@@ -153,7 +161,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
 
     if (insertError) {
-      return new NextResponse(insertError.message, { status: 500 });
+      return new NextResponse("Comment reaction could not be saved.", {
+        status: 500,
+      });
     }
 
     await recomputeBadges();

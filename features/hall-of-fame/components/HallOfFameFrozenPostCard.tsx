@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import CommentsSection from "@/features/comments/components/CommentsSection";
 import type { ReactionCounts } from "@/shared/types/feed";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
+import { scheduleScrollIntoViewIfNeeded } from "@/shared/lib/scroll-into-view-if-needed";
 
 type FrozenHallOfFamePost = {
   id: number;
@@ -120,6 +121,8 @@ function HallOfFameFrozenPostCardContent({
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post.comments_count
   );
+  const commentsContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollToCommentsRef = useRef(showComments);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -129,6 +132,23 @@ function HallOfFameFrozenPostCardContent({
       String(showComments)
     );
   }, [post.id, showComments]);
+
+  useEffect(() => {
+    if (!showComments || !shouldScrollToCommentsRef.current) return;
+
+    shouldScrollToCommentsRef.current = false;
+    scheduleScrollIntoViewIfNeeded(commentsContainerRef.current);
+  }, [showComments]);
+
+  function toggleComments() {
+    setShowComments((prev) => {
+      const next = !prev;
+      if (next) {
+        shouldScrollToCommentsRef.current = true;
+      }
+      return next;
+    });
+  }
 
   return (
     <article
@@ -225,7 +245,7 @@ function HallOfFameFrozenPostCardContent({
           </span>
           <button
             type="button"
-            onClick={() => setShowComments((prev) => !prev)}
+            onClick={toggleComments}
             aria-label={`${showComments ? "Hide" : "Show"} comments, ${localCommentsCount} comments`}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold transition-all sm:gap-2 sm:px-4 ${
               showComments
@@ -239,7 +259,10 @@ function HallOfFameFrozenPostCardContent({
         </div>
 
         {showComments && (
-          <div className="mt-4 rounded-3xl border border-gray-200 bg-white/80 p-3 shadow-sm sm:p-4">
+          <div
+            ref={commentsContainerRef}
+            className="mt-4 rounded-3xl border border-gray-200 bg-white/80 p-3 shadow-sm sm:p-4"
+          >
             <CommentsSection
               postId={post.id}
               onCommentCreated={() => {}}

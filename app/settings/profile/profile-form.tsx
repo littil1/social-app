@@ -7,6 +7,7 @@ import {
   updateProfile,
   type UpdateProfileState,
 } from "@/app/settings/profile/actions";
+import FormError from "@/shared/components/ui/FormError";
 
 const initialState: UpdateProfileState = {
   error: null,
@@ -16,13 +17,11 @@ const initialState: UpdateProfileState = {
 function validateUsername(value: string | undefined) {
   const normalized = (value ?? "").trim().toLowerCase();
 
-  if (normalized.length < 3) {
-    return "Minimum 3 characters required";
-  }
+  if (normalized.length === 0) return "Choose a username.";
 
-  if (normalized.length > 20) {
-    return "Maximum 20 characters allowed";
-  }
+  if (normalized.length < 3) return "Username must be at least 3 characters.";
+
+  if (normalized.length > 20) return "Username must be at most 20 characters.";
 
   if (!/^[a-z0-9_]+$/.test(normalized)) {
     return "Only a–z, 0–9 and _ allowed";
@@ -35,7 +34,7 @@ function validateBio(value: string | undefined) {
   const safeValue = value ?? "";
 
   if (safeValue.length > 200) {
-    return "Bio must be under 200 characters";
+    return "Your bio is too long. Keep it under 200 characters.";
   }
 
   return null;
@@ -60,6 +59,7 @@ export default function ProfileForm({
   const [bio, setBio] = useState(initialBio ?? "");
   const [removeAvatar, setRemoveAvatar] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
@@ -113,10 +113,30 @@ export default function ProfileForm({
 
   const usernameError = validateUsername(username);
   const bioError = validateBio(bio);
-  const clientError = usernameError || bioError;
+  const clientError = usernameError || bioError || avatarError;
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
+    setAvatarError(null);
+
+    if (file) {
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+      if (!allowedTypes.includes(file.type)) {
+        setAvatarFile(null);
+        setAvatarError("Use a JPG, PNG, or WebP image.");
+        e.target.value = "";
+        return;
+      }
+
+      if (file.size > 4 * 1024 * 1024) {
+        setAvatarFile(null);
+        setAvatarError("Avatar image is too large. Choose an image under 4 MB.");
+        e.target.value = "";
+        return;
+      }
+    }
+
     setAvatarFile(file);
 
     if (file) {
@@ -134,6 +154,7 @@ export default function ProfileForm({
   function handleRemovePicture() {
     setRemoveAvatar(true);
     setAvatarFile(null);
+    setAvatarError(null);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -200,7 +221,7 @@ export default function ProfileForm({
 
         <div className="flex flex-col gap-1">
           <p className="text-xs font-black uppercase tracking-widest text-neutral-950">Avatar</p>
-          <p className="text-xs font-medium text-neutral-500">JPG, PNG or GIF. Max 4MB.</p>
+          <p className="text-xs font-medium text-neutral-500">JPG, PNG or WebP. Max 4MB.</p>
           <button
             type="button"
             onClick={handleChangePicture}
@@ -215,7 +236,7 @@ export default function ProfileForm({
           id="avatar"
           name="avatar"
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           onChange={handleAvatarChange}
           className="hidden"
         />
@@ -280,15 +301,11 @@ export default function ProfileForm({
       {/* Feedback Messages */}
       <div className="space-y-3">
         {clientError && (
-          <div className="rounded-xl bg-red-50 p-4 text-xs font-bold text-red-600 border border-red-100">
-            {clientError}
-          </div>
+          <FormError message={clientError} />
         )}
 
         {!clientError && state.error && (
-          <div className="rounded-xl bg-red-50 p-4 text-xs font-bold text-red-600 border border-red-100">
-            {state.error}
-          </div>
+          <FormError message={state.error} />
         )}
 
         {!clientError && state.success && (

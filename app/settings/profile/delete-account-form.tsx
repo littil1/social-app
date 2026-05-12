@@ -1,11 +1,13 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import {
   deleteAccount,
   type DeleteAccountState,
 } from "@/app/settings/profile/actions";
+import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
+import FormError from "@/shared/components/ui/FormError";
 
 const initialState: DeleteAccountState = {
   error: null,
@@ -13,23 +15,31 @@ const initialState: DeleteAccountState = {
 
 export default function DeleteAccountForm() {
   const [confirmation, setConfirmation] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const allowSubmitRef = useRef(false);
   const [state, formAction, isPending] = useActionState(
     deleteAccount,
     initialState
   );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    const confirmed = window.confirm(
-      "This permanently deletes your account and personal data. This cannot be undone."
-    );
-
-    if (!confirmed) {
+    if (!allowSubmitRef.current) {
       event.preventDefault();
+      setConfirmOpen(true);
+      return;
     }
+
+    allowSubmitRef.current = false;
   }
 
   return (
-    <form action={formAction} onSubmit={handleSubmit} className="space-y-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={handleSubmit}
+      className="space-y-4"
+    >
       <div>
         <label
           htmlFor="delete-confirmation"
@@ -48,9 +58,7 @@ export default function DeleteAccountForm() {
       </div>
 
       {state.error && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
-          {state.error}
-        </div>
+        <FormError message={state.error} />
       )}
 
       <button
@@ -60,6 +68,21 @@ export default function DeleteAccountForm() {
       >
         {isPending ? "Deleting..." : "Delete account"}
       </button>
+
+      {confirmOpen && (
+        <ConfirmDialog
+          title="Delete your account?"
+          description="This permanently deletes your account and personal data. Type DELETE must stay in the field to continue."
+          confirmLabel="Delete account"
+          loading={isPending}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            allowSubmitRef.current = true;
+            setConfirmOpen(false);
+            formRef.current?.requestSubmit();
+          }}
+        />
+      )}
     </form>
   );
 }

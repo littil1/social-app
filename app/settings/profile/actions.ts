@@ -72,17 +72,23 @@ export async function updateProfile(
   const removeAvatar = formData.get("remove_avatar") === "on";
   const avatarFile = formData.get("avatar") as File | null;
 
+  if (username.length === 0) {
+    return {
+      error: "Choose a username.",
+      success: null,
+    };
+  }
+
   if (!isValidUsername(username)) {
     return {
-      error:
-        "Username must be 3-20 characters and only contain lowercase letters, numbers, and underscores.",
+      error: "Use 3-20 lowercase letters, numbers, or underscores.",
       success: null,
     };
   }
 
   if (bio && bio.length > 200) {
     return {
-      error: "Bio must be at most 200 characters.",
+      error: "Your bio is too long. Keep it under 200 characters.",
       success: null,
     };
   }
@@ -109,15 +115,18 @@ export async function updateProfile(
 
   if (avatarFile && avatarFile.size > 0) {
     if (!avatarFile.type.startsWith("image/")) {
-      return {
-        error: "Avatar must be an image file.",
-        success: null,
-      };
+      return { error: "Use a JPG, PNG, or WebP image.", success: null };
     }
 
-    if (avatarFile.size > 2 * 1024 * 1024) {
+    const allowedAvatarTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedAvatarTypes.includes(avatarFile.type)) {
+      return { error: "Use a JPG, PNG, or WebP image.", success: null };
+    }
+
+    if (avatarFile.size > 4 * 1024 * 1024) {
       return {
-        error: "Avatar must be smaller than 2 MB.",
+        error: "Avatar image is too large. Choose an image under 4 MB.",
         success: null,
       };
     }
@@ -131,7 +140,7 @@ export async function updateProfile(
 
     if (uploadError) {
       return {
-        error: "Avatar could not be uploaded. Please try again.",
+        error: "Could not upload your avatar. Try again.",
         success: null,
       };
     }
@@ -154,7 +163,7 @@ export async function updateProfile(
 
   if (error) {
     return {
-      error: "Profile could not be saved. Please try again.",
+      error: "Could not save your profile. Try again.",
       success: null,
     };
   }
@@ -246,11 +255,11 @@ export async function deleteAccount(
     .maybeSingle();
 
   if (profileError) {
-    return { error: "Account could not be checked. Please try again." };
+    return { error: "Could not check your account. Try again." };
   }
 
   if (profile?.is_admin) {
-    return { error: "Admin accounts cannot be deleted from this screen." };
+    return { error: "Admin accounts can't be deleted from this screen." };
   }
 
   const adminSupabase = getAdminClient();
@@ -462,7 +471,7 @@ export async function deleteAccount(
     if (authDeleteError) throw new Error(authDeleteError.message);
   } catch (error) {
     console.error(error);
-    return { error: "Account could not be deleted. Please contact support." };
+    return { error: "Could not delete your account. Try again or contact support." };
   }
 
   await supabase.auth.signOut();

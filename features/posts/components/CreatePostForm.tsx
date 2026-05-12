@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { FeedPost } from "@/shared/types/feed";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
+import FormError from "@/shared/components/ui/FormError";
 
 // =====================================================
 // Types
@@ -80,7 +81,7 @@ export default function CreatePostForm({
 
     if (!canSubmit || loading) {
       if (trimmed.length < 2) {
-        setError("Write at least two characters before posting.");
+        setError("Write something before posting.");
       }
       return;
     }
@@ -132,9 +133,13 @@ export default function CreatePostForm({
         error instanceof Error &&
         error.message === "AUTH_NOT_READY_AFTER_LOGIN"
       ) {
-        setError("Please try again.");
+        setError("Could not finish posting after sign-in. Try again.");
       } else {
-        setError(error instanceof Error ? error.message : "Post could not be saved.");
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Something went wrong. Try again."
+        );
       }
     } finally {
       setLoading(false);
@@ -209,9 +214,7 @@ export default function CreatePostForm({
       </div>
 
       {error && (
-        <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
-          {error}
-        </div>
+        <FormError message={error} />
       )}
     </form>
   );

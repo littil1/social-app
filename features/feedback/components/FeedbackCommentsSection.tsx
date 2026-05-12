@@ -12,6 +12,8 @@ import {
 import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { FeedbackComment } from "@/features/feedback/lib/feedback-data";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
+import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
+import FormError from "@/shared/components/ui/FormError";
 
 type FeedbackCommentsSectionProps = {
   requestId: number;
@@ -120,6 +122,10 @@ export default function FeedbackCommentsSection({
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(
     null
   );
+  const [deleteConfirmCommentId, setDeleteConfirmCommentId] = useState<
+    number | null
+  >(null);
+  const [error, setError] = useState<string | null>(null);
 
   const lastServerSignatureRef = useRef(getCommentSignature(serverComments));
 
@@ -186,7 +192,8 @@ export default function FeedbackCommentsSection({
       });
 
       if (!response.ok) {
-        throw new Error("Reaction request failed");
+        const message = await response.text();
+        throw new Error(message || "Could not save your reaction. Try again.");
       }
 
       startTransition(() => {
@@ -194,11 +201,11 @@ export default function FeedbackCommentsSection({
       });
     } catch {
       setLocalComments(previousComments);
+      setError("Could not save your reaction. Try again.");
     }
   }
 
   async function handleDeleteComment(commentId: number) {
-    if (!window.confirm("Delete this comment?")) return;
     if (deletingCommentId !== null) return;
 
     const previousComments = localComments;
@@ -224,7 +231,9 @@ export default function FeedbackCommentsSection({
       });
     } catch {
       setLocalComments(previousComments);
+      setError("Could not delete this comment. Try again.");
     } finally {
+      setDeleteConfirmCommentId(null);
       setDeletingCommentId(null);
     }
   }
@@ -247,7 +256,10 @@ export default function FeedbackCommentsSection({
         {canDelete && (
           <button
             type="button"
-            onClick={() => void handleDeleteComment(node.id)}
+            onClick={() => {
+              setError(null);
+              setDeleteConfirmCommentId(node.id);
+            }}
             disabled={deletingCommentId === node.id}
             className="absolute right-5 top-5 text-[10px] font-black uppercase tracking-widest text-neutral-300 transition-colors hover:text-red-500 disabled:opacity-30"
           >
@@ -383,6 +395,8 @@ export default function FeedbackCommentsSection({
 
   return (
     <div className="space-y-8">
+      {error && <FormError message={error} />}
+
       <form
         action={async (fd) => {
           await addFeatureRequestComment(fd);
@@ -428,6 +442,19 @@ export default function FeedbackCommentsSection({
           )}
         </div>
       </div>
+
+      {deleteConfirmCommentId !== null && (
+        <ConfirmDialog
+          title="Delete this comment?"
+          description="This removes the comment and its replies from this idea discussion."
+          confirmLabel="Delete comment"
+          loading={deletingCommentId === deleteConfirmCommentId}
+          onCancel={() => {
+            if (deletingCommentId === null) setDeleteConfirmCommentId(null);
+          }}
+          onConfirm={() => void handleDeleteComment(deleteConfirmCommentId)}
+        />
+      )}
     </div>
   );
 }

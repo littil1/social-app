@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ReportDialog from "@/features/reports/components/ReportDialog";
+import FormError from "@/shared/components/ui/FormError";
 
 const REPORT_REASONS = [
   { value: "spam", label: "Spam" },
@@ -61,7 +62,7 @@ export default function CommentReportButton({
         }
 
         const message = await response.text();
-        throw new Error(message || "Comment could not be reported.");
+        throw new Error(message || "Could not submit the report. Try again.");
       }
 
       setHasReported(true);
@@ -79,7 +80,7 @@ export default function CommentReportButton({
         message:
           error instanceof Error
             ? error.message
-            : "Comment could not be reported.",
+            : "Could not submit the report. Try again.",
       });
     } finally {
       setSubmitting(false);
@@ -106,13 +107,13 @@ export default function CommentReportButton({
       </button>
 
       {feedback && (
-        <p
-          className={`max-w-[220px] text-right text-[10px] font-medium ${
-            feedback.tone === "success" ? "text-emerald-700" : "text-red-600"
-          }`}
-        >
-          {feedback.message}
-        </p>
+        feedback.tone === "success" ? (
+          <p className="max-w-[220px] text-right text-[10px] font-bold text-emerald-700">
+            {feedback.message}
+          </p>
+        ) : (
+          <FormError message={feedback.message} className="max-w-[220px] text-left" />
+        )
       )}
 
       {open && (

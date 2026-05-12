@@ -11,7 +11,7 @@ export default function UserListItem({
   const content = (
     <>
       <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-amber-50 text-lg font-black text-amber-700 shadow-inner ring-1 ring-amber-100/70 sm:h-16 sm:w-16">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[22px] bg-neutral-50 text-lg font-black text-amber-700 shadow-inner ring-1 ring-amber-100/70 sm:h-16 sm:w-16">
           {user.avatar_url ? (
             <Image
               src={user.avatar_url}
@@ -51,7 +51,7 @@ export default function UserListItem({
 
   if (!user.username) {
     return (
-      <div className="motion-card rounded-[28px] border border-neutral-100 bg-[#fffdf8] p-4 shadow-sm">
+      <div className="motion-card rounded-[28px] border border-neutral-100 bg-white p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.48)]">
         {content}
       </div>
     );
@@ -60,7 +60,7 @@ export default function UserListItem({
   return (
     <Link
       href={`/u/${user.username}`}
-      className="motion-card block rounded-[28px] border border-neutral-100 bg-[#fffdf8] p-4 shadow-sm transition hover:border-amber-200 hover:bg-white hover:shadow-md"
+      className="motion-card block rounded-[28px] border border-neutral-100 bg-white p-4 shadow-[0_18px_50px_-42px_rgba(15,23,42,0.48)] transition hover:-translate-y-0.5 hover:border-amber-100 hover:shadow-[0_26px_60px_-46px_rgba(15,23,42,0.56)]"
     >
       {content}
     </Link>

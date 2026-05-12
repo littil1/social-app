@@ -62,7 +62,7 @@ export async function DELETE(_: Request, context: RouteContext) {
       .eq("id", postId);
 
     if (deleteError) {
-      return new NextResponse(deleteError.message, { status: 500 });
+      return new NextResponse("Post could not be deleted.", { status: 500 });
     }
 
     return new NextResponse(null, { status: 204 });

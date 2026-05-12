@@ -26,7 +26,7 @@ export async function loginAction(
 
   if (!email || !password) {
     return {
-      error: "Please enter your email and password.",
+      error: "Enter your email and password to continue.",
       success: null,
     };
   }
@@ -38,7 +38,7 @@ export async function loginAction(
 
   if (error) {
     return {
-      error: "Login failed. Please check your details.",
+      error: "Email or password is incorrect.",
       success: null,
     };
   }
@@ -60,7 +60,7 @@ export async function signupAction(
 
   if (!email || !password) {
     return {
-      error: "Please enter your email and password.",
+      error: "Enter your email and password to continue.",
       success: null,
     };
   }
@@ -79,7 +79,8 @@ export async function signupAction(
 
   if (error) {
     return {
-      error: "Sign up failed. Please check your details.",
+      error:
+        "An account with this email may already exist. Try signing in instead.",
       success: null,
     };
   }

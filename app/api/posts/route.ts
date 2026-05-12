@@ -50,14 +50,14 @@ export async function POST(request: NextRequest) {
     const content = String(body?.content ?? "").trim();
 
     if (content.length < 2) {
-      return new NextResponse("Post content must be at least 2 characters.", {
+      return new NextResponse("Write something before posting.", {
         status: 400,
       });
     }
 
     if (content.length > 500) {
       return new NextResponse(
-        "Post content must be 500 characters or fewer.",
+        "Your post is too long. Keep it under 500 characters.",
         { status: 400 }
       );
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError || !insertedPost) {
       console.error(insertError);
-      return new NextResponse("Post could not be created.", { status: 500 });
+      return new NextResponse("Could not create your post. Try again.", { status: 500 });
     }
 
     const { data: profileData, error: profileError } = await supabase
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     if (profileError) {
       console.error(profileError);
-      return new NextResponse("Post could not be created.", { status: 500 });
+      return new NextResponse("Could not create your post. Try again.", { status: 500 });
     }
 
     const response: FeedPost = {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error(error);
-    return new NextResponse("Post could not be created.", {
+    return new NextResponse("Could not create your post. Try again.", {
       status: 500,
     });
   }

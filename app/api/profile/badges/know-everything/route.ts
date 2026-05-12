@@ -28,7 +28,9 @@ export async function POST() {
       .maybeSingle();
 
     if (profileError) {
-      return new NextResponse(profileError.message, { status: 500 });
+      return new NextResponse("Could not claim this badge. Try again.", {
+        status: 500,
+      });
     }
 
     if (!profile) {
@@ -54,13 +56,17 @@ export async function POST() {
       .maybeSingle();
 
     if (updateError) {
-      return new NextResponse(updateError.message, { status: 500 });
+      return new NextResponse("Could not claim this badge. Try again.", {
+        status: 500,
+      });
     }
 
     const persistedBadges = normalizeBadges(updatedProfile?.badges);
 
     if (!persistedBadges.includes(KNOW_EVERYTHING_BADGE_KEY)) {
-      return new NextResponse("Badge claim did not persist.", { status: 500 });
+      return new NextResponse("Could not claim this badge. Try again.", {
+        status: 500,
+      });
     }
 
     return NextResponse.json({
@@ -70,6 +76,8 @@ export async function POST() {
     });
   } catch (error) {
     console.error(error);
-    return new NextResponse("Badge could not be claimed.", { status: 500 });
+    return new NextResponse("Could not claim this badge. Try again.", {
+      status: 500,
+    });
   }
 }

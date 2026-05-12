@@ -65,7 +65,7 @@ export async function POST(request: Request, context: RouteContext) {
       .maybeSingle();
 
     if (postError) {
-      return new NextResponse(postError.message, { status: 500 });
+      return new NextResponse("Reaction could not be saved.", { status: 500 });
     }
 
     if (!post) {
@@ -81,7 +81,7 @@ export async function POST(request: Request, context: RouteContext) {
         .maybeSingle();
 
     if (existingReactionError) {
-      return new NextResponse(existingReactionError.message, { status: 500 });
+      return new NextResponse("Reaction could not be saved.", { status: 500 });
     }
 
     let authorUsername: string | null = null;
@@ -94,7 +94,7 @@ export async function POST(request: Request, context: RouteContext) {
         .maybeSingle();
 
       if (authorProfileError) {
-        return new NextResponse(authorProfileError.message, { status: 500 });
+        return new NextResponse("Reaction could not be saved.", { status: 500 });
       }
 
       authorUsername = authorProfile?.username ?? null;
@@ -126,7 +126,7 @@ export async function POST(request: Request, context: RouteContext) {
         .eq("id", existingReaction.id);
 
       if (deleteError) {
-        return new NextResponse(deleteError.message, { status: 500 });
+        return new NextResponse("Reaction could not be saved.", { status: 500 });
       }
 
       await recomputeBadges();
@@ -149,7 +149,7 @@ export async function POST(request: Request, context: RouteContext) {
         .eq("id", existingReaction.id);
 
       if (updateError) {
-        return new NextResponse(updateError.message, { status: 500 });
+        return new NextResponse("Reaction could not be saved.", { status: 500 });
       }
 
       await recomputeBadges();
@@ -172,7 +172,7 @@ export async function POST(request: Request, context: RouteContext) {
     });
 
     if (insertError) {
-      return new NextResponse(insertError.message, { status: 500 });
+      return new NextResponse("Reaction could not be saved.", { status: 500 });
     }
 
     await recomputeBadges();

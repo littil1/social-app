@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { loginAction, signupAction, type AuthState } from "@/app/login/actions";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
+import FormError from "@/shared/components/ui/FormError";
 
 const initialState: AuthState = {
   error: null,
@@ -185,9 +186,7 @@ export default function LoginModal() {
               </div>
 
               {(loginState.error || signupState.error) && (
-                <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
-                  {loginState.error || signupState.error}
-                </div>
+                <FormError message={loginState.error || signupState.error || ""} />
               )}
               {signupState.success && signupState.success !== "OK" && (
                 <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-xs font-bold text-emerald-700">

@@ -7,6 +7,7 @@ import { getZurichHourBucket } from "@/features/winners/lib/daily-ranking";
 import PostCard from "@/features/posts/components/PostCard";
 import { KNOW_EVERYTHING_BADGE_KEY } from "@/features/badges/lib/profile-badges";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
+import FormError from "@/shared/components/ui/FormError";
 
 type HomeFeedProps = {
   initialTopThreeToday: FeedPost[];
@@ -250,6 +251,7 @@ export default function HomeFeed({
   );
   const [claimingKnowEverythingBadge, setClaimingKnowEverythingBadge] =
     useState(false);
+  const [claimBadgeError, setClaimBadgeError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const router = useRouter();
@@ -411,6 +413,7 @@ export default function HomeFeed({
       return;
     }
 
+    setClaimBadgeError(null);
     setClaimingKnowEverythingBadge(true);
 
     try {
@@ -433,8 +436,10 @@ export default function HomeFeed({
       router.refresh();
     } catch (error) {
       console.error(error);
-      alert(
-        error instanceof Error ? error.message : "Badge could not be claimed."
+      setClaimBadgeError(
+        error instanceof Error
+          ? error.message
+          : "Could not claim this badge. Try again."
       );
     } finally {
       setClaimingKnowEverythingBadge(false);
@@ -603,16 +608,19 @@ export default function HomeFeed({
             </div>
 
             {isLoggedIn && !hasKnowEverythingBadge && (
-              <button
-                type="button"
-                onClick={() => void handleClaimKnowEverythingBadge()}
-                disabled={claimingKnowEverythingBadge}
-                className="rounded-full bg-neutral-950 px-6 py-3 text-sm font-black text-white shadow-lg transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {claimingKnowEverythingBadge
-                  ? "Claiming..."
-                  : "Claim special badge"}
-              </button>
+              <div className="flex w-full max-w-xs flex-col items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void handleClaimKnowEverythingBadge()}
+                  disabled={claimingKnowEverythingBadge}
+                  className="rounded-full bg-neutral-950 px-6 py-3 text-sm font-black text-white shadow-lg transition hover:scale-105 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {claimingKnowEverythingBadge
+                    ? "Claiming..."
+                    : "Claim special badge"}
+                </button>
+                {claimBadgeError && <FormError message={claimBadgeError} />}
+              </div>
             )}
           </div>
         </div>

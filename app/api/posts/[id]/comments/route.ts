@@ -113,7 +113,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
         .maybeSingle();
 
       if (profileError) {
-        return new NextResponse(profileError.message, { status: 500 });
+        return new NextResponse("Comments could not be loaded.", { status: 500 });
       }
 
       viewerIsAdmin = profileData?.is_admin ?? false;
@@ -126,7 +126,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
       .order("created_at", { ascending: true });
 
     if (error) {
-      return new NextResponse(error.message, { status: 500 });
+      return new NextResponse("Comments could not be loaded.", { status: 500 });
     }
 
     const commentRows = (data ?? []) as CommentListRow[];
@@ -149,7 +149,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
         .in("id", authorIds);
 
       if (profilesError) {
-        return new NextResponse(profilesError.message, { status: 500 });
+        return new NextResponse("Comments could not be loaded.", { status: 500 });
       }
 
       const profiles = (profilesData ?? []) as ProfileRow[];
@@ -167,7 +167,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
           .in("comment_id", commentIds);
 
       if (commentReactionsError) {
-        return new NextResponse(commentReactionsError.message, { status: 500 });
+        return new NextResponse("Comments could not be loaded.", { status: 500 });
       }
 
       const commentReactions =
@@ -292,11 +292,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     if (!content) {
-      return new NextResponse("Comment content is required.", { status: 400 });
+      return new NextResponse("Write a comment before sending.", { status: 400 });
     }
 
     if (content.length > 200) {
-      return new NextResponse("Comment must be 200 characters or fewer.", {
+      return new NextResponse("Your comment is too long. Shorten it and try again.", {
         status: 400,
       });
     }
@@ -309,7 +309,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         .maybeSingle();
 
       if (parentError) {
-        return new NextResponse(parentError.message, { status: 500 });
+        return new NextResponse("Comment could not be saved.", { status: 500 });
       }
 
       if (!parentComment || parentComment.post_id !== postId) {
@@ -327,7 +327,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (postError) {
-      return new NextResponse(postError.message, { status: 500 });
+      return new NextResponse("Comment could not be saved.", { status: 500 });
     }
 
     if (!postData) {
@@ -346,12 +346,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .single();
 
     if (insertError || !insertedComment) {
-      return new NextResponse(
-        insertError?.message ?? "Comment could not be created.",
-        {
-          status: 500,
-        }
-      );
+      console.error(insertError);
+      return new NextResponse("Comment could not be saved.", { status: 500 });
     }
 
     const { data: profileData, error: profileError } = await supabase
@@ -361,7 +357,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (profileError) {
-      return new NextResponse(profileError.message, { status: 500 });
+      return new NextResponse("Comment could not be saved.", { status: 500 });
     }
 
     const badgesMap = await getUserBadges([user.id]);

@@ -8,6 +8,8 @@ import type { FeedComment, ReactionType } from "@/shared/types/feed";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import CommentReportButton from "@/features/comments/components/CommentReportButton";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
+import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
+import FormError from "@/shared/components/ui/FormError";
 
 type CommentsSectionProps = {
   postId: number;
@@ -413,6 +415,9 @@ export default function CommentsSection({
   const [deletingCommentId, setDeletingCommentId] = useState<number | null>(
     null
   );
+  const [deleteConfirmCommentId, setDeleteConfirmCommentId] = useState<
+    number | null
+  >(null);
   const [reactingCommentId, setReactingCommentId] = useState<number | null>(
     null
   );
@@ -698,10 +703,6 @@ export default function CommentsSection({
   }
 
   async function handleDeleteComment(commentId: number) {
-    if (!window.confirm("Delete this comment?")) {
-      return;
-    }
-
     if (deletingCommentId !== null) {
       return;
     }
@@ -734,7 +735,8 @@ export default function CommentsSection({
       });
 
       if (!res.ok) {
-        throw new Error("Comment deletion failed.");
+        const message = await res.text();
+        throw new Error(message || "Could not delete this comment. Try again.");
       }
 
       const data: { deletedAt?: string } = await res.json().catch(() => ({}));
@@ -744,8 +746,9 @@ export default function CommentsSection({
       }
     } catch {
       setComments(previousComments);
-      alert("Comment could not be deleted.");
+      setError("Could not delete this comment. Try again.");
     } finally {
+      setDeleteConfirmCommentId(null);
       setDeletingCommentId(null);
     }
   }
@@ -795,9 +798,7 @@ export default function CommentsSection({
       </form>
 
       {error && (
-        <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 p-3 text-xs font-bold text-red-600">
-          {error}
-        </div>
+        <FormError message={error} className="mb-5" />
       )}
 
       {loading ? (
@@ -825,11 +826,27 @@ export default function CommentsSection({
               onReplyCancel={handleReplyCancel}
               onReplyContentChange={setReplyContent}
               onReplySubmit={(id) => createReply(id)}
-              onDeleteComment={handleDeleteComment}
+              onDeleteComment={async (id) => {
+                setError(null);
+                setDeleteConfirmCommentId(id);
+              }}
               onReactionClick={submitReaction}
             />
           ))}
         </div>
+      )}
+
+      {deleteConfirmCommentId !== null && (
+        <ConfirmDialog
+          title="Delete this comment?"
+          description="This removes the comment content from the conversation. This action cannot be undone."
+          confirmLabel="Delete comment"
+          loading={deletingCommentId === deleteConfirmCommentId}
+          onCancel={() => {
+            if (deletingCommentId === null) setDeleteConfirmCommentId(null);
+          }}
+          onConfirm={() => void handleDeleteComment(deleteConfirmCommentId)}
+        />
       )}
     </section>
   );

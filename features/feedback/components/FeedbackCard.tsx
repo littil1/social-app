@@ -11,6 +11,7 @@ import {
   updateFeatureRequestStatus,
 } from "@/app/actions/feedback";
 import type { FeedbackItem } from "@/features/feedback/lib/feedback-data";
+import { scheduleScrollIntoViewIfNeeded } from "@/shared/lib/scroll-into-view-if-needed";
 
 type FeedbackCardProps = {
   item: FeedbackItem;
@@ -28,6 +29,8 @@ function FeedbackCard({
   const [menuOpen, setMenuOpen] = useState(false);
   const likeFormRef = useRef<HTMLFormElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const commentsContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollToCommentsRef = useRef(false);
 
   const isOwnRequest = currentUserId === item.user_id;
   const canManage = isOwnRequest || currentUserIsAdmin;
@@ -56,11 +59,24 @@ function FeedbackCard({
   }, [currentUserId, requireLoginAndResume]);
 
   const handleToggleComments = useCallback(() => {
-    setShowComments((prev) => !prev);
+    setShowComments((prev) => {
+      const next = !prev;
+      if (next) {
+        shouldScrollToCommentsRef.current = true;
+      }
+      return next;
+    });
   }, []);
 
+  useEffect(() => {
+    if (!showComments || !shouldScrollToCommentsRef.current) return;
+
+    shouldScrollToCommentsRef.current = false;
+    scheduleScrollIntoViewIfNeeded(commentsContainerRef.current);
+  }, [showComments]);
+
   return (
-    <article className="motion-card soft-enter relative rounded-[32px] border border-neutral-100 bg-white p-5 shadow-sm transition-all hover:shadow-md sm:p-6">
+    <article className="motion-card soft-enter relative rounded-[32px] border border-neutral-100 bg-white p-5 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.5)] transition-all hover:-translate-y-0.5 hover:border-amber-100 hover:shadow-[0_28px_70px_-50px_rgba(15,23,42,0.58)] sm:p-6">
       
       {/* HEADER: Profile & Actions */}
       <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
@@ -132,7 +148,7 @@ function FeedbackCard({
       </div>
 
       {/* CONTENT AREA */}
-      <div className="mb-5 rounded-[24px] border border-neutral-50 bg-neutral-50/50 p-4 sm:mb-6 sm:p-6">
+      <div className="mb-5 rounded-[24px] border border-neutral-100/80 bg-neutral-50/45 p-4 sm:mb-6 sm:p-5">
         <h3 className="text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
           {item.title}
         </h3>
@@ -142,7 +158,7 @@ function FeedbackCard({
       </div>
 
       {/* ACTIONS */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      <div className="flex flex-wrap items-center gap-2 rounded-[24px] border border-neutral-100 bg-white/70 p-1.5 sm:gap-2">
         <form ref={likeFormRef} action={toggleFeatureRequestLike}>
           <input type="hidden" name="request_id" value={item.id} />
           <button
@@ -169,8 +185,8 @@ function FeedbackCard({
         <button
           onClick={handleToggleComments}
           aria-label={`${showComments ? "Hide" : "Show"} idea comments, ${item.commentCount} comments`}
-            className={`motion-button inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
-            showComments ? "bg-neutral-200 text-neutral-900" : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
+            className={`motion-button inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
+            showComments ? "border-neutral-200 bg-neutral-200 text-neutral-900" : "border-neutral-200/70 bg-white text-neutral-500 shadow-sm hover:border-amber-200 hover:bg-amber-50/60 hover:text-neutral-900"
           }`}
         >
           <span>💬</span>
@@ -182,7 +198,10 @@ function FeedbackCard({
       </div>
 
       {showComments && (
-        <div className="mt-6 border-t border-neutral-100 pt-6 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div
+          ref={commentsContainerRef}
+          className="mt-6 border-t border-neutral-100 pt-6 animate-in fade-in slide-in-from-top-2 duration-300"
+        >
           <FeedbackCommentsSection
             requestId={item.id}
             comments={item.comments}

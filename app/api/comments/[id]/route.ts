@@ -39,7 +39,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (viewerProfileError) {
-      return new NextResponse(viewerProfileError.message, { status: 500 });
+      return new NextResponse("Comment could not be deleted.", { status: 500 });
     }
 
     const viewerIsAdmin = viewerProfile?.is_admin ?? false;
@@ -51,7 +51,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (commentError) {
-      return new NextResponse(commentError.message, { status: 500 });
+      return new NextResponse("Comment could not be deleted.", { status: 500 });
     }
 
     if (!commentData) {
@@ -75,7 +75,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (postAuthorError) {
-      return new NextResponse(postAuthorError.message, { status: 500 });
+      return new NextResponse("Comment could not be deleted.", { status: 500 });
     }
 
     const postAuthorId = postAuthorData?.user_id ?? null;
@@ -92,7 +92,7 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
       .maybeSingle();
 
     if (updateError) {
-      console.log("UPDATE ERROR:", updateError);
+      console.error(updateError);
       return new NextResponse("Comment could not be deleted.", {
         status: 500,
       });

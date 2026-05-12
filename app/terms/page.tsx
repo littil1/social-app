@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 const contentRules = [
   "Illegal, harmful, abusive, hateful, harassing, or threatening content.",
   "Sexual exploitation, sexualized minors, or any content that endangers children.",
@@ -23,8 +21,8 @@ function BulletList({ items }: { items: string[] }) {
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-32 pt-10 sm:pt-16">
-      <section className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+    <main className="mx-auto max-w-3xl px-4 pb-32 pt-8 sm:pt-12">
+      <section className="rounded-[32px] border border-neutral-100 bg-white p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-8">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-amber-600">
           Draft version — to be reviewed before public launch.
         </p>
@@ -41,7 +39,7 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <section className="mt-6 space-y-6 rounded-[28px] border border-neutral-200 bg-white p-6 text-sm font-medium leading-6 text-neutral-600 shadow-sm sm:p-8">
+      <section className="mt-5 space-y-6 rounded-[28px] border border-neutral-100 bg-white p-6 text-sm font-medium leading-6 text-neutral-600 shadow-sm sm:p-8">
         <div>
           <h2 className="text-lg font-black tracking-tight text-neutral-950">
             Acceptance of Terms
@@ -199,15 +197,6 @@ export default function TermsPage() {
           </p>
         </div>
       </section>
-
-      <nav className="mt-6 flex flex-wrap gap-3 text-xs font-black uppercase tracking-[0.16em] text-neutral-500">
-        <Link href="/imprint" className="hover:text-neutral-950">
-          Imprint
-        </Link>
-        <Link href="/privacy" className="hover:text-neutral-950">
-          Privacy Policy
-        </Link>
-      </nav>
     </main>
   );
 }

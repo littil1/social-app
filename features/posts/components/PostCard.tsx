@@ -8,6 +8,9 @@ import PostReportButton from "@/features/posts/components/PostReportButton";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import { useRouter } from "next/navigation";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
+import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
+import FormError from "@/shared/components/ui/FormError";
+import { scheduleScrollIntoViewIfNeeded } from "@/shared/lib/scroll-into-view-if-needed";
 
 type PostCardProps = {
   post: FeedPost;
@@ -147,6 +150,8 @@ function PostCardComponent({
   const router = useRouter();
   const [reactionLoading, setReactionLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(initialShowComments);
   const [optimisticReactions, setOptimisticReactions] = useState(() =>
     getReactionStateFromPost(post)
@@ -155,6 +160,8 @@ function PostCardComponent({
     post.comments_count
   );
   const localCommentsCountRef = useRef(post.comments_count);
+  const commentsContainerRef = useRef<HTMLDivElement | null>(null);
+  const shouldScrollToCommentsRef = useRef(initialShowComments);
 
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const rankStyles = getRankStyles(dailyRank);
@@ -167,6 +174,23 @@ function PostCardComponent({
   useEffect(() => {
     setOptimisticReactions(getReactionStateFromPost(post));
   }, [post]);
+
+  useEffect(() => {
+    if (!showComments || !shouldScrollToCommentsRef.current) return;
+
+    shouldScrollToCommentsRef.current = false;
+    scheduleScrollIntoViewIfNeeded(commentsContainerRef.current);
+  }, [showComments]);
+
+  function toggleComments() {
+    setShowComments((prev) => {
+      const next = !prev;
+      if (next) {
+        shouldScrollToCommentsRef.current = true;
+      }
+      return next;
+    });
+  }
 
   const handleCommentCreated = useCallback(() => {
     setLocalCommentsCount((prev) => {
@@ -238,18 +262,26 @@ function PostCardComponent({
   }
 
   async function handleDeletePost() {
-    if (!window.confirm("Delete this thought?")) return;
+    setDeleteError(null);
     setDeleteLoading(true);
     try {
       const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
-      if (res.ok) {
-        onPostDeleted(post.id);
-        if (!disableRouterRefresh) {
-          router.refresh();
-        }
+      if (!res.ok) {
+        const message = await res.text();
+        throw new Error(message || "Could not delete this post. Try again.");
       }
-    } catch {
-      alert("Error.");
+
+      setDeleteConfirmOpen(false);
+      onPostDeleted(post.id);
+      if (!disableRouterRefresh) {
+        router.refresh();
+      }
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Could not delete this post. Try again."
+      );
     } finally {
       setDeleteLoading(false);
     }
@@ -283,7 +315,10 @@ function PostCardComponent({
           )}
           {post.can_delete && (
             <button
-              onClick={handleDeletePost}
+              onClick={() => {
+                setDeleteError(null);
+                setDeleteConfirmOpen(true);
+              }}
               disabled={deleteLoading}
               className="text-[10px] font-black uppercase tracking-widest text-neutral-300 transition hover:text-red-500 disabled:opacity-30"
             >
@@ -292,6 +327,8 @@ function PostCardComponent({
           )}
         </div>
       </div>
+
+      {deleteError && <FormError message={deleteError} className="mb-4" />}
 
       <div className="mb-5 rounded-[24px] border border-neutral-100/80 bg-neutral-50/45 px-4 py-4 sm:mb-6 sm:px-5 sm:py-5">
         {detailHref ? (
@@ -333,7 +370,7 @@ function PostCardComponent({
           );
         })}
         <button
-          onClick={() => setShowComments(!showComments)}
+          onClick={toggleComments}
           aria-label={`${showComments ? "Hide" : "Show"} comments, ${localCommentsCount} comments`}
           className={`motion-button inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-bold transition-all sm:px-4 ${showComments ? "border-neutral-200 bg-neutral-200 text-neutral-900" : "border-neutral-200/70 bg-white text-neutral-500 shadow-sm hover:border-amber-200 hover:bg-amber-50/60 hover:text-neutral-900"}`}
         >
@@ -343,7 +380,10 @@ function PostCardComponent({
       </div>
 
       {showComments && (
-        <div className="mt-4 border-t border-neutral-100 pt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div
+          ref={commentsContainerRef}
+          className="mt-4 border-t border-neutral-100 pt-4 animate-in fade-in slide-in-from-top-2 duration-300"
+        >
           <CommentsSection
             postId={post.id}
             onCommentCreated={handleCommentCreated}
@@ -351,6 +391,19 @@ function PostCardComponent({
             isLoggedIn={effectiveIsLoggedIn}
           />
         </div>
+      )}
+
+      {deleteConfirmOpen && (
+        <ConfirmDialog
+          title="Delete this post?"
+          description="This removes the post from APP. This action cannot be undone."
+          confirmLabel="Delete post"
+          loading={deleteLoading}
+          onCancel={() => {
+            if (!deleteLoading) setDeleteConfirmOpen(false);
+          }}
+          onConfirm={() => void handleDeletePost()}
+        />
       )}
     </article>
   );

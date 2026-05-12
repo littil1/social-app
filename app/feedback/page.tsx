@@ -47,13 +47,13 @@ export default async function FeedbackPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-14">
+      <main className="mx-auto max-w-6xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-12">
         
         {/* HERO SECTION */}
-        <section className="relative mb-10 overflow-hidden rounded-[32px] bg-neutral-950 px-5 py-8 text-white shadow-2xl sm:mb-14 sm:rounded-[40px] sm:px-6 sm:py-12 lg:mb-16 lg:px-16 lg:py-16">
+        <section className="relative mb-8 overflow-hidden rounded-[32px] bg-neutral-950 px-5 py-8 text-white shadow-[0_34px_90px_-34px_rgba(0,0,0,0.55)] sm:mb-12 sm:rounded-[40px] sm:px-8 sm:py-10 lg:mb-14 lg:px-12 lg:py-12">
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-amber-400/10 blur-[100px]" />
-            <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-indigo-500/10 blur-[100px]" />
+            <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-white/5 blur-[100px]" />
           </div>
 
           <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:gap-12">
@@ -61,7 +61,7 @@ export default async function FeedbackPage() {
               <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">
                 Co-Creation
               </span>
-              <h1 className="mt-5 text-4xl font-black tracking-tight sm:mt-6 sm:text-6xl lg:text-7xl">
+              <h1 className="mt-5 text-4xl font-black tracking-tighter sm:mt-6 sm:text-6xl">
                 Help us build the <span className="text-amber-400">Future</span> of APP.
               </h1>
               <p className="mt-5 text-base leading-relaxed text-neutral-400 sm:mt-6 sm:text-lg">
@@ -85,25 +85,25 @@ export default async function FeedbackPage() {
         </section>
 
         {/* INPUT AREA */}
-        <section className="mb-12 grid gap-6 lg:mb-16 lg:grid-cols-2 lg:gap-8">
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+        <section className="mb-10 grid gap-5 lg:mb-14 lg:grid-cols-2 lg:gap-6">
+          <div className="rounded-[32px] border border-neutral-100 bg-white p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">How to contribute</h2>
-            <div className="mt-8 space-y-4">
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+            <div className="mt-6 space-y-3">
+              <div className="flex gap-4 rounded-2xl border border-neutral-100 bg-neutral-50/70 p-4">
                 <span className="text-xl">🎨</span>
                 <div>
                   <p className="font-bold text-neutral-900">Be Creative</p>
                   <p className="text-sm text-neutral-500">Tell us about your idea - we are here to listen.</p>
                 </div>
               </div>
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+              <div className="flex gap-4 rounded-2xl border border-neutral-100 bg-neutral-50/70 p-4">
                 <span className="text-xl">🎯</span>
                 <div>
                   <p className="font-bold text-neutral-900">Be Specific</p>
                   <p className="text-sm text-neutral-500">Vague ideas are hard to build. Describe the problem and your solution.</p>
                 </div>
               </div>
-              <div className="flex gap-4 rounded-2xl bg-neutral-50 p-4">
+              <div className="flex gap-4 rounded-2xl border border-neutral-100 bg-neutral-50/70 p-4">
                 <span className="text-xl">🤝</span>
                 <div>
                   <p className="font-bold text-neutral-900">Get support</p>
@@ -113,7 +113,7 @@ export default async function FeedbackPage() {
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="rounded-[32px] border border-neutral-100 bg-white p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">Submit your idea</h2>
             {user ? (
               <form action={addFeatureRequest} className="mt-6 space-y-4">
@@ -122,16 +122,16 @@ export default async function FeedbackPage() {
                   name="title"
                   placeholder="Idea title (e.g., Save for Later)"
                   required
-                  className="w-full rounded-2xl border border-neutral-200 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50/70 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white focus:ring-2 focus:ring-amber-100"
                 />
                 <textarea
                   name="description"
                   placeholder="Describe your idea in detail..."
                   required
                   rows={4}
-                  className="w-full rounded-2xl border border-neutral-200 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-amber-400 focus:ring-2 focus:ring-amber-100"
+                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50/70 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white focus:ring-2 focus:ring-amber-100"
                 />
-                <div className="flex flex-col gap-4 rounded-2xl bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-xs font-bold text-amber-900 uppercase tracking-tight">
                     Posting as @{viewerProfile?.username ?? "user"}
                   </p>
@@ -150,7 +150,7 @@ export default async function FeedbackPage() {
         </section>
 
         {/* FEEDBACK BOARD */}
-        <div className="grid gap-8 xl:grid-cols-2 xl:gap-12">
+        <div className="grid gap-8 xl:grid-cols-2 xl:gap-10">
           {/* OPEN IDEAS */}
           <section>
             <div className="mb-6 flex items-center justify-between">
