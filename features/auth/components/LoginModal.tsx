@@ -12,8 +12,16 @@ const initialState: AuthState = {
   success: null,
 };
 
+const SIGNUP_CONFIRMATION_PENDING_KEY = "app_signup_confirmation_pending";
+
 export default function LoginModal() {
-  const { isOpen, redirectPath, closeLogin, handleAuthSuccess } = useAuthModal();
+  const {
+    isOpen,
+    redirectPath,
+    closeLogin,
+    handleAuthSuccess,
+    loginSource,
+  } = useAuthModal();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
   const [loginState, loginFormAction, loginPending] = useActionState(
@@ -26,6 +34,16 @@ export default function LoginModal() {
   );
 
   const authSuccessHandledRef = useRef(false);
+  const signupStartedTrackedRef = useRef(false);
+  const signupSubmittedHandledRef = useRef(false);
+  const signupCompletedHandledRef = useRef(false);
+
+  function trackSignupStartedOnce() {
+    if (signupStartedTrackedRef.current) return;
+
+    signupStartedTrackedRef.current = true;
+    trackEvent("signup_started", { source: loginSource });
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,23 +66,54 @@ export default function LoginModal() {
     if (!isOpen) {
       queueMicrotask(() => setMode("login"));
       authSuccessHandledRef.current = false;
+      signupStartedTrackedRef.current = false;
+      signupSubmittedHandledRef.current = false;
+      signupCompletedHandledRef.current = false;
     }
   }, [isOpen]);
 
   useEffect(() => {
-    const loginSucceeded = !!loginState.success && !loginState.error;
-    const signupSucceeded =
-      !!signupState.success &&
-      signupState.success === "OK" &&
-      !signupState.error;
+    if (!isOpen || loginPending || signupPending) return;
 
-    if (!isOpen || loginPending || signupPending || authSuccessHandledRef.current) {
-      return;
+    const loginSucceeded =
+      loginState.authEvent === "login_completed" &&
+      !!loginState.success &&
+      !loginState.error;
+    const signupSubmitted =
+      (signupState.authEvent === "signup_submitted" ||
+        signupState.authEvent === "signup_completed") &&
+      !!signupState.success &&
+      !signupState.error;
+    const signupCompleted = signupState.authEvent === "signup_completed";
+
+    if (signupSubmitted && !signupSubmittedHandledRef.current) {
+      signupSubmittedHandledRef.current = true;
+      trackEvent("signup_submitted", {
+        confirmation_required: signupState.confirmationRequired ?? false,
+        source: loginSource,
+      });
+
+      if (signupState.confirmationRequired) {
+        window.sessionStorage.setItem(SIGNUP_CONFIRMATION_PENDING_KEY, "1");
+        trackEvent("signup_email_confirmation_required", {
+          confirmation_required: true,
+          source: loginSource,
+        });
+      }
     }
-    if (!loginSucceeded && !signupSucceeded) return;
+
+    if (signupCompleted && !signupCompletedHandledRef.current) {
+      signupCompletedHandledRef.current = true;
+      trackEvent("signup_completed", {
+        confirmation_required: false,
+        source: loginSource,
+      });
+    }
+
+    if (!loginSucceeded && !signupCompleted) return;
+    if (authSuccessHandledRef.current) return;
 
     authSuccessHandledRef.current = true;
-    trackEvent(loginSucceeded ? "login_completed" : "signup_completed");
     handleAuthSuccess();
   }, [
     isOpen,
@@ -72,6 +121,7 @@ export default function LoginModal() {
     signupPending,
     loginState,
     signupState,
+    loginSource,
     handleAuthSuccess,
   ]);
 
@@ -131,7 +181,10 @@ export default function LoginModal() {
               </button>
               <button
                 type="button"
-                onClick={() => setMode("signup")}
+                onClick={() => {
+                  setMode("signup");
+                  trackSignupStartedOnce();
+                }}
                 className={`motion-button rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
                   mode === "signup"
                     ? "bg-white text-black shadow-sm"
@@ -146,7 +199,7 @@ export default function LoginModal() {
               action={mode === "login" ? loginFormAction : signupFormAction}
               onSubmit={() => {
                 if (mode === "signup") {
-                  trackEvent("signup_started");
+                  trackSignupStartedOnce();
                 }
               }}
               className="space-y-4"

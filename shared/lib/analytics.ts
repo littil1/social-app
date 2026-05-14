@@ -14,6 +14,7 @@ type AnalyticsFailureReason =
 
 const SAFE_PROPERTY_KEYS = new Set([
   "area",
+  "confirmation_required",
   "content_length",
   "depth",
   "is_anonymous",

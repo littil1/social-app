@@ -45,6 +45,7 @@ type AuthModalContextValue = {
   authReady: boolean;
   user: User | null;
   profile: AuthProfile | null;
+  loginSource: LoginModalSource;
   openLogin: (redirectPath?: string, source?: LoginModalSource) => void;
   closeLogin: () => void;
   requireLoginAndResume: (
@@ -97,6 +98,17 @@ export default function AuthModalProvider({
   const pendingActionRef = useRef<PendingAuthAction | null>(null);
   const resumeInProgressRef = useRef(false);
   const pendingLoginSourceRef = useRef<LoginModalSource | null>(null);
+  const loginCompletedTrackedUserRef = useRef<string | null>(null);
+  const [loginSource, setLoginSource] = useState<LoginModalSource>("manual");
+
+  const trackLoginCompleted = useCallback((userId: string, source?: LoginModalSource | null) => {
+    if (loginCompletedTrackedUserRef.current === userId) return;
+
+    loginCompletedTrackedUserRef.current = userId;
+    trackEvent("login_completed", {
+      source: source ?? "unknown",
+    });
+  }, []);
 
   const loadProfile = useCallback(
     async (userId: string | null | undefined) => {
@@ -145,6 +157,10 @@ export default function AuthModalProvider({
 
       if (sessionUser?.id) {
         identifyAnalyticsUser(sessionUser.id);
+        if (window.sessionStorage.getItem("app_signup_confirmation_pending")) {
+          window.sessionStorage.removeItem("app_signup_confirmation_pending");
+          trackLoginCompleted(sessionUser.id, "unknown");
+        }
         await loadProfile(sessionUser.id);
       } else {
         resetAnalyticsUser();
@@ -177,6 +193,8 @@ export default function AuthModalProvider({
           pendingActionRef.current = null;
           resumeInProgressRef.current = false;
           pendingLoginSourceRef.current = null;
+          loginCompletedTrackedUserRef.current = null;
+          setLoginSource("manual");
           resetAnalyticsUser();
           setIsOpen(false);
           router.refresh();
@@ -185,6 +203,10 @@ export default function AuthModalProvider({
 
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           identifyAnalyticsUser(sessionUser?.id);
+          if (event === "SIGNED_IN" && sessionUser?.id) {
+            window.sessionStorage.removeItem("app_signup_confirmation_pending");
+            trackLoginCompleted(sessionUser.id, pendingLoginSourceRef.current);
+          }
           router.refresh();
         }
       }
@@ -194,11 +216,12 @@ export default function AuthModalProvider({
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [router, supabase, loadProfile]);
+  }, [router, supabase, loadProfile, trackLoginCompleted]);
 
   const openLogin = useCallback((nextRedirectPath?: string, source: LoginModalSource = "manual") => {
     setRedirectPath(getSafeRedirectPath(nextRedirectPath));
     pendingLoginSourceRef.current = source;
+    setLoginSource(source);
     trackEvent("login_modal_opened", { source });
     setIsOpen(true);
   }, []);
@@ -207,6 +230,7 @@ export default function AuthModalProvider({
     pendingActionRef.current = null;
     resumeInProgressRef.current = false;
     pendingLoginSourceRef.current = null;
+    setLoginSource("manual");
     setIsOpen(false);
   }, []);
 
@@ -219,6 +243,7 @@ export default function AuthModalProvider({
       pendingActionRef.current = action;
       resumeInProgressRef.current = false;
       pendingLoginSourceRef.current = source;
+      setLoginSource(source);
       setRedirectPath(getSafeRedirectPath(nextRedirectPath));
       trackEvent("login_modal_opened", { source });
       setIsOpen(true);
@@ -259,6 +284,7 @@ export default function AuthModalProvider({
         setAuthReady(true);
         setUser(nextUser);
         identifyAnalyticsUser(nextUser.id);
+        trackLoginCompleted(nextUser.id, pendingLoginSource);
         await loadProfile(nextUser.id);
 
         if (!pendingAction) {
@@ -286,7 +312,7 @@ export default function AuthModalProvider({
         console.error("Authenticated user could not be loaded:", error);
         resumeInProgressRef.current = false;
       });
-  }, [router, supabase, loadProfile]);
+  }, [router, supabase, loadProfile, trackLoginCompleted]);
 
   useEffect(() => {
     function handleOpenLoginModal(event: Event) {
@@ -312,6 +338,7 @@ export default function AuthModalProvider({
       authReady,
       user,
       profile,
+      loginSource,
       openLogin,
       closeLogin,
       requireLoginAndResume,
@@ -324,6 +351,7 @@ export default function AuthModalProvider({
       authReady,
       user,
       profile,
+      loginSource,
       openLogin,
       closeLogin,
       requireLoginAndResume,

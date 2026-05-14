@@ -1,12 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import LeaderboardPodiumCard from "@/features/live/components/LeaderboardPodiumCard";
 import LeaderboardPostDetailModal from "@/features/live/components/LeaderboardPostDetailModal";
 import { setAutoRefreshPaused } from "@/lib/utils/auto-refresh";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
+import {
+  applyOptimisticPostBoost,
+  applyOptimisticPostReaction,
+  type OptimisticPostReactionMeta,
+} from "@/shared/lib/optimistic-post";
 
 type LeaderboardPost = {
   id: number;
@@ -51,14 +56,43 @@ export default function LeaderboardPodiumSection({
   const [selectedPost, setSelectedPost] = useState<LeaderboardPost | null>(
     null
   );
+  const pendingPostReactionsRef = useRef(
+    new Map<number, ReactionType | null>()
+  );
+
+  const overlayPendingReactions = useCallback((items: PodiumEntry[]) => {
+    const pendingReactions = pendingPostReactionsRef.current;
+    let changed = false;
+
+    const nextItems = items.map((entry) => {
+      if (!entry.post || !pendingReactions.has(entry.post.id)) {
+        return entry;
+      }
+
+      const pendingReaction = pendingReactions.get(entry.post.id) ?? null;
+
+      if (entry.post.viewer_reaction === pendingReaction) {
+        pendingReactions.delete(entry.post.id);
+        return entry;
+      }
+
+      changed = true;
+      return {
+        ...entry,
+        post: applyOptimisticPostReaction(entry.post, pendingReaction),
+      };
+    });
+
+    return changed ? nextItems : items;
+  }, []);
 
   useEffect(() => {
-    setMobilePodiumItems(mobileItems);
-  }, [mobileItems]);
+    setMobilePodiumItems(overlayPendingReactions(mobileItems));
+  }, [mobileItems, overlayPendingReactions]);
 
   useEffect(() => {
-    setDesktopPodiumItems(desktopItems);
-  }, [desktopItems]);
+    setDesktopPodiumItems(overlayPendingReactions(desktopItems));
+  }, [desktopItems, overlayPendingReactions]);
 
   const updatePost = useCallback((
     postId: number,
@@ -81,35 +115,18 @@ export default function LeaderboardPodiumSection({
 
   const handleReactionUpdated = useCallback((
     postId: number,
-    nextReaction: ReactionType | null
+    nextReaction: ReactionType | null,
+    meta?: OptimisticPostReactionMeta
   ) => {
-    updatePost(postId, (post) => {
-      const previousReaction = post.viewer_reaction;
-      if (previousReaction === nextReaction) return post;
+    if (meta?.status === "rollback") {
+      pendingPostReactionsRef.current.delete(postId);
+    } else {
+      pendingPostReactionsRef.current.set(postId, nextReaction);
+    }
 
-      const reactionCounts = { ...post.reaction_counts };
-      let reactionsCount = post.reactions_count;
-
-      if (previousReaction) {
-        reactionCounts[previousReaction] = Math.max(
-          0,
-          reactionCounts[previousReaction] - 1
-        );
-        reactionsCount = Math.max(0, reactionsCount - 1);
-      }
-
-      if (nextReaction) {
-        reactionCounts[nextReaction] += 1;
-        reactionsCount += 1;
-      }
-
-      return {
-        ...post,
-        viewer_reaction: nextReaction,
-        reaction_counts: reactionCounts,
-        reactions_count: reactionsCount,
-      };
-    });
+    updatePost(postId, (post) =>
+      applyOptimisticPostReaction(post, nextReaction)
+    );
   }, [updatePost]);
 
   const handleBoosted = useCallback(
@@ -119,13 +136,7 @@ export default function LeaderboardPodiumSection({
           return post;
         }
 
-        return {
-          ...post,
-          boost_count: post.id === postId ? boostCount : post.boost_count,
-          viewer_has_boosted: post.id === postId,
-          viewer_boost_available_today: false,
-          can_boost: post.id === postId,
-        };
+        return applyOptimisticPostBoost(post, postId, boostCount);
       };
 
       setMobilePodiumItems((prev) =>

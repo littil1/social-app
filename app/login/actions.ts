@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 export type AuthState = {
   error: string | null;
   success: string | null;
+  authEvent?: "login_completed" | "signup_submitted" | "signup_completed";
+  confirmationRequired?: boolean;
 };
 
 // =====================================================
@@ -46,6 +48,7 @@ export async function loginAction(
   return {
     error: null,
     success: "OK",
+    authEvent: "login_completed",
   };
 }
 
@@ -89,11 +92,15 @@ export async function signupAction(
     return {
       error: null,
       success: "OK",
+      authEvent: "signup_completed",
+      confirmationRequired: false,
     };
   }
 
   return {
     error: null,
+    authEvent: "signup_submitted",
+    confirmationRequired: true,
     success:
       "Account created. Please confirm your email, then sign in.",
   };

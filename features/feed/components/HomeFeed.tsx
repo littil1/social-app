@@ -8,6 +8,11 @@ import PostCard from "@/features/posts/components/PostCard";
 import { KNOW_EVERYTHING_BADGE_KEY } from "@/features/badges/lib/profile-badges";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
 import FormError from "@/shared/components/ui/FormError";
+import {
+  applyOptimisticPostBoost,
+  applyOptimisticPostReaction,
+  type OptimisticPostReactionMeta,
+} from "@/shared/lib/optimistic-post";
 
 type HomeFeedProps = {
   initialTopThreeToday: FeedPost[];
@@ -97,53 +102,6 @@ function restoreFeedScroll() {
   window.requestAnimationFrame(() => {
     window.scrollTo(0, Number(savedScroll));
   });
-}
-
-function applyReactionUpdate(
-  post: FeedPost,
-  nextReaction: ReactionType | null
-): FeedPost {
-  const previousReaction = post.viewer_reaction;
-  if (previousReaction === nextReaction) return post;
-
-  const nextReactionCounts = { ...post.reaction_counts };
-  let nextReactionsCount = post.reactions_count;
-
-  if (previousReaction) {
-    nextReactionCounts[previousReaction] = Math.max(
-      0,
-      nextReactionCounts[previousReaction] - 1
-    );
-    nextReactionsCount = Math.max(0, nextReactionsCount - 1);
-  }
-
-  if (nextReaction) {
-    nextReactionCounts[nextReaction] += 1;
-    nextReactionsCount += 1;
-  }
-
-  return {
-    ...post,
-    viewer_reaction: nextReaction,
-    reaction_counts: nextReactionCounts,
-    reactions_count: nextReactionsCount,
-  };
-}
-
-function applyBoostUpdate(post: FeedPost, boostedPostId: number, boostCount: number) {
-  if (!post.is_today_post) {
-    return post;
-  }
-
-  const isBoostedPost = post.id === boostedPostId;
-
-  return {
-    ...post,
-    boost_count: isBoostedPost ? boostCount : post.boost_count,
-    viewer_has_boosted: isBoostedPost,
-    viewer_boost_available_today: false,
-    can_boost: isBoostedPost,
-  };
 }
 
 function slicePostsForRanks(
@@ -274,32 +232,64 @@ export default function HomeFeed({
     useState(false);
   const [claimBadgeError, setClaimBadgeError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const pendingPostReactionsRef = useRef(
+    new Map<number, ReactionType | null>()
+  );
 
   const router = useRouter();
 
+  const overlayPendingReactions = useCallback((posts: FeedPost[]) => {
+    const pendingReactions = pendingPostReactionsRef.current;
+    let changed = false;
+
+    const nextPosts = posts.map((post) => {
+      if (!pendingReactions.has(post.id)) {
+        return post;
+      }
+
+      const pendingReaction = pendingReactions.get(post.id) ?? null;
+
+      if (post.viewer_reaction === pendingReaction) {
+        pendingReactions.delete(post.id);
+        return post;
+      }
+
+      changed = true;
+      return applyOptimisticPostReaction(post, pendingReaction);
+    });
+
+    return changed ? nextPosts : posts;
+  }, []);
+
   useEffect(() => {
-    const nextTopThreeToday = deduplicatePosts(initialTopThreeToday);
+    const nextTopThreeToday = overlayPendingReactions(
+      deduplicatePosts(initialTopThreeToday)
+    );
     setTopThreeToday((prev) =>
       areFeedsEqual(prev, nextTopThreeToday) ? prev : nextTopThreeToday
     );
-  }, [initialTopThreeToday]);
+  }, [initialTopThreeToday, overlayPendingReactions]);
 
   useEffect(() => {
-    const nextTodayFeed = deduplicatePosts(initialTodayFeed);
+    const nextTodayFeed = overlayPendingReactions(
+      deduplicatePosts(initialTodayFeed)
+    );
     setTodayFeed((prev) =>
       areFeedsEqual(prev, nextTodayFeed) ? prev : nextTodayFeed
     );
-  }, [initialTodayFeed]);
+  }, [initialTodayFeed, overlayPendingReactions]);
 
   useEffect(() => {
-    const nextOlderFeed = deduplicatePosts(initialOlderFeed);
+    const nextOlderFeed = overlayPendingReactions(
+      deduplicatePosts(initialOlderFeed)
+    );
     setOlderFeed((prev) => {
       const mergedFeed = mergeVisibleFeed(prev, nextOlderFeed);
       return areFeedsEqual(prev, mergedFeed) ? prev : mergedFeed;
     });
     setOffset((prev) => Math.max(prev, nextOlderFeed.length));
     setHasMore(initialOlderHasMore);
-  }, [initialOlderFeed, initialOlderHasMore]);
+  }, [initialOlderFeed, initialOlderHasMore, overlayPendingReactions]);
 
   useEffect(() => {
     setHasKnowEverythingBadge(initialHasKnowEverythingBadge);
@@ -356,7 +346,9 @@ export default function HomeFeed({
       });
       const data: FeedResponse = await res.json();
 
-      setOlderFeed((prev) => deduplicatePosts([...prev, ...data.posts]));
+      setOlderFeed((prev) =>
+        overlayPendingReactions(deduplicatePosts([...prev, ...data.posts]))
+      );
       setOffset((prev) => prev + data.posts.length);
       setHasMore(data.hasMore);
     } catch (error) {
@@ -364,7 +356,14 @@ export default function HomeFeed({
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, offset, pageSize, showOlderPosts]);
+  }, [
+    hasMore,
+    loadingMore,
+    offset,
+    overlayPendingReactions,
+    pageSize,
+    showOlderPosts,
+  ]);
 
   useEffect(() => {
     if (!showOlderPosts || !hasMore) return;
@@ -385,9 +384,21 @@ export default function HomeFeed({
   }, [hasMore, loadMore, showOlderPosts]);
 
   const handleReactionUpdated = useCallback(
-    (postId: number, nextReaction: ReactionType | null) => {
+    (
+      postId: number,
+      nextReaction: ReactionType | null,
+      meta?: OptimisticPostReactionMeta
+    ) => {
+      if (meta?.status === "rollback") {
+        pendingPostReactionsRef.current.delete(postId);
+      } else {
+        pendingPostReactionsRef.current.set(postId, nextReaction);
+      }
+
       updatePostLists((post) =>
-        post.id === postId ? applyReactionUpdate(post, nextReaction) : post
+        post.id === postId
+          ? applyOptimisticPostReaction(post, nextReaction)
+          : post
       );
     },
     [updatePostLists]
@@ -400,6 +411,10 @@ export default function HomeFeed({
           ? {
               ...post,
               comments_count: post.comments_count + 1,
+              relevance_score:
+                typeof post.relevance_score === "number"
+                  ? post.relevance_score + 2
+                  : post.relevance_score,
             }
           : post
       );
@@ -411,7 +426,17 @@ export default function HomeFeed({
     (postId: number, count: number) => {
       updatePostLists((post) =>
         post.id === postId && post.comments_count !== count
-          ? { ...post, comments_count: count }
+          ? {
+              ...post,
+              comments_count: count,
+              relevance_score:
+                typeof post.relevance_score === "number"
+                  ? Math.max(
+                      0,
+                      post.relevance_score + (count - post.comments_count) * 2
+                    )
+                  : post.relevance_score,
+            }
           : post
       );
     },
@@ -420,7 +445,9 @@ export default function HomeFeed({
 
   const handleBoosted = useCallback(
     (postId: number, boostCount: number) => {
-      updatePostLists((post) => applyBoostUpdate(post, postId, boostCount));
+      updatePostLists((post) =>
+        applyOptimisticPostBoost(post, postId, boostCount)
+      );
     },
     [updatePostLists]
   );

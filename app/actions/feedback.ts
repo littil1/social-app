@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import { recomputeUserBadgeFamiliesWithAdmin } from "@/features/badges/lib/server";
 import type { Database } from "@/shared/types/database";
 import {
   checkRateLimit,
@@ -126,7 +126,7 @@ export async function addFeatureRequest(formData: FormData) {
     },
   ]);
 
-  await recomputeUserBadgeFamilies(supabase, user.id, ["contributor"]);
+  await recomputeUserBadgeFamiliesWithAdmin(user.id, ["contributor"]);
 
   const ownUsername = await getProfileUsernameByUserId(supabase, user.id);
 
@@ -172,7 +172,7 @@ export async function deleteFeatureRequest(formData: FormData) {
   await deleteRequestQuery;
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase, authorId, [
+    await recomputeUserBadgeFamiliesWithAdmin(authorId, [
       "contributor",
       "builder",
       "most_discussed",
@@ -263,12 +263,12 @@ export async function addFeatureRequestComment(formData: FormData) {
     },
   ]);
 
-  await recomputeUserBadgeFamilies(supabase, user.id, [
+  await recomputeUserBadgeFamiliesWithAdmin(user.id, [
     "top_commentator",
   ]);
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase, authorId, [
+    await recomputeUserBadgeFamiliesWithAdmin(authorId, [
       "most_discussed",
     ]);
   }
@@ -326,13 +326,13 @@ export async function deleteFeatureRequestComment(formData: FormData) {
   await deleteCommentQuery;
 
   if (comment.user_id) {
-    await recomputeUserBadgeFamilies(supabase, comment.user_id, [
+    await recomputeUserBadgeFamiliesWithAdmin(comment.user_id, [
       "top_commentator",
     ]);
   }
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase, authorId, [
+    await recomputeUserBadgeFamiliesWithAdmin(authorId, [
       "most_discussed",
     ]);
   }
@@ -377,7 +377,7 @@ export async function updateFeatureRequestStatus(formData: FormData) {
     .eq("id", requestId);
 
   if (authorId) {
-    await recomputeUserBadgeFamilies(supabase, authorId, ["builder"]);
+    await recomputeUserBadgeFamiliesWithAdmin(authorId, ["builder"]);
   }
 
   revalidateMany([
@@ -515,7 +515,7 @@ export async function saveRoadAchievement(
     };
   }
 
-  await recomputeUserBadgeFamilies(supabase, request.user_id, ["builder"]);
+  await recomputeUserBadgeFamiliesWithAdmin(request.user_id, ["builder"]);
 
   const authorUsername = await getProfileUsernameByUserId(
     supabase,

@@ -16,6 +16,8 @@ Analytics initializes only in production and only when both variables exist. Mis
 - `page_viewed`
 - `login_modal_opened`
 - `signup_started`
+- `signup_submitted`
+- `signup_email_confirmation_required`
 - `signup_completed`
 - `login_completed`
 - `login_completed_after_gated_action`
@@ -62,6 +64,21 @@ Analytics initializes only in production and only when both variables exist. Mis
 - No raw error messages.
 - Only structured failure categories are sent: `validation`, `auth`, `rate_limited`, `network`, `unknown`.
 - `identify` uses only Supabase `user.id` after authentication.
+
+## Signup Funnels
+
+Recommended signup intent funnel:
+
+1. `login_modal_opened`
+2. `signup_started`
+3. `signup_submitted`
+
+Recommended activation funnel:
+
+1. `signup_submitted`
+2. `login_completed`
+
+`signup_completed` only fires when Supabase creates an active session directly after signup. In the email-confirmation flow, `signup_submitted` means Supabase accepted the signup and likely sent the confirmation email, while `signup_email_confirmation_required` marks that no active session was returned. After the user confirms their email and returns to APP, `login_completed` is the real activation/return moment.
 
 ## Disabled Features
 

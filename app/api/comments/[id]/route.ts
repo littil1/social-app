@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/shared/types/database";
-import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import { recomputeUserBadgeFamiliesWithAdmin } from "@/features/badges/lib/server";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -99,13 +99,13 @@ export async function DELETE(_: NextRequest, context: RouteContext) {
     }
 
     if (comment.user_id) {
-      await recomputeUserBadgeFamilies(supabase, comment.user_id, [
+      await recomputeUserBadgeFamiliesWithAdmin(comment.user_id, [
         "top_commentator",
       ]);
     }
 
     if (postAuthorId) {
-      await recomputeUserBadgeFamilies(supabase, postAuthorId, [
+      await recomputeUserBadgeFamiliesWithAdmin(postAuthorId, [
         "most_discussed",
       ]);
     }

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   ALL_BADGE_FAMILIES,
-  recomputeUserBadgeFamilies,
 } from "@/features/badges/lib";
+import { recomputeUserBadgeFamiliesWithAdmin } from "@/features/badges/lib/server";
 import { getUserBadges } from "@/features/badges/lib/getUserBadges";
 
 type RouteContext = {
@@ -74,8 +74,7 @@ export async function POST(request: Request, context: RouteContext) {
     const familiesToRecompute =
       requestedFamilies.length > 0 ? requestedFamilies : [...ALL_BADGE_FAMILIES];
 
-    await recomputeUserBadgeFamilies(
-      supabase,
+    await recomputeUserBadgeFamiliesWithAdmin(
       targetUserId,
       familiesToRecompute
     );

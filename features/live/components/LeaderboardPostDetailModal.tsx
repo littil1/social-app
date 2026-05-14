@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import PostCard from "@/features/posts/components/PostCard";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { FeedPost, ReactionCounts, ReactionType } from "@/shared/types/feed";
+import {
+  applyOptimisticPostBoost,
+  applyOptimisticPostReaction,
+} from "@/shared/lib/optimistic-post";
 
 type LeaderboardPost = {
   id: number;
@@ -51,58 +55,6 @@ function toFeedPost(post: LeaderboardPost): FeedPost {
     author_username: post.author_username,
     author_avatar_url: post.author_avatar_url,
     relevance_score: post.relevance_score,
-  };
-}
-
-function applyReactionUpdate(
-  post: FeedPost,
-  nextReaction: ReactionType | null
-): FeedPost {
-  const previousReaction = post.viewer_reaction;
-
-  if (previousReaction === nextReaction) {
-    return post;
-  }
-
-  const reaction_counts = { ...post.reaction_counts };
-  let reactions_count = post.reactions_count;
-
-  if (previousReaction) {
-    reaction_counts[previousReaction] = Math.max(
-      0,
-      reaction_counts[previousReaction] - 1
-    );
-    reactions_count = Math.max(0, reactions_count - 1);
-  }
-
-  if (nextReaction) {
-    reaction_counts[nextReaction] += 1;
-    reactions_count += 1;
-  }
-
-  return {
-    ...post,
-    viewer_reaction: nextReaction,
-    reaction_counts,
-    reactions_count,
-  };
-}
-
-function applyBoostUpdate(
-  post: FeedPost,
-  postId: number,
-  boostCount: number
-): FeedPost {
-  if (!post.is_today_post) {
-    return post;
-  }
-
-  return {
-    ...post,
-    boost_count: post.id === postId ? boostCount : post.boost_count,
-    viewer_has_boosted: post.id === postId,
-    viewer_boost_available_today: false,
-    can_boost: post.id === postId,
   };
 }
 
@@ -153,7 +105,7 @@ export default function LeaderboardPostDetailModal({
   ) {
     setModalPost((current) => {
       if (!current || current.id !== postId) return current;
-      return applyReactionUpdate(current, nextReaction);
+      return applyOptimisticPostReaction(current, nextReaction);
     });
   }
 
@@ -164,6 +116,10 @@ export default function LeaderboardPostDetailModal({
       return {
         ...current,
         comments_count: current.comments_count + 1,
+        relevance_score:
+          typeof current.relevance_score === "number"
+            ? current.relevance_score + 2
+            : current.relevance_score,
       };
     });
   }
@@ -175,6 +131,13 @@ export default function LeaderboardPostDetailModal({
       return {
         ...current,
         comments_count: count,
+        relevance_score:
+          typeof current.relevance_score === "number"
+            ? Math.max(
+                0,
+                current.relevance_score + (count - current.comments_count) * 2
+              )
+            : current.relevance_score,
       };
     });
   }
@@ -187,7 +150,7 @@ export default function LeaderboardPostDetailModal({
 
   function handleBoosted(postId: number, boostCount: number) {
     setModalPost((current) =>
-      current ? applyBoostUpdate(current, postId, boostCount) : current
+      current ? applyOptimisticPostBoost(current, postId, boostCount) : current
     );
     onBoosted?.(postId, boostCount);
   }

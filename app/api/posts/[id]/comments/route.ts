@@ -7,7 +7,7 @@ import type {
   ReactionCounts,
   ReactionType,
 } from "@/shared/types/feed";
-import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import { recomputeUserBadgeFamiliesWithAdmin } from "@/features/badges/lib/server";
 import { getUserBadges } from "@/features/badges/lib/getUserBadges";
 import {
   checkRateLimit,
@@ -381,10 +381,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       author_hall_of_fame_categories: [],
     };
 
-    await recomputeUserBadgeFamilies(supabase, user.id, ["top_commentator"]);
+    await recomputeUserBadgeFamiliesWithAdmin(user.id, ["top_commentator"]);
 
     if (postData.user_id) {
-      await recomputeUserBadgeFamilies(supabase, postData.user_id, [
+      await recomputeUserBadgeFamiliesWithAdmin(postData.user_id, [
         "most_discussed",
       ]);
     }

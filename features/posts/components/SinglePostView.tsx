@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import PostCard from "@/features/posts/components/PostCard";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
+import {
+  applyOptimisticPostBoost,
+  applyOptimisticPostReaction,
+} from "@/shared/lib/optimistic-post";
 
 type SinglePostViewProps = {
   initialPost: FeedPost;
@@ -12,61 +16,6 @@ type SinglePostViewProps = {
 // =====================================================
 // Helpers
 // =====================================================
-
-function applyReactionUpdate(
-  post: FeedPost,
-  nextReaction: ReactionType | null
-): FeedPost {
-  const previousReaction = post.viewer_reaction;
-
-  if (previousReaction === nextReaction) {
-    return post;
-  }
-
-  const nextReactionCounts = {
-    ...post.reaction_counts,
-  };
-
-  let nextReactionsCount = post.reactions_count;
-
-  if (previousReaction) {
-    nextReactionCounts[previousReaction] = Math.max(
-      0,
-      nextReactionCounts[previousReaction] - 1
-    );
-    nextReactionsCount = Math.max(0, nextReactionsCount - 1);
-  }
-
-  if (nextReaction) {
-    nextReactionCounts[nextReaction] += 1;
-    nextReactionsCount += 1;
-  }
-
-  return {
-    ...post,
-    viewer_reaction: nextReaction,
-    reaction_counts: nextReactionCounts,
-    reactions_count: nextReactionsCount,
-  };
-}
-
-function applyBoostUpdate(
-  post: FeedPost,
-  postId: number,
-  boostCount: number
-): FeedPost {
-  if (!post.is_today_post) {
-    return post;
-  }
-
-  return {
-    ...post,
-    boost_count: post.id === postId ? boostCount : post.boost_count,
-    viewer_has_boosted: post.id === postId,
-    viewer_boost_available_today: false,
-    can_boost: post.id === postId,
-  };
-}
 
 // =====================================================
 // Component
@@ -93,7 +42,7 @@ export default function SinglePostView({
   ) {
     setPost((prev) => {
       if (prev.id !== postId) return prev;
-      return applyReactionUpdate(prev, nextReaction);
+      return applyOptimisticPostReaction(prev, nextReaction);
     });
   }
 
@@ -104,6 +53,10 @@ export default function SinglePostView({
       return {
         ...prev,
         comments_count: prev.comments_count + 1,
+        relevance_score:
+          typeof prev.relevance_score === "number"
+            ? prev.relevance_score + 2
+            : prev.relevance_score,
       };
     });
   }
@@ -115,7 +68,7 @@ export default function SinglePostView({
   }
 
   function handleBoosted(postId: number, boostCount: number) {
-    setPost((prev) => applyBoostUpdate(prev, postId, boostCount));
+    setPost((prev) => applyOptimisticPostBoost(prev, postId, boostCount));
     router.refresh();
   }
 

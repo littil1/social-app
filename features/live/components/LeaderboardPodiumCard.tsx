@@ -1,9 +1,11 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import PostBoostButton from "@/features/posts/components/PostBoostButton";
 import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
+import type { OptimisticPostReactionMeta } from "@/shared/lib/optimistic-post";
+import FormError from "@/shared/components/ui/FormError";
 
 type LeaderboardPost = {
   id: number;
@@ -34,7 +36,8 @@ type LeaderboardPodiumCardProps = {
   onOpenComments?: () => void;
   onReactionUpdated?: (
     postId: number,
-    nextReaction: ReactionType | null
+    nextReaction: ReactionType | null,
+    meta?: OptimisticPostReactionMeta
   ) => void;
   onBoosted?: (postId: number, boostCount: number) => void;
   onMutationCommitted?: () => void;
@@ -108,6 +111,8 @@ function LeaderboardPodiumCard({
   onMutationCommitted,
 }: LeaderboardPodiumCardProps) {
   const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
+  const [reactionLoading, setReactionLoading] = useState(false);
+  const [reactionError, setReactionError] = useState<string | null>(null);
   const styles = getRankStyles(position);
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
 
@@ -139,12 +144,14 @@ function LeaderboardPodiumCard({
   const score = getDisplayEchoScore(post.relevance_score);
 
   async function submitReaction(reaction: ReactionType) {
-    if (!post) return;
+    if (!post || reactionLoading) return;
 
     const previousReaction = post.viewer_reaction;
     const nextReaction = previousReaction === reaction ? null : reaction;
 
-    onReactionUpdated?.(post.id, nextReaction);
+    setReactionError(null);
+    setReactionLoading(true);
+    onReactionUpdated?.(post.id, nextReaction, { status: "pending" });
 
     try {
       const res = await fetch(`/api/posts/${post.id}/like`, {
@@ -154,10 +161,11 @@ function LeaderboardPodiumCard({
       });
 
       if (res.status === 401 || res.status === 403 || !effectiveIsLoggedIn) {
-        onReactionUpdated?.(post.id, previousReaction);
+        onReactionUpdated?.(post.id, previousReaction, { status: "rollback" });
         requireLoginAndResume(
           () => void submitReaction(reaction),
-          window.location.pathname
+          window.location.pathname,
+          "reaction"
         );
         return;
       }
@@ -168,7 +176,10 @@ function LeaderboardPodiumCard({
 
       onMutationCommitted?.();
     } catch {
-      onReactionUpdated?.(post.id, previousReaction);
+      onReactionUpdated?.(post.id, previousReaction, { status: "rollback" });
+      setReactionError("Reaction could not be saved. Try again.");
+    } finally {
+      setReactionLoading(false);
     }
   }
 
@@ -232,6 +243,7 @@ function LeaderboardPodiumCard({
                 key={reaction.key}
                 type="button"
                 onClick={() => void submitReaction(reaction.key)}
+                disabled={reactionLoading}
                 data-active={isActive}
                 aria-label={`React with ${reaction.label}, ${
                   post.reaction_counts[reaction.key] ?? 0
@@ -265,6 +277,7 @@ function LeaderboardPodiumCard({
             </span>
           </button>
         </div>
+        {reactionError && <FormError message={reactionError} className="mt-3" />}
 
         {post.is_today_post && (
           <div className="mt-3">

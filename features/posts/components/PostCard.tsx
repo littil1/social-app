@@ -13,12 +13,14 @@ import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
 import FormError from "@/shared/components/ui/FormError";
 import { scheduleScrollIntoViewIfNeeded } from "@/shared/lib/scroll-into-view-if-needed";
 import { getAnalyticsSource, trackEvent } from "@/shared/lib/analytics";
+import type { OptimisticPostReactionMeta } from "@/shared/lib/optimistic-post";
 
 type PostCardProps = {
   post: FeedPost;
   onReactionUpdated: (
     postId: number,
-    nextReaction: ReactionType | null
+    nextReaction: ReactionType | null,
+    meta?: OptimisticPostReactionMeta
   ) => void;
   onCommentCreated?: (postId: number) => void;
   onCommentsCountChange?: (postId: number, count: number) => void;
@@ -48,6 +50,8 @@ type OptimisticReactionState = {
   viewerReaction: ReactionType | null;
   reactionCounts: NonNullable<FeedPost["reaction_counts"]>;
 };
+
+const NO_PENDING_REACTION = Symbol("no-pending-reaction");
 
 function getReactionStateFromPost(post: FeedPost): OptimisticReactionState {
   return {
@@ -156,6 +160,7 @@ function PostCardComponent({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [reactionError, setReactionError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(initialShowComments);
   const [optimisticReactions, setOptimisticReactions] = useState(() =>
     getReactionStateFromPost(post)
@@ -166,6 +171,9 @@ function PostCardComponent({
   const localCommentsCountRef = useRef(post.comments_count);
   const commentsContainerRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToCommentsRef = useRef(initialShowComments);
+  const pendingReactionRef = useRef<
+    ReactionType | null | typeof NO_PENDING_REACTION
+  >(NO_PENDING_REACTION);
 
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const rankStyles = getRankStyles(dailyRank);
@@ -176,7 +184,18 @@ function PostCardComponent({
   }, [post.comments_count]);
 
   useEffect(() => {
-    setOptimisticReactions(getReactionStateFromPost(post));
+    const nextServerState = getReactionStateFromPost(post);
+    const pendingReaction = pendingReactionRef.current;
+
+    if (pendingReaction === NO_PENDING_REACTION) {
+      setOptimisticReactions(nextServerState);
+      return;
+    }
+
+    if (post.viewer_reaction === pendingReaction) {
+      pendingReactionRef.current = NO_PENDING_REACTION;
+      setOptimisticReactions(nextServerState);
+    }
   }, [post]);
 
   useEffect(() => {
@@ -240,10 +259,12 @@ function PostCardComponent({
     const nextReaction = previousReaction === reaction ? null : reaction;
     const previousOptimisticReactions = optimisticReactions;
 
+    pendingReactionRef.current = nextReaction;
+    setReactionError(null);
     setOptimisticReactions((current) =>
       applyOptimisticReaction(current, nextReaction)
     );
-    onReactionUpdated(post.id, nextReaction);
+    onReactionUpdated(post.id, nextReaction, { status: "pending" });
     setReactionLoading(true);
     trackEvent("reaction_clicked", {
       target_type: "post",
@@ -259,8 +280,9 @@ function PostCardComponent({
       });
 
       if (res.status === 401 || res.status === 403) {
+        pendingReactionRef.current = NO_PENDING_REACTION;
         setOptimisticReactions(previousOptimisticReactions);
-        onReactionUpdated(post.id, previousReaction);
+        onReactionUpdated(post.id, previousReaction, { status: "rollback" });
         requireLoginAndResume(
           () => submitReaction(reaction),
           window.location.pathname,
@@ -279,8 +301,10 @@ function PostCardComponent({
         scheduleRefresh(router);
       }
     } catch {
+      pendingReactionRef.current = NO_PENDING_REACTION;
       setOptimisticReactions(previousOptimisticReactions);
-      onReactionUpdated(post.id, previousReaction);
+      onReactionUpdated(post.id, previousReaction, { status: "rollback" });
+      setReactionError("Reaction could not be saved. Try again.");
       trackEvent("reaction_failed", {
         target_type: "post",
         reason: "unknown",
@@ -358,6 +382,9 @@ function PostCardComponent({
       </div>
 
       {deleteError && <FormError message={deleteError} className="mb-4" />}
+      {reactionError && (
+        <FormError message={reactionError} className="mb-4" />
+      )}
 
       <div className="mb-5 rounded-[24px] border border-neutral-100/80 bg-neutral-50/45 px-4 py-4 sm:mb-6 sm:px-5 sm:py-5">
         {detailHref ? (

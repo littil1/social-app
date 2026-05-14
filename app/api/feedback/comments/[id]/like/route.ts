@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import { safeRecomputeUserBadgeFamiliesWithAdmin } from "@/features/badges/lib/server";
 import {
   checkRateLimit,
   getActorRateLimitKey,
@@ -100,14 +100,14 @@ export async function POST(request: Request, context: RouteContext) {
           });
         }
 
-        await recomputeUserBadgeFamilies(supabase, user.id, [
+        await safeRecomputeUserBadgeFamiliesWithAdmin(user.id, [
           "top_reactor",
-        ]);
+        ], "feedback-comment-reaction:reactor");
 
         if (comment.user_id) {
-          await recomputeUserBadgeFamilies(supabase, comment.user_id, [
+          await safeRecomputeUserBadgeFamiliesWithAdmin(comment.user_id, [
             "most_reacted",
-          ]);
+          ], "feedback-comment-reaction:author");
         }
 
         return NextResponse.json({ success: true, viewer_reaction: null });
@@ -125,14 +125,14 @@ export async function POST(request: Request, context: RouteContext) {
         });
       }
 
-      await recomputeUserBadgeFamilies(supabase, user.id, [
+      await safeRecomputeUserBadgeFamiliesWithAdmin(user.id, [
         "top_reactor",
-      ]);
+      ], "feedback-comment-reaction:reactor");
 
       if (comment.user_id) {
-        await recomputeUserBadgeFamilies(supabase, comment.user_id, [
+        await safeRecomputeUserBadgeFamiliesWithAdmin(comment.user_id, [
           "most_reacted",
-        ]);
+        ], "feedback-comment-reaction:author");
       }
 
       return NextResponse.json({ success: true, viewer_reaction: reaction });
@@ -154,14 +154,14 @@ export async function POST(request: Request, context: RouteContext) {
       });
     }
 
-    await recomputeUserBadgeFamilies(supabase, user.id, [
+    await safeRecomputeUserBadgeFamiliesWithAdmin(user.id, [
       "top_reactor",
-    ]);
+    ], "feedback-comment-reaction:reactor");
 
     if (comment.user_id) {
-      await recomputeUserBadgeFamilies(supabase, comment.user_id, [
+      await safeRecomputeUserBadgeFamiliesWithAdmin(comment.user_id, [
         "most_reacted",
-      ]);
+      ], "feedback-comment-reaction:author");
     }
 
     return NextResponse.json({ success: true, viewer_reaction: reaction });

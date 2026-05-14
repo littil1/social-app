@@ -3,6 +3,10 @@
 import { useCallback, useState } from "react";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import PostCard from "@/features/posts/components/PostCard";
+import {
+  applyOptimisticPostBoost,
+  applyOptimisticPostReaction,
+} from "@/shared/lib/optimistic-post";
 
 type Props = {
   initialPosts: FeedPost[];
@@ -21,35 +25,7 @@ export default function UserProfileContent({
             return post;
           }
 
-          const previousReaction = post.viewer_reaction;
-          const nextReactionCounts = {
-            like: post.reaction_counts.like,
-            funny: post.reaction_counts.funny,
-            wow: post.reaction_counts.wow,
-            fire: post.reaction_counts.fire,
-          };
-
-          if (previousReaction) {
-            nextReactionCounts[previousReaction] = Math.max(
-              0,
-              nextReactionCounts[previousReaction] - 1
-            );
-          }
-
-          if (nextReaction) {
-            nextReactionCounts[nextReaction] += 1;
-          }
-
-          return {
-            ...post,
-            viewer_reaction: nextReaction,
-            reactions_count:
-              nextReactionCounts.like +
-              nextReactionCounts.funny +
-              nextReactionCounts.wow +
-              nextReactionCounts.fire,
-            reaction_counts: nextReactionCounts,
-          };
+          return applyOptimisticPostReaction(post, nextReaction);
         })
       );
     },
@@ -71,7 +47,17 @@ export default function UserProfileContent({
           }
 
           changed = true;
-          return { ...post, comments_count: count };
+          return {
+            ...post,
+            comments_count: count,
+            relevance_score:
+              typeof post.relevance_score === "number"
+                ? Math.max(
+                    0,
+                    post.relevance_score + (count - post.comments_count) * 2
+                  )
+                : post.relevance_score,
+          };
         });
 
         return changed ? nextPosts : prev;
@@ -86,19 +72,7 @@ export default function UserProfileContent({
 
   const handleBoosted = useCallback((postId: number, boostCount: number) => {
     setPosts((prev) =>
-      prev.map((post) => {
-        if (!post.is_today_post) {
-          return post;
-        }
-
-        return {
-          ...post,
-          boost_count: post.id === postId ? boostCount : post.boost_count,
-          viewer_has_boosted: post.id === postId,
-          viewer_boost_available_today: false,
-          can_boost: post.id === postId,
-        };
-      })
+      prev.map((post) => applyOptimisticPostBoost(post, postId, boostCount))
     );
   }, []);
 

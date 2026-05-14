@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { recomputeUserBadgeFamilies } from "@/features/badges/lib";
+import { safeRecomputeUserBadgeFamiliesWithAdmin } from "@/features/badges/lib/server";
 import {
   checkRateLimit,
   getActorRateLimitKey,
@@ -101,14 +101,14 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     const recomputeBadges = async () => {
-      await recomputeUserBadgeFamilies(supabase, user.id, [
+      await safeRecomputeUserBadgeFamiliesWithAdmin(user.id, [
         "top_reactor",
-      ]);
+      ], "post-reaction:reactor");
 
       if (post.user_id) {
-        await recomputeUserBadgeFamilies(supabase, post.user_id, [
+        await safeRecomputeUserBadgeFamiliesWithAdmin(post.user_id, [
           "most_reacted",
-        ]);
+        ], "post-reaction:author");
       }
     };
 

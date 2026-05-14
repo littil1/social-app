@@ -694,6 +694,7 @@ export default function CommentsSection({
       existing.viewer_reaction === reaction ? null : reaction;
 
     setReactingCommentId(commentId);
+    setError(null);
     trackEvent("reaction_clicked", {
       target_type: "comment",
       reaction_type: reaction,
@@ -733,6 +734,7 @@ export default function CommentsSection({
       setComments((prev) =>
         prev.map((comment) => (comment.id === commentId ? existing : comment))
       );
+      setError("Reaction could not be saved. Try again.");
       trackEvent("reaction_failed", {
         target_type: "comment",
         reason: "unknown",
