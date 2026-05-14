@@ -14,6 +14,7 @@ import type { FeedbackComment } from "@/features/input/lib/feedback-data";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
 import FormError from "@/shared/components/ui/FormError";
+import { trackEvent } from "@/shared/lib/analytics";
 
 type FeedbackCommentsSectionProps = {
   requestId: number;
@@ -145,11 +146,20 @@ export default function FeedbackCommentsSection({
 
   async function handleReaction(commentId: number, type: ReactionValue) {
     if (!currentUserId) {
-      requireLoginAndResume(() => handleReaction(commentId, type), pathname);
+      requireLoginAndResume(
+        () => handleReaction(commentId, type),
+        pathname,
+        "reaction"
+      );
       return;
     }
 
     const previousComments = localComments;
+    trackEvent("reaction_clicked", {
+      target_type: "feedback_comment",
+      reaction_type: type,
+      source: "input",
+    });
 
     setLocalComments((prev) =>
       prev.map((comment) => {
@@ -202,6 +212,10 @@ export default function FeedbackCommentsSection({
     } catch {
       setLocalComments(previousComments);
       setError("Could not save your reaction. Try again.");
+      trackEvent("reaction_failed", {
+        target_type: "feedback_comment",
+        reason: "unknown",
+      });
     }
   }
 
@@ -341,7 +355,17 @@ export default function FeedbackCommentsSection({
         {activeReplyId === node.id && (
           <form
             action={async (fd) => {
-              await addFeatureRequestComment(fd);
+              const content = String(fd.get("content") ?? "").trim();
+              try {
+                await addFeatureRequestComment(fd);
+                trackEvent("input_comment_submitted", {
+                  depth: "reply",
+                  content_length: content.length,
+                });
+              } catch (error) {
+                trackEvent("comment_submit_failed", { reason: "unknown" });
+                throw error;
+              }
               setActiveReplyId(null);
               startTransition(() => {
                 scheduleRefresh(router);
@@ -399,7 +423,17 @@ export default function FeedbackCommentsSection({
 
       <form
         action={async (fd) => {
-          await addFeatureRequestComment(fd);
+          const content = String(fd.get("content") ?? "").trim();
+          try {
+            await addFeatureRequestComment(fd);
+            trackEvent("input_comment_submitted", {
+              depth: "top_level",
+              content_length: content.length,
+            });
+          } catch (error) {
+            trackEvent("comment_submit_failed", { reason: "unknown" });
+            throw error;
+          }
           startTransition(() => {
             scheduleRefresh(router);
           });

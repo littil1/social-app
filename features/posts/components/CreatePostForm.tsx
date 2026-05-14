@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { FeedPost } from "@/shared/types/feed";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import FormError from "@/shared/components/ui/FormError";
+import { classifyAnalyticsError, trackEvent } from "@/shared/lib/analytics";
 
 // =====================================================
 // Types
@@ -19,6 +20,7 @@ type CreatePostFormProps = {
     username: string;
     avatar_url: string | null;
   } | null;
+  source?: string;
 };
 
 // =====================================================
@@ -30,6 +32,7 @@ export default function CreatePostForm({
   isLoggedIn,
   onClose,
   currentUserProfile = null,
+  source = "unknown",
 }: CreatePostFormProps) {
   const router = useRouter();
 
@@ -74,7 +77,7 @@ export default function CreatePostForm({
 
       requireLoginAndResume(() => {
         void submitPost(true);
-      }, window.location.pathname);
+      }, window.location.pathname, "create_post");
 
       return;
     }
@@ -82,6 +85,10 @@ export default function CreatePostForm({
     if (!canSubmit || loading) {
       if (trimmed.length < 2) {
         setError("Write something before posting.");
+        trackEvent("post_submit_failed", {
+          source,
+          reason: "validation",
+        });
       }
       return;
     }
@@ -111,7 +118,7 @@ export default function CreatePostForm({
 
         requireLoginAndResume(() => {
           void submitPost(true);
-        }, window.location.pathname);
+        }, window.location.pathname, "create_post");
 
         return;
       }
@@ -124,10 +131,18 @@ export default function CreatePostForm({
       const newPost: FeedPost = await res.json();
 
       onPostCreated(newPost);
+      trackEvent("post_submitted", {
+        source,
+        content_length: trimmed.length,
+      });
       setContent("");
       onClose?.();
     } catch (error) {
       console.error(error);
+      trackEvent("post_submit_failed", {
+        source,
+        reason: classifyAnalyticsError(error),
+      });
 
       if (
         error instanceof Error &&

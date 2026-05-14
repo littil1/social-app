@@ -10,6 +10,11 @@ import CommentReportButton from "@/features/comments/components/CommentReportBut
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
 import FormError from "@/shared/components/ui/FormError";
+import {
+  classifyAnalyticsError,
+  getAnalyticsSource,
+  trackEvent,
+} from "@/shared/lib/analytics";
 
 type CommentsSectionProps = {
   postId: number;
@@ -525,6 +530,7 @@ export default function CommentsSection({
     if (!trimmed || submitting) {
       if (!trimmed) {
         setError("Write a comment before sending.");
+        trackEvent("comment_submit_failed", { reason: "validation" });
       }
       return;
     }
@@ -553,11 +559,14 @@ export default function CommentsSection({
           prev.filter((comment) => comment.id !== optimisticId)
         );
         setContent(trimmed);
-        requireLoginAndResume(() => void createComment(trimmed), pathname);
+        requireLoginAndResume(() => void createComment(trimmed), pathname, "comment");
         return;
       }
 
       if (!res.ok) {
+        trackEvent("comment_submit_failed", {
+          reason: classifyAnalyticsError(undefined, res.status),
+        });
         const message = await res.text();
         throw new Error(message || "Comment creation failed.");
       }
@@ -570,6 +579,11 @@ export default function CommentsSection({
         )
       );
       onCommentCreated();
+      trackEvent("comment_submitted", {
+        source: getAnalyticsSource(pathname),
+        depth: "top_level",
+        content_length: trimmed.length,
+      });
     } catch (error) {
       setComments((prev) =>
         prev.filter((comment) => comment.id !== optimisticId)
@@ -578,6 +592,9 @@ export default function CommentsSection({
       setError(
         error instanceof Error ? error.message : "Comment could not be saved."
       );
+      trackEvent("comment_submit_failed", {
+        reason: classifyAnalyticsError(error),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -588,6 +605,7 @@ export default function CommentsSection({
     if (!trimmed || replySubmitting) {
       if (!trimmed) {
         setError("Write a reply before sending.");
+        trackEvent("comment_submit_failed", { reason: "validation" });
       }
       return;
     }
@@ -620,12 +638,16 @@ export default function CommentsSection({
         setReplyParentId(parentId);
         requireLoginAndResume(
           () => void createReply(parentId, trimmed),
-          pathname
+          pathname,
+          "comment"
         );
         return;
       }
 
       if (!res.ok) {
+        trackEvent("comment_submit_failed", {
+          reason: classifyAnalyticsError(undefined, res.status),
+        });
         const message = await res.text();
         throw new Error(message || "Reply creation failed.");
       }
@@ -638,6 +660,11 @@ export default function CommentsSection({
         )
       );
       onCommentCreated();
+      trackEvent("comment_submitted", {
+        source: getAnalyticsSource(pathname),
+        depth: "reply",
+        content_length: trimmed.length,
+      });
     } catch (error) {
       setComments((prev) =>
         prev.filter((comment) => comment.id !== optimisticId)
@@ -645,6 +672,9 @@ export default function CommentsSection({
       setReplyContent(trimmed);
       setReplyParentId(parentId);
       setError(error instanceof Error ? error.message : "Reply could not be saved.");
+      trackEvent("comment_submit_failed", {
+        reason: classifyAnalyticsError(error),
+      });
     } finally {
       setReplySubmitting(false);
     }
@@ -664,6 +694,11 @@ export default function CommentsSection({
       existing.viewer_reaction === reaction ? null : reaction;
 
     setReactingCommentId(commentId);
+    trackEvent("reaction_clicked", {
+      target_type: "comment",
+      reaction_type: reaction,
+      source: getAnalyticsSource(pathname),
+    });
     setComments((prev) =>
       prev.map((comment) =>
         comment.id === commentId
@@ -685,7 +720,8 @@ export default function CommentsSection({
         );
         requireLoginAndResume(
           () => void submitReaction(commentId, reaction),
-          pathname
+          pathname,
+          "reaction"
         );
         return;
       }
@@ -697,6 +733,10 @@ export default function CommentsSection({
       setComments((prev) =>
         prev.map((comment) => (comment.id === commentId ? existing : comment))
       );
+      trackEvent("reaction_failed", {
+        target_type: "comment",
+        reason: "unknown",
+      });
     } finally {
       setReactingCommentId(null);
     }
@@ -766,7 +806,11 @@ export default function CommentsSection({
           event.preventDefault();
 
           if (!effectiveIsLoggedIn) {
-            requireLoginAndResume(() => void createComment(content), pathname);
+            requireLoginAndResume(
+              () => void createComment(content),
+              pathname,
+              "comment"
+            );
           } else {
             void createComment();
           }

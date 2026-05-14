@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { logout } from "@/app/actions/social";
+import { resetAnalyticsUser } from "@/shared/lib/analytics";
 
 type UserMenuProps = {
   username: string;
@@ -118,7 +119,7 @@ export default function UserMenu({
 
           <div className="my-1 border-t border-neutral-100" />
 
-          <form action={logout}>
+          <form action={logout} onSubmit={() => resetAnalyticsUser()}>
             <button
               type="submit"
               className="block w-full rounded-xl px-4 py-3 text-left text-sm font-bold text-red-500 hover:bg-red-50"

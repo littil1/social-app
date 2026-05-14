@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import CreatePostForm from "./CreatePostForm";
 import { useRouter, usePathname } from "next/navigation";
+import { getAnalyticsSource, trackEvent } from "@/shared/lib/analytics";
 
 type GlobalPostModalProps = {
   isLoggedIn: boolean;
@@ -21,7 +22,12 @@ export default function GlobalPostModal({
   const pathname = usePathname();
 
   useEffect(() => {
-    const handleOpen = () => setIsOpen(true);
+    const handleOpen = () => {
+      setIsOpen(true);
+      trackEvent("post_composer_opened", {
+        source: getAnalyticsSource(window.location.pathname),
+      });
+    };
     window.addEventListener("open-create-post", handleOpen);
     return () => window.removeEventListener("open-create-post", handleOpen);
   }, []);
@@ -54,6 +60,7 @@ export default function GlobalPostModal({
           isLoggedIn={isLoggedIn}
           onClose={() => setIsOpen(false)}
           currentUserProfile={currentUserProfile}
+          source={getAnalyticsSource(pathname)}
         />
       </div>
     </div>

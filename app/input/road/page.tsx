@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import RoadAnalyticsEvents from "@/features/input/components/RoadAnalyticsEvents";
 
 type RoadItem = {
   id: string;
@@ -175,6 +176,7 @@ export default async function InputRoadPage() {
 
   return (
     <main className="min-h-screen bg-[#fafafa]">
+      <RoadAnalyticsEvents />
       <div className="mx-auto max-w-6xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-12">
         <section className="relative overflow-hidden rounded-[36px] bg-neutral-950 px-5 py-8 text-white shadow-[0_34px_90px_-34px_rgba(0,0,0,0.55)] sm:px-8 sm:py-10 lg:px-12 lg:py-12">
           <div className="pointer-events-none absolute inset-0">
@@ -260,6 +262,7 @@ export default async function InputRoadPage() {
                             {item.sourceFeatureRequestId && (
                               <Link
                                 href={`/input#input-idea-${item.sourceFeatureRequestId}`}
+                                data-analytics-event="road_original_idea_clicked"
                                 className="text-amber-700 transition hover:text-amber-800"
                               >
                                 View original idea
@@ -288,12 +291,16 @@ export default async function InputRoadPage() {
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
               href="/input"
+              data-analytics-event="road_cta_clicked"
+              data-analytics-target="input"
               className="rounded-full bg-neutral-950 px-7 py-3.5 text-sm font-black text-white shadow-lg transition hover:scale-105"
             >
               Suggest the next step
             </Link>
             <Link
               href="/vibe"
+              data-analytics-event="road_cta_clicked"
+              data-analytics-target="vibe"
               className="rounded-full border border-neutral-200 bg-white px-7 py-3.5 text-sm font-black text-neutral-950 transition hover:bg-neutral-50"
             >
               Explore VIBE

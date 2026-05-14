@@ -1,13 +1,14 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   deleteAccount,
   type DeleteAccountState,
 } from "@/app/settings/profile/actions";
 import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
 import FormError from "@/shared/components/ui/FormError";
+import { trackEvent } from "@/shared/lib/analytics";
 
 const initialState: DeleteAccountState = {
   error: null,
@@ -23,14 +24,21 @@ export default function DeleteAccountForm() {
     initialState
   );
 
+  useEffect(() => {
+    if (!state.error) return;
+    trackEvent("account_delete_failed", { reason: "unknown" });
+  }, [state.error]);
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     if (!allowSubmitRef.current) {
       event.preventDefault();
+      trackEvent("account_delete_started");
       setConfirmOpen(true);
       return;
     }
 
     allowSubmitRef.current = false;
+    trackEvent("account_delete_confirmed");
   }
 
   return (

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import FeedbackCard from "@/features/input/components/FeedbackCard";
+import InputIdeaForm from "@/features/input/components/InputIdeaForm";
 import { addFeatureRequest } from "@/app/actions/feedback";
 import { createClient } from "@/lib/supabase/server";
 import { getFeedbackBundle } from "@/features/input/lib/feedback-data";
@@ -91,7 +92,7 @@ export default async function InputPage() {
                 Built with you
               </p>
               <h2 className="mt-2 text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
-                See what we've accomplished because of YOUR INPUT.
+                See what we&apos;ve accomplished because of YOUR INPUT.
               </h2>
             </div>
             <Link
@@ -135,30 +136,10 @@ export default async function InputPage() {
           <div className="rounded-[32px] border border-neutral-100 bg-white p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">Submit your idea</h2>
             {user ? (
-              <form action={addFeatureRequest} className="mt-6 space-y-4">
-                <input
-                  type="text"
-                  name="title"
-                  placeholder="Idea title (e.g., Save for Later)"
-                  required
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50/70 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white focus:ring-2 focus:ring-amber-100"
-                />
-                <textarea
-                  name="description"
-                  placeholder="Describe your idea in detail..."
-                  required
-                  rows={4}
-                  className="w-full rounded-2xl border border-neutral-200 bg-neutral-50/70 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white focus:ring-2 focus:ring-amber-100"
-                />
-                <div className="flex flex-col gap-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-xs font-bold text-amber-900 uppercase tracking-tight">
-                    Posting as @{viewerProfile?.username ?? "user"}
-                  </p>
-                  <button type="submit" className="w-full rounded-full bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:scale-105 sm:w-auto">
-                    Submit idea
-                  </button>
-                </div>
-              </form>
+              <InputIdeaForm
+                action={addFeatureRequest}
+                username={viewerProfile?.username ?? "user"}
+              />
             ) : (
               <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 px-4 py-10 text-center sm:py-12">
                 <p className="text-neutral-500 font-medium">Log in to help us build.</p>

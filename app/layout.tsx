@@ -6,6 +6,7 @@ import "./globals.css";
 import AuthModalProvider from "@/features/auth/components/AuthModalProvider";
 import GlobalPostModal from "@/features/posts/components/GlobalPostModal";
 import NavBar from "@/shared/components/layout/navbar";
+import PageViewTracker from "@/shared/components/analytics/PageViewTracker";
 import { createClient } from "@/lib/supabase/server";
 
 // =====================================================
@@ -71,6 +72,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-[#fafafa] text-neutral-950 antialiased`}
       >
         <AuthModalProvider>
+          <PageViewTracker />
           <NavBar
             user={
               profile?.username

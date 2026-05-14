@@ -5,6 +5,7 @@ import Link from "next/link";
 import { loginAction, signupAction, type AuthState } from "@/app/login/actions";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import FormError from "@/shared/components/ui/FormError";
+import { trackEvent } from "@/shared/lib/analytics";
 
 const initialState: AuthState = {
   error: null,
@@ -63,6 +64,7 @@ export default function LoginModal() {
     if (!loginSucceeded && !signupSucceeded) return;
 
     authSuccessHandledRef.current = true;
+    trackEvent(loginSucceeded ? "login_completed" : "signup_completed");
     handleAuthSuccess();
   }, [
     isOpen,
@@ -142,6 +144,11 @@ export default function LoginModal() {
 
             <form
               action={mode === "login" ? loginFormAction : signupFormAction}
+              onSubmit={() => {
+                if (mode === "signup") {
+                  trackEvent("signup_started");
+                }
+              }}
               className="space-y-4"
             >
               <input type="hidden" name="redirect" value={redirectPath} />

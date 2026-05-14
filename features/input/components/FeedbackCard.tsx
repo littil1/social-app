@@ -15,6 +15,7 @@ import {
 import type { FeedbackItem } from "@/features/input/lib/feedback-data";
 import FormError from "@/shared/components/ui/FormError";
 import { scheduleScrollIntoViewIfNeeded } from "@/shared/lib/scroll-into-view-if-needed";
+import { trackEvent } from "@/shared/lib/analytics";
 
 type FeedbackCardProps = {
   item: FeedbackItem;
@@ -55,18 +56,21 @@ function FeedbackCard({
     if (!currentUserId) {
       requireLoginAndResume(
         () => likeFormRef.current?.requestSubmit(),
-        window.location.pathname
+        window.location.pathname,
+        "reaction"
       );
       return;
     }
+    trackEvent("input_support_clicked", { status: item.status });
     likeFormRef.current?.requestSubmit();
-  }, [currentUserId, requireLoginAndResume]);
+  }, [currentUserId, item.status, requireLoginAndResume]);
 
   const handleToggleComments = useCallback(() => {
     setShowComments((prev) => {
       const next = !prev;
       if (next) {
         shouldScrollToCommentsRef.current = true;
+        trackEvent("comment_section_opened", { source: "input" });
       }
       return next;
     });
@@ -270,8 +274,11 @@ function RoadAchievementEditor({
 
   useEffect(() => {
     if (!state.success) return;
+    trackEvent(
+      achievement ? "road_achievement_updated" : "road_achievement_created"
+    );
     router.refresh();
-  }, [router, state.success]);
+  }, [achievement, router, state.success]);
 
   return (
     <section className="mb-5 rounded-[26px] border border-amber-200 bg-amber-50/55 p-4 shadow-[0_18px_60px_-50px_rgba(245,158,11,0.45)] sm:mb-6 sm:p-5">

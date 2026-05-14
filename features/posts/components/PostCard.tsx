@@ -12,6 +12,7 @@ import { scheduleRefresh } from "@/lib/refresh-batcher";
 import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
 import FormError from "@/shared/components/ui/FormError";
 import { scheduleScrollIntoViewIfNeeded } from "@/shared/lib/scroll-into-view-if-needed";
+import { getAnalyticsSource, trackEvent } from "@/shared/lib/analytics";
 
 type PostCardProps = {
   post: FeedPost;
@@ -190,6 +191,9 @@ function PostCardComponent({
       const next = !prev;
       if (next) {
         shouldScrollToCommentsRef.current = true;
+        trackEvent("comment_section_opened", {
+          source: getAnalyticsSource(window.location.pathname),
+        });
       }
       return next;
     });
@@ -241,6 +245,11 @@ function PostCardComponent({
     );
     onReactionUpdated(post.id, nextReaction);
     setReactionLoading(true);
+    trackEvent("reaction_clicked", {
+      target_type: "post",
+      reaction_type: reaction,
+      source: getAnalyticsSource(window.location.pathname),
+    });
 
     try {
       const res = await fetch(`/api/posts/${post.id}/like`, {
@@ -254,7 +263,8 @@ function PostCardComponent({
         onReactionUpdated(post.id, previousReaction);
         requireLoginAndResume(
           () => submitReaction(reaction),
-          window.location.pathname
+          window.location.pathname,
+          "reaction"
         );
         return;
       }
@@ -271,6 +281,10 @@ function PostCardComponent({
     } catch {
       setOptimisticReactions(previousOptimisticReactions);
       onReactionUpdated(post.id, previousReaction);
+      trackEvent("reaction_failed", {
+        target_type: "post",
+        reason: "unknown",
+      });
     } finally {
       setReactionLoading(false);
     }

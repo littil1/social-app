@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ReportDialog from "@/features/reports/components/ReportDialog";
 import FormError from "@/shared/components/ui/FormError";
+import { classifyAnalyticsError, trackEvent } from "@/shared/lib/analytics";
 
 const REPORT_REASONS = [
   { value: "spam", label: "Spam" },
@@ -58,10 +59,18 @@ export default function CommentReportButton({
             tone: "success",
             message: "You already reported this comment.",
           });
+          trackEvent("report_submitted", {
+            target_type: "comment",
+            reason_category: reason,
+          });
           return;
         }
 
         const message = await response.text();
+        trackEvent("report_submit_failed", {
+          target_type: "comment",
+          reason: classifyAnalyticsError(undefined, response.status),
+        });
         throw new Error(message || "Could not submit the report. Try again.");
       }
 
@@ -73,6 +82,10 @@ export default function CommentReportButton({
         tone: "success",
         message: "Comment reported.",
       });
+      trackEvent("report_submitted", {
+        target_type: "comment",
+        reason_category: reason,
+      });
     } catch (error) {
       console.error(error);
       setFeedback({
@@ -81,6 +94,10 @@ export default function CommentReportButton({
           error instanceof Error
             ? error.message
             : "Could not submit the report. Try again.",
+      });
+      trackEvent("report_submit_failed", {
+        target_type: "comment",
+        reason: classifyAnalyticsError(error),
       });
     } finally {
       setSubmitting(false);
@@ -95,6 +112,9 @@ export default function CommentReportButton({
           if (hasReported) return;
           setFeedback(null);
           setOpen((prev) => !prev);
+          if (!open) {
+            trackEvent("report_opened", { target_type: "comment" });
+          }
         }}
         disabled={hasReported}
         className={`text-[10px] font-black uppercase tracking-widest transition ${

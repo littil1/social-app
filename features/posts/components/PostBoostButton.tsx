@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import FormError from "@/shared/components/ui/FormError";
+import {
+  classifyAnalyticsError,
+  getAnalyticsSource,
+  trackEvent,
+} from "@/shared/lib/analytics";
 
 type BoostResponse = {
   boost_count?: number;
@@ -64,18 +69,34 @@ export default function PostBoostButton({
   async function submitBoost() {
     if (loading || localHasBoosted) return;
 
+    const source = getAnalyticsSource(window.location.pathname);
+    trackEvent("boost_clicked", {
+      source,
+      state: localHasBoosted
+        ? "boosted"
+        : viewerBoostAvailableToday
+          ? "available"
+          : "already_used",
+    });
+
     if (!effectiveIsLoggedIn) {
-      requireLoginAndResume(() => void submitBoost(), window.location.pathname);
+      requireLoginAndResume(
+        () => void submitBoost(),
+        window.location.pathname,
+        "boost"
+      );
       return;
     }
 
     if (!viewerBoostAvailableToday) {
       setError("You already used today's BOOST.");
+      trackEvent("boost_failed", { reason: "rate_limited" });
       return;
     }
 
     setError(null);
     setLoading(true);
+    let failureTracked = false;
 
     try {
       const response = await fetch(`/api/posts/${postId}/boost`, {
@@ -83,11 +104,19 @@ export default function PostBoostButton({
       });
 
       if (response.status === 401 || response.status === 403) {
-        requireLoginAndResume(() => void submitBoost(), window.location.pathname);
+        requireLoginAndResume(
+          () => void submitBoost(),
+          window.location.pathname,
+          "boost"
+        );
         return;
       }
 
       if (!response.ok) {
+        trackEvent("boost_failed", {
+          reason: classifyAnalyticsError(undefined, response.status),
+        });
+        failureTracked = true;
         throw new Error(await readSafeMessage(response));
       }
 
@@ -97,7 +126,13 @@ export default function PostBoostButton({
       setLocalHasBoosted(true);
       setLocalBoostCount(nextBoostCount);
       onBoosted?.(postId, nextBoostCount);
+      trackEvent("boost_submitted", { source });
     } catch (boostError) {
+      if (!failureTracked) {
+        trackEvent("boost_failed", {
+          reason: classifyAnalyticsError(boostError),
+        });
+      }
       setError(
         boostError instanceof Error
           ? boostError.message

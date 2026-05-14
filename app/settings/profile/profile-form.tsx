@@ -8,6 +8,7 @@ import {
   type UpdateProfileState,
 } from "@/app/settings/profile/actions";
 import FormError from "@/shared/components/ui/FormError";
+import { trackEvent } from "@/shared/lib/analytics";
 
 const initialState: UpdateProfileState = {
   error: null,
@@ -106,10 +107,21 @@ export default function ProfileForm({
     const nextUsername = username.trim().toLowerCase();
     if (!nextUsername) return;
 
+    trackEvent("profile_saved");
+    if (avatarFile) {
+      trackEvent("avatar_uploaded");
+    }
+
     hasRedirectedRef.current = true;
     router.push(`/u/${encodeURIComponent(nextUsername)}`);
     router.refresh();
-  }, [state.success, username, router]);
+  }, [avatarFile, state.success, username, router]);
+
+  useEffect(() => {
+    if (!state.error) return;
+
+    trackEvent("profile_save_failed", { reason: "unknown" });
+  }, [state.error]);
 
   const usernameError = validateUsername(username);
   const bioError = validateBio(bio);
@@ -125,6 +137,7 @@ export default function ProfileForm({
       if (!allowedTypes.includes(file.type)) {
         setAvatarFile(null);
         setAvatarError("Use a JPG, PNG, or WebP image.");
+        trackEvent("avatar_upload_failed", { reason: "type" });
         e.target.value = "";
         return;
       }
@@ -132,6 +145,7 @@ export default function ProfileForm({
       if (file.size > 4 * 1024 * 1024) {
         setAvatarFile(null);
         setAvatarError("Avatar image is too large. Choose an image under 4 MB.");
+        trackEvent("avatar_upload_failed", { reason: "size" });
         e.target.value = "";
         return;
       }
@@ -141,6 +155,7 @@ export default function ProfileForm({
 
     if (file) {
       setRemoveAvatar(false);
+      trackEvent("avatar_upload_started");
     }
 
     setShowAvatarMenu(false);
