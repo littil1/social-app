@@ -50,7 +50,7 @@ export default function ConfirmDialog({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[130] flex items-end justify-center bg-neutral-950/50 px-3 pb-4 pt-10 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[300] flex items-end justify-center bg-neutral-950/50 px-3 pb-4 pt-10 backdrop-blur-sm sm:items-center sm:p-6"
       onClick={() => {
         if (!loading) onCancel();
       }}
