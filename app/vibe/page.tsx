@@ -136,6 +136,38 @@ export default function VibePage() {
           </div>
         </section>
 
+        {/* Daily BOOST */}
+        <section className="mb-14 rounded-[32px] border border-amber-200/70 bg-white/85 p-5 shadow-[0_28px_80px_-52px_rgba(245,158,11,0.48)] backdrop-blur sm:mb-16 sm:p-7 lg:p-8">
+          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div>
+              <h2 className="text-3xl font-black tracking-tight text-neutral-950 sm:text-4xl">
+                🚀 BOOST: your strongest signal
+              </h2>
+              <p className="mt-4 max-w-xl text-base font-medium leading-relaxed text-neutral-600">
+                Daily BOOST the post you think deserves it most.
+              </p>
+              <p className="mt-4 text-sm font-black text-amber-700">
+                Choose carefully.
+              </p>
+            </div>
+
+            <div className="grid gap-2.5 sm:grid-cols-3">
+              {[
+                "1 BOOST per day",
+                "Can't be bought.",
+                "Can't be taken back.",
+              ].map((text) => (
+                <div
+                  key={text}
+                  className="flex min-h-[76px] items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-center text-sm font-bold text-neutral-700"
+                >
+                  {text}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* The Core Mechanics */}
         <div className="grid gap-5 md:grid-cols-3">
           <FeatureCard
@@ -271,14 +303,14 @@ export default function VibePage() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/leaderboard"
+              href="/live"
               className="w-full rounded-full bg-neutral-950 px-10 py-4 text-center text-lg font-bold text-white transition hover:scale-105 sm:w-auto"
             >
               Take the Stage
             </Link>
 
             <Link
-              href="/hall-of-fame"
+              href="/legends"
               className="w-full rounded-full border border-neutral-200 bg-white px-10 py-4 text-center text-lg font-bold text-neutral-950 transition hover:bg-neutral-50 sm:w-auto"
             >
               See the Hall

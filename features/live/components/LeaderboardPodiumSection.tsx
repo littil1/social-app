@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import LeaderboardPodiumCard from "@/features/leaderboard/components/LeaderboardPodiumCard";
-import LeaderboardPostDetailModal from "@/features/leaderboard/components/LeaderboardPostDetailModal";
+import LeaderboardPodiumCard from "@/features/live/components/LeaderboardPodiumCard";
+import LeaderboardPostDetailModal from "@/features/live/components/LeaderboardPostDetailModal";
 import { setAutoRefreshPaused } from "@/lib/utils/auto-refresh";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
 import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
@@ -17,6 +17,11 @@ type LeaderboardPost = {
   author_username: string | null;
   author_avatar_url: string | null;
   reactions_count: number;
+  boost_count: number;
+  viewer_has_boosted: boolean;
+  viewer_boost_available_today: boolean;
+  is_today_post: boolean;
+  can_boost: boolean;
   reaction_counts: ReactionCounts;
   viewer_reaction: ReactionType | null;
   can_delete: boolean;
@@ -107,6 +112,37 @@ export default function LeaderboardPodiumSection({
     });
   }, [updatePost]);
 
+  const handleBoosted = useCallback(
+    (postId: number, boostCount: number) => {
+      const applyBoost = (post: LeaderboardPost) => {
+        if (!post.is_today_post) {
+          return post;
+        }
+
+        return {
+          ...post,
+          boost_count: post.id === postId ? boostCount : post.boost_count,
+          viewer_has_boosted: post.id === postId,
+          viewer_boost_available_today: false,
+          can_boost: post.id === postId,
+        };
+      };
+
+      setMobilePodiumItems((prev) =>
+        prev.map((entry) =>
+          entry.post ? { ...entry, post: applyBoost(entry.post) } : entry
+        )
+      );
+      setDesktopPodiumItems((prev) =>
+        prev.map((entry) =>
+          entry.post ? { ...entry, post: applyBoost(entry.post) } : entry
+        )
+      );
+      setSelectedPost((current) => (current ? applyBoost(current) : current));
+    },
+    []
+  );
+
   const handleMutationCommitted = useCallback(() => {
     scheduleRefresh(router);
   }, [router]);
@@ -164,6 +200,7 @@ export default function LeaderboardPodiumSection({
                 entry.post ? () => setSelectedPost(entry.post) : undefined
               }
               onReactionUpdated={handleReactionUpdated}
+              onBoosted={handleBoosted}
               onMutationCommitted={handleMutationCommitted}
             />
           );
@@ -187,6 +224,7 @@ export default function LeaderboardPodiumSection({
                 entry.post ? () => setSelectedPost(entry.post) : undefined
               }
               onReactionUpdated={handleReactionUpdated}
+              onBoosted={handleBoosted}
               onMutationCommitted={handleMutationCommitted}
             />
           );
@@ -198,6 +236,7 @@ export default function LeaderboardPodiumSection({
         post={visibleSelectedPost}
         isLoggedIn={isLoggedIn}
         onClose={handleCloseModal}
+        onBoosted={handleBoosted}
       />
     </section>
   );

@@ -77,14 +77,18 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
   }, []);
 
   const navItems = [
-    { name: "Live", href: "/leaderboard", icon: "🔥" },
-    { name: "Legends", href: "/hall-of-fame", icon: "👑" },
-    { name: "Input", href: "/feedback", icon: "💡" },
-    { name: "Vibe", href: "/vibe", icon: "✨" },
+    { name: "LIVE", href: "/live", icon: "🔥" },
+    { name: "LEGENDS", href: "/legends", icon: "👑" },
+    { name: "INPUT", href: "/input", icon: "💡" },
+    { name: "VIBE", href: "/vibe", icon: "✨" },
   ];
 
+  function isNavItemActive(path: string) {
+    return pathname === path || pathname.startsWith(`${path}/`);
+  }
+
   function getLinkClass(path: string) {
-    const isActive = pathname === path;
+    const isActive = isNavItemActive(path);
 
     return [
       "relative flex h-10 flex-1 items-center justify-center overflow-hidden rounded-full text-[10px] font-black uppercase tracking-[0.12em] transition-all duration-300 sm:h-10 sm:w-24 sm:flex-none sm:text-[11px] sm:tracking-[0.14em]",
@@ -110,7 +114,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
                 </span>
                 <span
                   className={`pointer-events-none min-h-[0.75rem] max-w-full truncate whitespace-nowrap text-[8px] font-black uppercase leading-none tracking-[0.12em] transition-opacity duration-200 sm:min-h-0 sm:text-[10px] sm:tracking-[0.15em] ${
-                    pathname === item.href
+                    isNavItemActive(item.href)
                       ? "visible opacity-100"
                       : "invisible opacity-0 sm:visible sm:opacity-100"
                   }`}
@@ -136,7 +140,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
           ) : (
             <button
               type="button"
-              onClick={() => openLogin(pathname || "/leaderboard")}
+              onClick={() => openLogin(pathname || "/live")}
               className="rounded-full bg-emerald-500 px-3.5 py-2.5 text-[10px] font-black uppercase tracking-widest text-white shadow-[0_12px_26px_-18px_rgba(16,185,129,0.9)] transition hover:bg-emerald-400 active:scale-95 sm:px-5 sm:py-2"
             >
               Join

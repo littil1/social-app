@@ -1,4 +1,4 @@
-import HallOfFameFrozenPostCard from "@/features/hall-of-fame/components/HallOfFameFrozenPostCard";
+import HallOfFameFrozenPostCard from "@/features/legends/components/HallOfFameFrozenPostCard";
 import type { ReactionCounts } from "@/shared/types/feed";
 
 type TimelineWinnerPost = {
@@ -9,6 +9,7 @@ type TimelineWinnerPost = {
   relevance_score: number;
   author_username: string | null;
   reactions_count: number;
+  boost_count: number;
   reaction_counts: ReactionCounts;
   winner_date: string;
 };

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import SinglePostView from "@/features/posts/components/SinglePostView";
 import { resolvePostCommentCounts } from "@/features/comments/lib/post-comment-counts";
 import { createClient } from "@/lib/supabase/server";
+import { getZurichDayRange } from "@/features/winners/lib/daily-ranking";
 import type { FeedPost, ReactionCounts, ReactionType } from "@/shared/types/feed";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,11 @@ type PostReactionRow = {
   post_id: number;
   user_id: string;
   reaction: ReactionType;
+};
+
+type PostBoostRow = {
+  post_id: number;
+  user_id: string;
 };
 
 // =====================================================
@@ -126,23 +132,54 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   const reactionCounts = createEmptyReactionCounts();
   let viewerReaction: ReactionType | null = null;
+  let boostCount = 0;
+  let viewerBoostedPostId: number | null = null;
+  const { dayKey, startIso, endIso } = getZurichDayRange(new Date());
+  const isTodayPost =
+    new Date(post.created_at).getTime() >= new Date(startIso).getTime() &&
+    new Date(post.created_at).getTime() < new Date(endIso).getTime();
 
-  const { data: reactionsData, error: reactionsError } = await supabase
-    .from("post_reactions")
-    .select("post_id, user_id, reaction")
-    .eq("post_id", postId);
+  const [reactionsResult, boostsResult, viewerBoostResult] = await Promise.all([
+    supabase
+      .from("post_reactions")
+      .select("post_id, user_id, reaction")
+      .eq("post_id", postId),
+    supabase
+      .from("post_boosts")
+      .select("post_id, user_id")
+      .eq("post_id", postId),
+    user
+      ? supabase
+          .from("post_boosts")
+          .select("post_id")
+          .eq("user_id", user.id)
+          .eq("day_key", dayKey)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
-  if (reactionsError) {
-    throw new Error(reactionsError.message);
+  if (reactionsResult.error) {
+    throw new Error(reactionsResult.error.message);
   }
 
-  for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
+  if (boostsResult.error) {
+    throw new Error(boostsResult.error.message);
+  }
+
+  if (viewerBoostResult.error) {
+    throw new Error(viewerBoostResult.error.message);
+  }
+
+  for (const reaction of (reactionsResult.data ?? []) as PostReactionRow[]) {
     reactionCounts[reaction.reaction] += 1;
 
     if (user && reaction.user_id === user.id) {
       viewerReaction = reaction.reaction;
     }
   }
+
+  boostCount = ((boostsResult.data ?? []) as PostBoostRow[]).length;
+  viewerBoostedPostId = viewerBoostResult.data?.post_id ?? null;
 
   // =====================================================
   // Build Feed Post
@@ -153,6 +190,13 @@ export default async function PostDetailPage({ params }: PageProps) {
     content: post.content ?? "",
     created_at: post.created_at,
     reactions_count: getReactionsCount(reactionCounts),
+    boost_count: boostCount,
+    viewer_has_boosted: viewerBoostedPostId === post.id,
+    viewer_boost_available_today: viewerBoostedPostId === null,
+    is_today_post: isTodayPost,
+    can_boost:
+      isTodayPost &&
+      (viewerBoostedPostId === post.id || viewerBoostedPostId === null),
     reaction_counts: reactionCounts,
     viewer_reaction: viewerReaction,
     comments_count: commentCountMap.get(post.id) ?? 0,

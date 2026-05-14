@@ -1,7 +1,7 @@
 const processedData = [
   "Account data, including user id and email address handled through Supabase Auth.",
   "Profile data, including username, avatar, bio, badges, and public profile information.",
-  "User content, including posts, comments, feedback ideas, replies, and reports.",
+  "User content, including posts, comments, input ideas, replies, and reports.",
   "Interaction data, including reactions, follows, badge progress, and daily winner snapshots.",
   "Technical data, including logs, IP address, device and browser data needed for security, troubleshooting, and abuse prevention.",
   "Analytics data if analytics are enabled, such as product usage events and aggregated app performance signals.",

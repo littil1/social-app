@@ -50,6 +50,24 @@ function applyReactionUpdate(
   };
 }
 
+function applyBoostUpdate(
+  post: FeedPost,
+  postId: number,
+  boostCount: number
+): FeedPost {
+  if (!post.is_today_post) {
+    return post;
+  }
+
+  return {
+    ...post,
+    boost_count: post.id === postId ? boostCount : post.boost_count,
+    viewer_has_boosted: post.id === postId,
+    viewer_boost_available_today: false,
+    can_boost: post.id === postId,
+  };
+}
+
 // =====================================================
 // Component
 // =====================================================
@@ -92,7 +110,12 @@ export default function SinglePostView({
 
   function handlePostDeleted(postId: number) {
     if (postId !== post.id) return;
-    router.push("/leaderboard");
+    router.push("/live");
+    router.refresh();
+  }
+
+  function handleBoosted(postId: number, boostCount: number) {
+    setPost((prev) => applyBoostUpdate(prev, postId, boostCount));
     router.refresh();
   }
 
@@ -106,6 +129,7 @@ export default function SinglePostView({
       onReactionUpdated={handleReactionUpdated}
       onCommentCreated={handleCommentCreated}
       onPostDeleted={handlePostDeleted}
+      onBoosted={handleBoosted}
     />
   );
 }

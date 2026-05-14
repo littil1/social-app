@@ -84,6 +84,24 @@ export default function UserProfileContent({
     setPosts((prev) => prev.filter((post) => post.id !== postId));
   }, []);
 
+  const handleBoosted = useCallback((postId: number, boostCount: number) => {
+    setPosts((prev) =>
+      prev.map((post) => {
+        if (!post.is_today_post) {
+          return post;
+        }
+
+        return {
+          ...post,
+          boost_count: post.id === postId ? boostCount : post.boost_count,
+          viewer_has_boosted: post.id === postId,
+          viewer_boost_available_today: false,
+          can_boost: post.id === postId,
+        };
+      })
+    );
+  }, []);
+
   return (
     <section className="space-y-4">
       {posts.map((post) => (
@@ -93,6 +111,7 @@ export default function UserProfileContent({
           onReactionUpdated={handleReactionUpdated}
           onCommentsCountChange={handleCommentsCountChange}
           onPostDeleted={handlePostDeleted}
+          onBoosted={handleBoosted}
         />
       ))}
 

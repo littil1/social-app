@@ -34,6 +34,9 @@ type ViewerReactionRow = {
   post_id: number;
   reaction: ReactionType;
 };
+type PostBoostRow = {
+  post_id: number;
+};
 type FeedCandidatePost = FeedPost & {
   live_score: number;
   base_score: number;
@@ -52,6 +55,11 @@ function stripCandidateScores(post: FeedCandidatePost) {
     created_at: post.created_at,
     comments_count: post.comments_count,
     reactions_count: post.reactions_count,
+    boost_count: post.boost_count,
+    viewer_has_boosted: post.viewer_has_boosted,
+    viewer_boost_available_today: post.viewer_boost_available_today,
+    is_today_post: post.is_today_post,
+    can_boost: post.can_boost,
     reaction_counts: post.reaction_counts,
     viewer_reaction: post.viewer_reaction,
     can_delete: post.can_delete,
@@ -153,6 +161,16 @@ function mapViewerReactions(reactions: ViewerReactionRow[]) {
   return viewerReactionMap;
 }
 
+function mapBoostCounts(boosts: PostBoostRow[]) {
+  const boostCountsMap = new Map<number, number>();
+
+  for (const boost of boosts) {
+    boostCountsMap.set(boost.post_id, (boostCountsMap.get(boost.post_id) ?? 0) + 1);
+  }
+
+  return boostCountsMap;
+}
+
 async function loadReactionCountsMap(
   supabase: SupabaseClient<Database>,
   postIds: number[]
@@ -199,18 +217,70 @@ async function loadViewerReactionMap(
   );
 }
 
+async function loadBoostCountsMap(
+  supabase: SupabaseClient<Database>,
+  postIds: number[]
+) {
+  if (postIds.length === 0) {
+    return new Map<number, number>();
+  }
+
+  const boostCountsResult = await supabase
+    .from("post_boosts")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  if (boostCountsResult.error) {
+    throw new Error(boostCountsResult.error.message);
+  }
+
+  return mapBoostCounts((boostCountsResult.data ?? []) as PostBoostRow[]);
+}
+
+async function loadViewerBoostedPostId(
+  supabase: SupabaseClient<Database>,
+  userId: string | null,
+  dayKey: string
+) {
+  if (!userId) {
+    return null;
+  }
+
+  const viewerBoostResult = await supabase
+    .from("post_boosts")
+    .select("post_id")
+    .eq("user_id", userId)
+    .eq("day_key", dayKey)
+    .maybeSingle();
+
+  if (viewerBoostResult.error) {
+    throw new Error(viewerBoostResult.error.message);
+  }
+
+  return viewerBoostResult.data?.post_id ?? null;
+}
+
 function toFeedCandidatePost(
   post: FeedPostRow,
   userId: string | null,
   viewerIsAdmin: boolean,
   reactionCountsMap: Map<number, ReactionCounts>,
   viewerReactionMap: Map<number, ReactionType>,
-  commentCountMap: Map<number, number>
+  commentCountMap: Map<number, number>,
+  boostCountsMap: Map<number, number>,
+  viewerBoostedPostId: number | null,
+  todayStartIso: string
 ): FeedCandidatePost {
   const reactionCounts =
     reactionCountsMap.get(post.id) ?? createEmptyReactionCounts();
   const reactionsTotal = getTotalReactions(reactionCounts);
   const commentsCount = commentCountMap.get(post.id) ?? 0;
+  const boostCount = boostCountsMap.get(post.id) ?? 0;
+  const isTodayPost = post.created_at >= todayStartIso;
+  const viewerHasBoosted = viewerBoostedPostId === post.id;
+  const viewerBoostAvailableToday = viewerBoostedPostId === null;
+  const canBoost =
+    isTodayPost && (viewerHasBoosted || viewerBoostAvailableToday);
 
   return {
     id: post.id,
@@ -218,6 +288,11 @@ function toFeedCandidatePost(
     created_at: post.created_at,
     comments_count: commentsCount,
     reactions_count: reactionsTotal,
+    boost_count: boostCount,
+    viewer_has_boosted: viewerHasBoosted,
+    viewer_boost_available_today: viewerBoostAvailableToday,
+    is_today_post: isTodayPost,
+    can_boost: canBoost,
     reaction_counts: reactionCounts,
     viewer_reaction: viewerReactionMap.get(post.id) ?? null,
     can_delete: !!userId && (post.user_id === userId || viewerIsAdmin),
@@ -226,11 +301,13 @@ function toFeedCandidatePost(
     live_score: getLiveScore({
       reactionsTotal,
       commentsCount,
+      boostCount,
       createdAt: post.created_at,
     }),
     base_score: getBaseScore({
       reactionsTotal,
       commentsCount,
+      boostCount,
     }),
   };
 }
@@ -270,7 +347,7 @@ async function loadFeedCandidates(
   olderOffset: number,
   olderLimit: number
 ) {
-  const { startIso } = getZurichDayRange(new Date());
+  const { dayKey, startIso } = getZurichDayRange(new Date());
   const olderCandidatePoolSize = Math.max(
     (olderOffset + olderLimit) * OLDER_FEED_CANDIDATE_POOL_MULTIPLIER,
     OLDER_FEED_CANDIDATE_POOL_MIN
@@ -310,13 +387,17 @@ async function loadFeedCandidates(
       olderPosts,
       postIds: [] as number[],
       reactionCountsMap: new Map<number, ReactionCounts>(),
+      boostCountsMap: new Map<number, number>(),
       commentCountMap: new Map<number, number>(),
+      dayKey,
+      startIso,
     };
   }
 
   const postIds = allCandidates.map((post) => post.id);
-  const [reactionCountsMap, commentCountMap] = await Promise.all([
+  const [reactionCountsMap, boostCountsMap, commentCountMap] = await Promise.all([
     loadReactionCountsMap(supabase, postIds),
+    loadBoostCountsMap(supabase, postIds),
     resolvePostCommentCounts(supabase, allCandidates),
   ]);
 
@@ -325,14 +406,17 @@ async function loadFeedCandidates(
     olderPosts,
     postIds,
     reactionCountsMap,
+    boostCountsMap,
     commentCountMap,
+    dayKey,
+    startIso,
   };
 }
 
 async function loadTodayFeedCandidates(
   supabase: SupabaseClient<Database>
 ) {
-  const { startIso } = getZurichDayRange(new Date());
+  const { dayKey, startIso } = getZurichDayRange(new Date());
   const { data: todaysPostsData, error: todaysPostsError } = await supabase
     .from("posts")
     .select(FEED_POST_SELECT)
@@ -350,13 +434,17 @@ async function loadTodayFeedCandidates(
       todaysPosts,
       postIds: [] as number[],
       reactionCountsMap: new Map<number, ReactionCounts>(),
+      boostCountsMap: new Map<number, number>(),
       commentCountMap: new Map<number, number>(),
+      dayKey,
+      startIso,
     };
   }
 
   const postIds = todaysPosts.map((post) => post.id);
-  const [reactionCountsMap, commentCountMap] = await Promise.all([
+  const [reactionCountsMap, boostCountsMap, commentCountMap] = await Promise.all([
     loadReactionCountsMap(supabase, postIds),
+    loadBoostCountsMap(supabase, postIds),
     resolvePostCommentCounts(supabase, todaysPosts),
   ]);
 
@@ -364,7 +452,10 @@ async function loadTodayFeedCandidates(
     todaysPosts,
     postIds,
     reactionCountsMap,
+    boostCountsMap,
     commentCountMap,
+    dayKey,
+    startIso,
   };
 }
 
@@ -373,7 +464,7 @@ async function loadOlderFeedCandidates(
   olderOffset: number,
   olderLimit: number
 ) {
-  const { startIso } = getZurichDayRange(new Date());
+  const { dayKey, startIso } = getZurichDayRange(new Date());
   const olderCandidatePoolSize = Math.max(
     (olderOffset + olderLimit) * OLDER_FEED_CANDIDATE_POOL_MULTIPLIER,
     OLDER_FEED_CANDIDATE_POOL_MIN
@@ -396,13 +487,17 @@ async function loadOlderFeedCandidates(
       olderPosts,
       postIds: [] as number[],
       reactionCountsMap: new Map<number, ReactionCounts>(),
+      boostCountsMap: new Map<number, number>(),
       commentCountMap: new Map<number, number>(),
+      dayKey,
+      startIso,
     };
   }
 
   const postIds = olderPosts.map((post) => post.id);
-  const [reactionCountsMap, commentCountMap] = await Promise.all([
+  const [reactionCountsMap, boostCountsMap, commentCountMap] = await Promise.all([
     loadReactionCountsMap(supabase, postIds),
+    loadBoostCountsMap(supabase, postIds),
     resolvePostCommentCounts(supabase, olderPosts),
   ]);
 
@@ -410,7 +505,10 @@ async function loadOlderFeedCandidates(
     olderPosts,
     postIds,
     reactionCountsMap,
+    boostCountsMap,
     commentCountMap,
+    dayKey,
+    startIso,
   };
 }
 
@@ -428,6 +526,11 @@ export async function getHomeFeedData(
     candidates.postIds,
     userId
   );
+  const viewerBoostedPostId = await loadViewerBoostedPostId(
+    supabase,
+    userId,
+    candidates.dayKey
+  );
   const todayCandidates = candidates.todaysPosts.map((post) =>
     toFeedCandidatePost(
       post,
@@ -435,7 +538,10 @@ export async function getHomeFeedData(
       viewerIsAdmin,
       candidates.reactionCountsMap,
       viewerReactionMap,
-      candidates.commentCountMap
+      candidates.commentCountMap,
+      candidates.boostCountsMap,
+      viewerBoostedPostId,
+      candidates.startIso
     )
   );
   const olderCandidates = candidates.olderPosts.map((post) =>
@@ -445,7 +551,10 @@ export async function getHomeFeedData(
       viewerIsAdmin,
       candidates.reactionCountsMap,
       viewerReactionMap,
-      candidates.commentCountMap
+      candidates.commentCountMap,
+      candidates.boostCountsMap,
+      viewerBoostedPostId,
+      candidates.startIso
     )
   );
   const todaySection = buildTodayFeed(todayCandidates);
@@ -476,6 +585,11 @@ export async function getLeaderboardTopThreeData(): Promise<FeedPost[]> {
     candidates.postIds,
     userId
   );
+  const viewerBoostedPostId = await loadViewerBoostedPostId(
+    supabase,
+    userId,
+    candidates.dayKey
+  );
   const todayCandidates = candidates.todaysPosts.map((post) =>
     toFeedCandidatePost(
       post,
@@ -483,7 +597,10 @@ export async function getLeaderboardTopThreeData(): Promise<FeedPost[]> {
       viewerIsAdmin,
       candidates.reactionCountsMap,
       viewerReactionMap,
-      candidates.commentCountMap
+      candidates.commentCountMap,
+      candidates.boostCountsMap,
+      viewerBoostedPostId,
+      candidates.startIso
     )
   );
   const todaySection = buildTodayFeed(todayCandidates);
@@ -505,6 +622,11 @@ export async function getOlderFeedPage(
     candidates.postIds,
     userId
   );
+  const viewerBoostedPostId = await loadViewerBoostedPostId(
+    supabase,
+    userId,
+    candidates.dayKey
+  );
   const olderCandidates = candidates.olderPosts.map((post) =>
     toFeedCandidatePost(
       post,
@@ -512,7 +634,10 @@ export async function getOlderFeedPage(
       viewerIsAdmin,
       candidates.reactionCountsMap,
       viewerReactionMap,
-      candidates.commentCountMap
+      candidates.commentCountMap,
+      candidates.boostCountsMap,
+      viewerBoostedPostId,
+      candidates.startIso
     )
   );
   const olderSection = buildOlderFeed(olderCandidates, offset, limit);

@@ -134,7 +134,7 @@ export default function LeaderboardLiveHeader({
           </div>
 
           <h1 className="mt-2.5 text-4xl font-black leading-tight tracking-tight text-gray-950 sm:text-6xl">
-            Leaderboard
+            LIVE
           </h1>
           <p className="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-emerald-900/70">
             <span>Climb with</span>

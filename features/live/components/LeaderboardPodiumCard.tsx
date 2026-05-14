@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
+import PostBoostButton from "@/features/posts/components/PostBoostButton";
 import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
 
 type LeaderboardPost = {
@@ -13,6 +14,11 @@ type LeaderboardPost = {
   author_username: string | null;
   author_avatar_url: string | null;
   reactions_count: number;
+  boost_count: number;
+  viewer_has_boosted: boolean;
+  viewer_boost_available_today: boolean;
+  is_today_post: boolean;
+  can_boost: boolean;
   reaction_counts: ReactionCounts;
   viewer_reaction: ReactionType | null;
   can_delete: boolean;
@@ -30,6 +36,7 @@ type LeaderboardPodiumCardProps = {
     postId: number,
     nextReaction: ReactionType | null
   ) => void;
+  onBoosted?: (postId: number, boostCount: number) => void;
   onMutationCommitted?: () => void;
 };
 
@@ -97,6 +104,7 @@ function LeaderboardPodiumCard({
   onOpenPost,
   onOpenComments,
   onReactionUpdated,
+  onBoosted,
   onMutationCommitted,
 }: LeaderboardPodiumCardProps) {
   const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
@@ -257,6 +265,24 @@ function LeaderboardPodiumCard({
             </span>
           </button>
         </div>
+
+        {post.is_today_post && (
+          <div className="mt-3">
+            <PostBoostButton
+              postId={post.id}
+              boostCount={post.boost_count}
+              viewerHasBoosted={post.viewer_has_boosted}
+              viewerBoostAvailableToday={post.viewer_boost_available_today}
+              isTodayPost={post.is_today_post}
+              canBoost={post.can_boost}
+              isLoggedIn={effectiveIsLoggedIn}
+              onBoosted={(postId, boostCount) => {
+                onBoosted?.(postId, boostCount);
+                onMutationCommitted?.();
+              }}
+            />
+          </div>
+        )}
       </div>
     </article>
   );

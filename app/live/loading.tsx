@@ -1,4 +1,4 @@
-export default function LeaderboardLoading() {
+export default function LiveLoading() {
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 pb-28 pt-4 sm:px-6 sm:py-6 lg:gap-7 lg:px-8 lg:py-6">
         <section className="app-skeleton app-skeleton-dark rounded-[32px] p-5 sm:rounded-[36px] sm:p-6">

@@ -186,6 +186,7 @@ async function deleteRowsByUserId(
   adminSupabase: ReturnType<typeof getAdminClient>,
   table:
     | "comment_reactions"
+    | "post_boosts"
     | "post_reactions"
     | "feature_request_comment_reactions"
     | "feature_request_likes"
@@ -348,6 +349,12 @@ export async function deleteAccount(
         .in("post_id", deletablePostIds);
       if (postReactionError) throw new Error(postReactionError.message);
 
+      const { error: postBoostError } = await adminSupabase
+        .from("post_boosts")
+        .delete()
+        .in("post_id", deletablePostIds);
+      if (postBoostError) throw new Error(postBoostError.message);
+
       const { error: postReportsError } = await adminSupabase
         .from("post_reports")
         .delete()
@@ -364,6 +371,7 @@ export async function deleteAccount(
     }
 
     await deleteRowsByUserId(adminSupabase, "comment_reactions", "user_id", userId);
+    await deleteRowsByUserId(adminSupabase, "post_boosts", "user_id", userId);
     await deleteRowsByUserId(adminSupabase, "post_reactions", "user_id", userId);
     await deleteRowsByUserId(
       adminSupabase,
@@ -431,6 +439,27 @@ export async function deleteAccount(
       })
       .eq("author_id", userId);
     if (winnerUpdateError) throw new Error(winnerUpdateError.message);
+
+    // Road achievements are historical records. Keep the achievement visible,
+    // but detach it from deleted profile data.
+    const { error: roadSourceUserUpdateError } = await adminSupabase
+      .from("road_achievements")
+      .update({
+        source_user_id: null,
+        source_user_username_snapshot: "deleted user",
+      })
+      .eq("source_user_id", userId);
+    if (roadSourceUserUpdateError) {
+      throw new Error(roadSourceUserUpdateError.message);
+    }
+
+    const { error: roadAdminUpdateError } = await adminSupabase
+      .from("road_achievements")
+      .update({ created_by_admin_id: null })
+      .eq("created_by_admin_id", userId);
+    if (roadAdminUpdateError) {
+      throw new Error(roadAdminUpdateError.message);
+    }
 
     const { error: feedbackCommentsError } = await adminSupabase
       .from("feature_request_comments")

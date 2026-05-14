@@ -14,6 +14,7 @@ type ZurichDateParts = {
 type ScoreInput = {
   reactionsTotal: number;
   commentsCount: number;
+  boostCount?: number;
 };
 
 type LiveScoreInput = ScoreInput & {
@@ -225,17 +226,22 @@ export function getZurichDayRankingReferenceTime(endIso: string) {
   return new Date(new Date(endIso).getTime() - 1);
 }
 
-export function getBaseScore({ reactionsTotal, commentsCount }: ScoreInput) {
-  return reactionsTotal + commentsCount * 2;
+export function getBaseScore({
+  reactionsTotal,
+  commentsCount,
+  boostCount = 0,
+}: ScoreInput) {
+  return reactionsTotal + commentsCount * 2 + boostCount * 3;
 }
 
 export function getLiveScore({
   reactionsTotal,
   commentsCount,
+  boostCount = 0,
   createdAt,
   now = new Date(),
 }: LiveScoreInput) {
-  const baseScore = getBaseScore({ reactionsTotal, commentsCount });
+  const baseScore = getBaseScore({ reactionsTotal, commentsCount, boostCount });
   const createdAtMs = new Date(createdAt).getTime();
   const nowMs = new Date(now).getTime();
   const ageHours = Math.max(0, (nowMs - createdAtMs) / 3600000);

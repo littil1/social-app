@@ -115,7 +115,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/leaderboard");
+    redirect("/live");
   }
 
   const { data: viewerProfile, error: viewerProfileError } = await supabase

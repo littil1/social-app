@@ -55,6 +55,11 @@ function getFeedSignature(posts: FeedPost[]) {
         post.reaction_counts?.funny ?? 0,
         post.reaction_counts?.wow ?? 0,
         post.reaction_counts?.fire ?? 0,
+        post.boost_count,
+        post.viewer_has_boosted ? 1 : 0,
+        post.viewer_boost_available_today ? 1 : 0,
+        post.is_today_post ? 1 : 0,
+        post.can_boost ? 1 : 0,
         post.can_delete ? 1 : 0,
       ].join(":")
     )
@@ -122,6 +127,22 @@ function applyReactionUpdate(
     viewer_reaction: nextReaction,
     reaction_counts: nextReactionCounts,
     reactions_count: nextReactionsCount,
+  };
+}
+
+function applyBoostUpdate(post: FeedPost, boostedPostId: number, boostCount: number) {
+  if (!post.is_today_post) {
+    return post;
+  }
+
+  const isBoostedPost = post.id === boostedPostId;
+
+  return {
+    ...post,
+    boost_count: isBoostedPost ? boostCount : post.boost_count,
+    viewer_has_boosted: isBoostedPost,
+    viewer_boost_available_today: false,
+    can_boost: isBoostedPost,
   };
 }
 
@@ -397,6 +418,13 @@ export default function HomeFeed({
     [updatePostLists]
   );
 
+  const handleBoosted = useCallback(
+    (postId: number, boostCount: number) => {
+      updatePostLists((post) => applyBoostUpdate(post, postId, boostCount));
+    },
+    [updatePostLists]
+  );
+
   const handlePostDeleted = useCallback((postId: number) => {
     setTopThreeToday((prev) => prev.filter((post) => post.id !== postId));
     setTodayFeed((prev) => prev.filter((post) => post.id !== postId));
@@ -469,6 +497,7 @@ export default function HomeFeed({
               onCommentCreated={handleCommentCreated}
               onCommentsCountChange={handleCommentsCountChange}
               onPostDeleted={handlePostDeleted}
+              onBoosted={handleBoosted}
               isLoggedIn={isLoggedIn}
               disableRouterRefresh
               onMutationCommitted={handlePostMutationCommitted}
@@ -503,6 +532,7 @@ export default function HomeFeed({
                       onCommentCreated={handleCommentCreated}
                       onCommentsCountChange={handleCommentsCountChange}
                       onPostDeleted={handlePostDeleted}
+                      onBoosted={handleBoosted}
                       isLoggedIn={isLoggedIn}
                       disableRouterRefresh
                       onMutationCommitted={handlePostMutationCommitted}
@@ -574,6 +604,7 @@ export default function HomeFeed({
                 onCommentCreated={handleCommentCreated}
                 onCommentsCountChange={handleCommentsCountChange}
                 onPostDeleted={handlePostDeleted}
+                onBoosted={handleBoosted}
                 isLoggedIn={isLoggedIn}
                 disableRouterRefresh
                 onMutationCommitted={handlePostMutationCommitted}

@@ -10,6 +10,16 @@ import {
   getActorRateLimitKey,
 } from "@/lib/rate-limit";
 
+export type RoadAchievementState = {
+  error: string | null;
+  success: string | null;
+};
+
+const initialRoadAchievementState: RoadAchievementState = {
+  error: null,
+  success: null,
+};
+
 function revalidateMany(paths: Array<string | null | undefined>) {
   const uniquePaths = [...new Set(paths.filter(Boolean))] as string[];
 
@@ -74,6 +84,19 @@ async function getFeatureRequestAuthorInfo(
   };
 }
 
+function normalizeOptionalText(value: FormDataEntryValue | null) {
+  const normalized = String(value ?? "").trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeRoadStatus(value: FormDataEntryValue | null) {
+  const normalized = String(value ?? "DEPLOYED")
+    .trim()
+    .toUpperCase();
+
+  return normalized.length > 0 ? normalized : "DEPLOYED";
+}
+
 export async function addFeatureRequest(formData: FormData) {
   const supabase = await createClient();
 
@@ -107,7 +130,7 @@ export async function addFeatureRequest(formData: FormData) {
 
   const ownUsername = await getProfileUsernameByUserId(supabase, user.id);
 
-  revalidateMany(["/feedback", ownUsername ? `/u/${ownUsername}` : null]);
+  revalidateMany(["/input", ownUsername ? `/u/${ownUsername}` : null]);
 }
 
 export async function deleteFeatureRequest(formData: FormData) {
@@ -158,7 +181,7 @@ export async function deleteFeatureRequest(formData: FormData) {
 
   revalidateMany([
     "/",
-    "/feedback",
+    "/input",
     authorUsername ? `/u/${authorUsername}` : null,
   ]);
 }
@@ -196,7 +219,7 @@ export async function toggleFeatureRequestLike(formData: FormData) {
     ]);
   }
 
-  revalidateMany(["/feedback"]);
+  revalidateMany(["/input"]);
 }
 
 export async function addFeatureRequestComment(formData: FormData) {
@@ -253,7 +276,7 @@ export async function addFeatureRequestComment(formData: FormData) {
   const ownUsername = await getProfileUsernameByUserId(supabase, user.id);
 
   revalidateMany([
-    "/feedback",
+    "/input",
     ownUsername ? `/u/${ownUsername}` : null,
     authorUsername ? `/u/${authorUsername}` : null,
   ]);
@@ -315,7 +338,7 @@ export async function deleteFeatureRequestComment(formData: FormData) {
   }
 
   revalidateMany([
-    "/feedback",
+    "/input",
     deletedCommentAuthorUsername
       ? `/u/${deletedCommentAuthorUsername}`
       : null,
@@ -359,8 +382,158 @@ export async function updateFeatureRequestStatus(formData: FormData) {
 
   revalidateMany([
     "/",
-    "/feedback",
+    "/input",
     authorUsername ? `/u/${authorUsername}` : null,
   ]);
+}
+
+export async function saveRoadAchievement(
+  _prevState: RoadAchievementState,
+  formData: FormData
+): Promise<RoadAchievementState> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error: "Sign in to manage Road achievements.",
+      success: null,
+    };
+  }
+
+  const isAdmin = await isCurrentUserAdmin(supabase, user.id);
+  if (!isAdmin) {
+    return {
+      error: "Only admins can manage Road achievements.",
+      success: null,
+    };
+  }
+
+  const requestId = Number(formData.get("request_id"));
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const status = normalizeRoadStatus(formData.get("status"));
+  const icon = normalizeOptionalText(formData.get("icon"));
+  const imageUrl = normalizeOptionalText(formData.get("image_url"));
+  const rawSortOrder = normalizeOptionalText(formData.get("sort_order"));
+  const sortOrder = rawSortOrder === null ? null : Number(rawSortOrder);
+  const isPublished = formData.get("is_published") === "on";
+
+  if (!requestId) {
+    return { error: "Choose an INPUT idea first.", success: null };
+  }
+
+  if (title.length < 3) {
+    return { error: "Add a Road title.", success: null };
+  }
+
+  if (description.length < 8) {
+    return {
+      error: "Add a short Road description.",
+      success: null,
+    };
+  }
+
+  if (rawSortOrder !== null && !Number.isFinite(Number(rawSortOrder))) {
+    return {
+      error: "Sort order must be a number.",
+      success: null,
+    };
+  }
+
+  const { data: request, error: requestError } = await supabase
+    .from("feature_requests")
+    .select("id, title, description, user_id, status, implemented_at")
+    .eq("id", requestId)
+    .maybeSingle();
+
+  if (requestError || !request) {
+    return {
+      error: "Could not load this INPUT idea. Try again.",
+      success: null,
+    };
+  }
+
+  if (request.status !== "implemented") {
+    return {
+      error: "Only deployed INPUT ideas can become Road achievements.",
+      success: null,
+    };
+  }
+
+  const sourceUsername = await getProfileUsernameByUserId(
+    supabase,
+    request.user_id
+  );
+
+  const achievementPayload = {
+    source_feature_request_id: requestId,
+    title,
+    description,
+    status,
+    icon,
+    image_url: imageUrl,
+    source_user_id: request.user_id,
+    source_user_username_snapshot: sourceUsername ?? "deleted user",
+    created_by_admin_id: user.id,
+    implemented_at: request.implemented_at ?? new Date().toISOString(),
+    sort_order: sortOrder,
+    is_published: isPublished,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: existingAchievement, error: existingError } = await supabase
+    .from("road_achievements")
+    .select("id")
+    .eq("source_feature_request_id", requestId)
+    .maybeSingle();
+
+  if (existingError) {
+    return {
+      error: "Could not check the existing Road achievement. Try again.",
+      success: null,
+    };
+  }
+
+  const saveResult = existingAchievement
+    ? await supabase
+        .from("road_achievements")
+        .update(achievementPayload)
+        .eq("id", existingAchievement.id)
+    : await supabase.from("road_achievements").insert({
+        ...achievementPayload,
+        created_at: new Date().toISOString(),
+      });
+
+  if (saveResult.error) {
+    return {
+      error: "Could not save the Road achievement. Try again.",
+      success: null,
+    };
+  }
+
+  await recomputeUserBadgeFamilies(supabase, request.user_id, ["builder"]);
+
+  const authorUsername = await getProfileUsernameByUserId(
+    supabase,
+    request.user_id
+  );
+
+  revalidateMany([
+    "/",
+    "/input",
+    "/input/road",
+    authorUsername ? `/u/${authorUsername}` : null,
+  ]);
+
+  return {
+    ...initialRoadAchievementState,
+    success: existingAchievement
+      ? "Road Achievement updated."
+      : "Road Achievement created.",
+  };
 }
 

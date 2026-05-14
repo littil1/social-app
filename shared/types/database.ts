@@ -271,6 +271,7 @@ export type Database = {
           author_id: string | null
           author_username: string | null
           awarded_at: string
+          boost_count: number
           comments_count: number
           fire_count: number
           funny_count: number
@@ -288,6 +289,7 @@ export type Database = {
           author_id?: string | null
           author_username?: string | null
           awarded_at?: string
+          boost_count?: number
           comments_count?: number
           fire_count?: number
           funny_count?: number
@@ -305,6 +307,7 @@ export type Database = {
           author_id?: string | null
           author_username?: string | null
           awarded_at?: string
+          boost_count?: number
           comments_count?: number
           fire_count?: number
           funny_count?: number
@@ -490,6 +493,82 @@ export type Database = {
           },
         ]
       }
+      road_achievements: {
+        Row: {
+          created_at: string
+          created_by_admin_id: string | null
+          description: string
+          icon: string | null
+          id: string
+          image_url: string | null
+          implemented_at: string
+          is_published: boolean
+          sort_order: number | null
+          source_feature_request_id: number | null
+          source_user_id: string | null
+          source_user_username_snapshot: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_admin_id?: string | null
+          description: string
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          implemented_at?: string
+          is_published?: boolean
+          sort_order?: number | null
+          source_feature_request_id?: number | null
+          source_user_id?: string | null
+          source_user_username_snapshot?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_admin_id?: string | null
+          description?: string
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          implemented_at?: string
+          is_published?: boolean
+          sort_order?: number | null
+          source_feature_request_id?: number | null
+          source_user_id?: string | null
+          source_user_username_snapshot?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "road_achievements_created_by_admin_id_fkey"
+            columns: ["created_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "road_achievements_source_feature_request_id_fkey"
+            columns: ["source_feature_request_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "road_achievements_source_user_id_fkey"
+            columns: ["source_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follows: {
         Row: {
           created_at: string
@@ -618,6 +697,45 @@ export type Database = {
           {
             foreignKeyName: "post_reports_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_boosts: {
+        Row: {
+          created_at: string
+          day_key: string
+          id: string
+          post_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_key: string
+          id?: string
+          post_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_key?: string
+          id?: string
+          post_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_boosts_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_boosts_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

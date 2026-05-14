@@ -10,7 +10,7 @@ import {
   deleteFeatureRequestComment,
 } from "@/app/actions/feedback";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
-import type { FeedbackComment } from "@/features/feedback/lib/feedback-data";
+import type { FeedbackComment } from "@/features/input/lib/feedback-data";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 import ConfirmDialog from "@/shared/components/ui/ConfirmDialog";
 import FormError from "@/shared/components/ui/FormError";

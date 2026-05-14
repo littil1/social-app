@@ -46,7 +46,7 @@ export async function createPost(formData: FormData) {
   if (error) throw new Error(error.message);
 
   // Cache aktualisieren, damit der neue Post sofort im Feed erscheint
-  revalidatePath("/leaderboard");
+  revalidatePath("/live");
   revalidatePath("/");
   
   return { success: true };

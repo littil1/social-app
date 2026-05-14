@@ -14,7 +14,7 @@ import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import UserProfileContent from "@/features/profile/components/UserProfileContent";
 import ProfileBadgesSection from "@/features/profile/components/ProfileBadgesSection";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
-import { getIdeaCountByUserId } from "@/features/feedback/lib/feedback-data";
+import { getIdeaCountByUserId } from "@/features/input/lib/feedback-data";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +36,11 @@ type PostReactionRow = {
   post_id: number;
   user_id: string;
   reaction: ReactionType;
+};
+
+type PostBoostRow = {
+  post_id: number;
+  user_id: string;
 };
 
 type ProfileRow = {
@@ -126,6 +131,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     { like: number; funny: number; wow: number; fire: number }
   >();
   const viewerReactionMap = new Map<number, ReactionType | null>();
+  const boostCountMap = new Map<number, number>();
 
   const commentCountPromise = resolvePostCommentCounts(supabase, typedPosts);
   const reactionsPromise =
@@ -134,6 +140,10 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           .from("post_reactions")
           .select("post_id, user_id, reaction")
           .in("post_id", postIds)
+      : Promise.resolve({ data: [], error: null });
+  const boostsPromise =
+    postIds.length > 0
+      ? supabase.from("post_boosts").select("post_id, user_id").in("post_id", postIds)
       : Promise.resolve({ data: [], error: null });
   const followStatusPromise = isFollowingUser(
     supabase,
@@ -150,6 +160,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const [
     commentCountMap,
     { data: reactionsData, error: reactionsError },
+    { data: boostsData, error: boostsError },
     isFollowing,
     { followersCount, followingCount },
     ideaCount,
@@ -157,6 +168,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   ] = await Promise.all([
     commentCountPromise,
     reactionsPromise,
+    boostsPromise,
     followStatusPromise,
     followCountsPromise,
     ideaCountPromise,
@@ -167,7 +179,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     throw new Error(reactionsError.message);
   }
 
+  if (boostsError) {
+    throw new Error(boostsError.message);
+  }
+
   if (postIds.length > 0) {
+    for (const boost of (boostsData ?? []) as PostBoostRow[]) {
+      boostCountMap.set(boost.post_id, (boostCountMap.get(boost.post_id) ?? 0) + 1);
+    }
+
     for (const reaction of (reactionsData ?? []) as PostReactionRow[]) {
       const current = reactionCountMap.get(reaction.post_id) ?? {
         like: 0,
@@ -196,12 +216,18 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       wow: 0,
       fire: 0,
     };
+    const boostCount = boostCountMap.get(post.id) ?? 0;
 
     return {
       id: post.id,
       content: post.content ?? "",
       created_at: post.created_at,
       comments_count: commentCountMap.get(post.id) ?? 0,
+      boost_count: boostCount,
+      viewer_has_boosted: false,
+      viewer_boost_available_today: false,
+      is_today_post: false,
+      can_boost: false,
       reactions_count:
         reactionCounts.like +
         reactionCounts.funny +
@@ -226,7 +252,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const hasLegendBadge = legendWins > 0;
   const legacyStartedLabel = formatProfileMonth(typedProfile.created_at);
   const echoScore = posts.reduce(
-    (total, post) => total + post.reactions_count + post.comments_count * 2,
+    (total, post) =>
+      total + post.reactions_count + post.comments_count * 2 + post.boost_count * 3,
     0
   );
   const heroStats = [

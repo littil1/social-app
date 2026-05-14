@@ -32,9 +32,9 @@ export default function GlobalPostModal({
     // Erzwingt den Daten-Refresh vom Server
     router.refresh(); 
 
-    // Falls man nicht auf dem Leaderboard ist, dorthin leiten
-    if (pathname !== "/leaderboard") {
-      router.push("/leaderboard");
+    // Falls man nicht auf LIVE ist, dorthin leiten
+    if (pathname !== "/live") {
+      router.push("/live");
     }
   };
 

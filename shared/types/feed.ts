@@ -13,6 +13,11 @@ export type FeedPost = {
   created_at: string;
   comments_count: number;
   reactions_count: number;
+  boost_count: number;
+  viewer_has_boosted: boolean;
+  viewer_boost_available_today: boolean;
+  is_today_post: boolean;
+  can_boost: boolean;
   reaction_counts: ReactionCounts;
   viewer_reaction: ReactionType | null;
   can_delete: boolean;

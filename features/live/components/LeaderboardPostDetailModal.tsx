@@ -16,6 +16,11 @@ type LeaderboardPost = {
   author_username: string | null;
   author_avatar_url: string | null;
   reactions_count: number;
+  boost_count: number;
+  viewer_has_boosted: boolean;
+  viewer_boost_available_today: boolean;
+  is_today_post: boolean;
+  can_boost: boolean;
   reaction_counts: ReactionCounts;
   viewer_reaction: ReactionType | null;
   can_delete: boolean;
@@ -25,6 +30,7 @@ type LeaderboardPostDetailModalProps = {
   post: LeaderboardPost | null;
   isLoggedIn: boolean;
   onClose: () => void;
+  onBoosted?: (postId: number, boostCount: number) => void;
 };
 
 function toFeedPost(post: LeaderboardPost): FeedPost {
@@ -34,6 +40,11 @@ function toFeedPost(post: LeaderboardPost): FeedPost {
     created_at: post.post_created_at,
     comments_count: post.comments_count,
     reactions_count: post.reactions_count,
+    boost_count: post.boost_count,
+    viewer_has_boosted: post.viewer_has_boosted,
+    viewer_boost_available_today: post.viewer_boost_available_today,
+    is_today_post: post.is_today_post,
+    can_boost: post.can_boost,
     reaction_counts: post.reaction_counts,
     viewer_reaction: post.viewer_reaction,
     can_delete: post.can_delete,
@@ -77,10 +88,29 @@ function applyReactionUpdate(
   };
 }
 
+function applyBoostUpdate(
+  post: FeedPost,
+  postId: number,
+  boostCount: number
+): FeedPost {
+  if (!post.is_today_post) {
+    return post;
+  }
+
+  return {
+    ...post,
+    boost_count: post.id === postId ? boostCount : post.boost_count,
+    viewer_has_boosted: post.id === postId,
+    viewer_boost_available_today: false,
+    can_boost: post.id === postId,
+  };
+}
+
 export default function LeaderboardPostDetailModal({
   post,
   isLoggedIn,
   onClose,
+  onBoosted,
 }: LeaderboardPostDetailModalProps) {
   const router = useRouter();
   const [modalPost, setModalPost] = useState<FeedPost | null>(
@@ -155,6 +185,13 @@ export default function LeaderboardPostDetailModal({
     }
   }
 
+  function handleBoosted(postId: number, boostCount: number) {
+    setModalPost((current) =>
+      current ? applyBoostUpdate(current, postId, boostCount) : current
+    );
+    onBoosted?.(postId, boostCount);
+  }
+
   return createPortal(
     <div
       role="dialog"
@@ -195,6 +232,7 @@ export default function LeaderboardPostDetailModal({
             onCommentCreated={handleCommentCreated}
             onCommentsCountChange={handleCommentsCountChange}
             onPostDeleted={handlePostDeleted}
+            onBoosted={handleBoosted}
             isLoggedIn={isLoggedIn}
             disableRouterRefresh
             initialShowComments

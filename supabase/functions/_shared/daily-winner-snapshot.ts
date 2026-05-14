@@ -28,6 +28,10 @@ type PostReactionRow = {
   reaction: ReactionType;
 };
 
+type PostBoostRow = {
+  post_id: number;
+};
+
 type ProfileRow = {
   id: string;
   username: string | null;
@@ -59,6 +63,7 @@ export type DailyWinnerSnapshotRow = {
   wow_count: number;
   fire_count: number;
   comments_count: number;
+  boost_count: number;
   relevance_score: number;
 };
 
@@ -151,6 +156,29 @@ async function loadReactionCountsByPostId(supabase: any, postIds: number[]) {
   }
 
   return countsByPostId;
+}
+
+async function loadBoostCountsByPostId(supabase: any, postIds: number[]) {
+  const counts = new Map<number, number>();
+
+  if (postIds.length === 0) {
+    return counts;
+  }
+
+  const { data, error } = await supabase
+    .from("post_boosts")
+    .select("post_id")
+    .in("post_id", postIds);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  for (const row of (data ?? []) as PostBoostRow[]) {
+    counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+  }
+
+  return counts;
 }
 
 async function loadProfilesById(supabase: any, authorIds: string[]) {
@@ -289,10 +317,16 @@ export async function snapshotDailyWinner(
   const authorIds = uniqueStringIds(posts.map((post) => post.user_id));
   const rankingNow = getZurichDayRankingReferenceTime(endIso);
 
-  const [commentCountsByPostId, reactionCountsByPostId, profilesById] =
+  const [
+    commentCountsByPostId,
+    reactionCountsByPostId,
+    boostCountsByPostId,
+    profilesById,
+  ] =
     await Promise.all([
       loadCommentCountsByPostId(supabase, postIds),
       loadReactionCountsByPostId(supabase, postIds),
+      loadBoostCountsByPostId(supabase, postIds),
       loadProfilesById(supabase, authorIds),
     ]);
 
@@ -301,6 +335,7 @@ export async function snapshotDailyWinner(
       const reactionCounts =
         reactionCountsByPostId.get(post.id) ?? createEmptyReactionCounts();
       const commentsCount = commentCountsByPostId.get(post.id) ?? 0;
+      const boostCount = boostCountsByPostId.get(post.id) ?? 0;
       const reactionsTotal =
         reactionCounts.like +
         reactionCounts.funny +
@@ -313,10 +348,12 @@ export async function snapshotDailyWinner(
       return {
         post,
         commentsCount,
+        boostCount,
         reactionCounts,
         relevanceScore: getLiveScore({
           reactionsTotal,
           commentsCount,
+          boostCount,
           createdAt: post.created_at,
           now: rankingNow,
         }),
@@ -359,6 +396,7 @@ export async function snapshotDailyWinner(
     wow_count: topPost.reactionCounts.wow,
     fire_count: topPost.reactionCounts.fire,
     comments_count: topPost.commentsCount,
+    boost_count: topPost.boostCount,
     relevance_score: topPost.relevanceScore,
   };
 

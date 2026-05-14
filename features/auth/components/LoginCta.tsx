@@ -76,7 +76,7 @@ export default function LoginCta() {
       }
 
       window.sessionStorage.setItem(LOGIN_NUDGE_SESSION_KEY, "true");
-      openLogin(pathname || "/leaderboard");
+      openLogin(pathname || "/live");
       clearRetryTimer();
     }
 

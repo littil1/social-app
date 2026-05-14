@@ -15,6 +15,7 @@ type FrozenHallOfFamePost = {
   relevance_score: number;
   author_username: string | null;
   reactions_count: number;
+  boost_count: number;
   reaction_counts: ReactionCounts;
   winner_date: string;
 };
@@ -58,6 +59,10 @@ function getCardStyles(variant: "featured" | "archive") {
 
 function getCommentsStorageKey(postId: number) {
   return `app_hof_comments_open_${postId}`;
+}
+
+function formatBoostLabel(count: number) {
+  return `${count} ${count === 1 ? "BOOST" : "BOOSTS"}`;
 }
 
 export default function HallOfFameFrozenPostCard({
@@ -256,6 +261,15 @@ function HallOfFameFrozenPostCardContent({
             <span>{"\uD83D\uDCAC"}</span>
             <span className="text-neutral-900">{localCommentsCount}</span>
           </button>
+          {post.boost_count > 0 && (
+            <span
+              aria-label={`${post.boost_count} historical BOOST${post.boost_count === 1 ? "" : "S"}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-sm font-black text-amber-900 shadow-sm sm:gap-2 sm:px-4"
+            >
+              <span>{"\uD83D\uDE80"}</span>
+              <span>{formatBoostLabel(post.boost_count)}</span>
+            </span>
+          )}
         </div>
 
         {showComments && (

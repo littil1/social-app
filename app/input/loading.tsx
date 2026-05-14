@@ -1,4 +1,4 @@
-export default function FeedbackLoading() {
+export default function InputLoading() {
   return (
     <main className="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:px-8 lg:pt-14">
         <section className="app-skeleton app-skeleton-dark mb-10 rounded-[32px] p-6 sm:mb-14 sm:p-10 lg:mb-16 lg:p-14">

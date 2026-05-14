@@ -5,6 +5,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import CommentsSection from "@/features/comments/components/CommentsSection";
 import PostReportButton from "@/features/posts/components/PostReportButton";
+import PostBoostButton from "@/features/posts/components/PostBoostButton";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import { useRouter } from "next/navigation";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
@@ -21,6 +22,7 @@ type PostCardProps = {
   onCommentCreated?: (postId: number) => void;
   onCommentsCountChange?: (postId: number, count: number) => void;
   onPostDeleted: (postId: number) => void;
+  onBoosted?: (postId: number, boostCount: number) => void;
   dailyRank?: 1 | 2 | 3;
   detailHref?: string;
   isLoggedIn?: boolean;
@@ -138,6 +140,7 @@ function PostCardComponent({
   onCommentCreated,
   onCommentsCountChange,
   onPostDeleted,
+  onBoosted,
   dailyRank,
   detailHref,
   isLoggedIn = false,
@@ -213,6 +216,18 @@ function PostCardComponent({
       onCommentsCountChange?.(post.id, count);
     },
     [onCommentsCountChange, post.id]
+  );
+
+  const handleBoosted = useCallback(
+    (postId: number, boostCount: number) => {
+      onBoosted?.(postId, boostCount);
+      onMutationCommitted?.();
+
+      if (!disableRouterRefresh) {
+        scheduleRefresh(router);
+      }
+    },
+    [disableRouterRefresh, onBoosted, onMutationCommitted, router]
   );
 
   async function submitReaction(reaction: ReactionType) {
@@ -377,6 +392,16 @@ function PostCardComponent({
           <span>💬</span>
           <span className="text-neutral-900">{localCommentsCount}</span>
         </button>
+        <PostBoostButton
+          postId={post.id}
+          boostCount={post.boost_count}
+          viewerHasBoosted={post.viewer_has_boosted}
+          viewerBoostAvailableToday={post.viewer_boost_available_today}
+          isTodayPost={post.is_today_post}
+          canBoost={post.can_boost}
+          isLoggedIn={effectiveIsLoggedIn}
+          onBoosted={handleBoosted}
+        />
       </div>
 
       {showComments && (

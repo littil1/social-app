@@ -39,6 +39,20 @@ export type FeedbackItem = {
   likedByViewer: boolean;
   comments: FeedbackComment[];
   commentCount: number;
+  roadAchievement: FeedbackRoadAchievement | null;
+};
+
+export type FeedbackRoadAchievement = {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  icon: string | null;
+  image_url: string | null;
+  is_published: boolean;
+  implemented_at: string;
+  sort_order: number | null;
+  source_user_username_snapshot: string | null;
 };
 
 type ProfileRow = {
@@ -79,6 +93,10 @@ type FeatureRequestCommentReactionRow = {
   user_id: string;
   reaction: FeedbackReactionType;
   created_at: string;
+};
+
+type RoadAchievementRow = FeedbackRoadAchievement & {
+  source_feature_request_id: number | null;
 };
 
 function emptyReactionCounts(): FeedbackReactionCounts {
@@ -127,15 +145,49 @@ export async function getFeedbackBundle(
   if (commentReactionsError) throw new Error(commentReactionsError.message);
 
   const typedRequests = (requests ?? []) as FeatureRequestRow[];
+  const requestIds = typedRequests.map((request) => request.id);
+
+  const { data: roadAchievements, error: roadAchievementsError } =
+    requestIds.length > 0
+      ? await supabase
+          .from("road_achievements")
+          .select(
+            "id, source_feature_request_id, title, description, status, icon, image_url, is_published, implemented_at, sort_order, source_user_username_snapshot"
+          )
+          .in("source_feature_request_id", requestIds)
+      : { data: [], error: null };
+
+  if (roadAchievementsError) throw new Error(roadAchievementsError.message);
+
   const typedProfiles = (profiles ?? []) as ProfileRow[];
   const typedLikes = (likes ?? []) as FeatureRequestLikeRow[];
   const typedComments = (comments ?? []) as FeatureRequestCommentRow[];
   const typedCommentReactions =
     (commentReactions ?? []) as FeatureRequestCommentReactionRow[];
+  const typedRoadAchievements = (roadAchievements ?? []) as RoadAchievementRow[];
 
   const profileMap = new Map<string, ProfileRow>(
     typedProfiles.map((profile) => [profile.id, profile])
   );
+  const roadAchievementMap = new Map<number, FeedbackRoadAchievement>();
+
+  for (const achievement of typedRoadAchievements) {
+    if (achievement.source_feature_request_id === null) continue;
+
+    roadAchievementMap.set(achievement.source_feature_request_id, {
+      id: achievement.id,
+      title: achievement.title,
+      description: achievement.description,
+      status: achievement.status,
+      icon: achievement.icon,
+      image_url: achievement.image_url,
+      is_published: achievement.is_published,
+      implemented_at: achievement.implemented_at,
+      sort_order: achievement.sort_order,
+      source_user_username_snapshot:
+        achievement.source_user_username_snapshot,
+    });
+  }
 
   const reactionsByCommentId = new Map<number, FeatureRequestCommentReactionRow[]>();
 
@@ -191,6 +243,7 @@ export async function getFeedbackBundle(
         likedByViewer: requestLikes.some((like) => like.user_id === viewerId),
         comments: requestComments,
         commentCount: requestComments.length,
+        roadAchievement: roadAchievementMap.get(request.id) ?? null,
       };
     })
     .sort((a, b) => {

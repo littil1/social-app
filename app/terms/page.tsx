@@ -56,7 +56,7 @@ export default function TermsPage() {
           </h2>
           <p className="mt-2">
             APP is a community product for posting ideas, reacting, commenting,
-            submitting feedback, and highlighting daily impact through rankings,
+            submitting input, and highlighting daily impact through rankings,
             badges, and Hall of Fame snapshots.
           </p>
         </div>
@@ -121,10 +121,10 @@ export default function TermsPage() {
 
         <div>
           <h2 className="text-lg font-black tracking-tight text-neutral-950">
-            Feedback / Input
+            Input
           </h2>
           <p className="mt-2">
-            Ideas, feedback, feature requests, and comments submitted to APP may
+            Ideas, input, feature requests, and comments submitted to APP may
             be used to improve the product without obligation, compensation, or
             transfer of ownership beyond the rights needed to operate and
             develop the service.
