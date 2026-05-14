@@ -160,6 +160,7 @@ function PostCardComponent({
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleted, setIsDeleted] = useState(false);
   const [reactionError, setReactionError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(initialShowComments);
   const [optimisticReactions, setOptimisticReactions] = useState(() =>
@@ -325,7 +326,9 @@ function PostCardComponent({
       }
 
       setDeleteConfirmOpen(false);
+      setIsDeleted(true);
       onPostDeleted(post.id);
+      onMutationCommitted?.();
       if (!disableRouterRefresh) {
         router.refresh();
       }
@@ -338,6 +341,10 @@ function PostCardComponent({
     } finally {
       setDeleteLoading(false);
     }
+  }
+
+  if (isDeleted) {
+    return null;
   }
 
   return (

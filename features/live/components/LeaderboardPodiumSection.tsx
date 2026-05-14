@@ -158,6 +158,20 @@ export default function LeaderboardPodiumSection({
     scheduleRefresh(router);
   }, [router]);
 
+  const handlePostDeleted = useCallback((postId: number) => {
+    setMobilePodiumItems((prev) =>
+      prev.map((entry) =>
+        entry.post?.id === postId ? { ...entry, post: null } : entry
+      )
+    );
+    setDesktopPodiumItems((prev) =>
+      prev.map((entry) =>
+        entry.post?.id === postId ? { ...entry, post: null } : entry
+      )
+    );
+    setSelectedPost((current) => (current?.id === postId ? null : current));
+  }, []);
+
   const handleCloseModal = useCallback(() => {
     setSelectedPost(null);
   }, []);
@@ -247,6 +261,7 @@ export default function LeaderboardPodiumSection({
         post={visibleSelectedPost}
         isLoggedIn={isLoggedIn}
         onClose={handleCloseModal}
+        onPostDeleted={handlePostDeleted}
         onBoosted={handleBoosted}
       />
     </section>

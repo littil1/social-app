@@ -28,7 +28,7 @@ export default function SinglePostView({
   // State
   // =====================================================
 
-  const [post, setPost] = useState<FeedPost>(initialPost);
+  const [post, setPost] = useState<FeedPost | null>(initialPost);
 
   const router = useRouter();
 
@@ -41,14 +41,14 @@ export default function SinglePostView({
     nextReaction: ReactionType | null
   ) {
     setPost((prev) => {
-      if (prev.id !== postId) return prev;
+      if (!prev || prev.id !== postId) return prev;
       return applyOptimisticPostReaction(prev, nextReaction);
     });
   }
 
   function handleCommentCreated(postId: number) {
     setPost((prev) => {
-      if (prev.id !== postId) return prev;
+      if (!prev || prev.id !== postId) return prev;
 
       return {
         ...prev,
@@ -62,19 +62,26 @@ export default function SinglePostView({
   }
 
   function handlePostDeleted(postId: number) {
-    if (postId !== post.id) return;
+    if (postId !== post?.id) return;
+    setPost(null);
     router.push("/live");
     router.refresh();
   }
 
   function handleBoosted(postId: number, boostCount: number) {
-    setPost((prev) => applyOptimisticPostBoost(prev, postId, boostCount));
+    setPost((prev) =>
+      prev ? applyOptimisticPostBoost(prev, postId, boostCount) : prev
+    );
     router.refresh();
   }
 
   // =====================================================
   // Render
   // =====================================================
+
+  if (!post) {
+    return null;
+  }
 
   return (
     <PostCard

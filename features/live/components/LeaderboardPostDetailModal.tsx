@@ -34,6 +34,7 @@ type LeaderboardPostDetailModalProps = {
   post: LeaderboardPost | null;
   isLoggedIn: boolean;
   onClose: () => void;
+  onPostDeleted?: (postId: number) => void;
   onBoosted?: (postId: number, boostCount: number) => void;
 };
 
@@ -62,6 +63,7 @@ export default function LeaderboardPostDetailModal({
   post,
   isLoggedIn,
   onClose,
+  onPostDeleted,
   onBoosted,
 }: LeaderboardPostDetailModalProps) {
   const router = useRouter();
@@ -144,6 +146,7 @@ export default function LeaderboardPostDetailModal({
 
   function handlePostDeleted(postId: number) {
     if (postId === activePost.id) {
+      onPostDeleted?.(postId);
       onClose();
     }
   }
