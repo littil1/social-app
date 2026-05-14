@@ -144,7 +144,7 @@ export default function VibePage() {
                 🚀 BOOST: your strongest signal
               </h2>
               <p className="mt-4 max-w-xl text-base font-medium leading-relaxed text-neutral-600">
-                Daily BOOST the post you think deserves it most.
+                Amplify the post that deserves it most.
               </p>
               <p className="mt-4 text-sm font-black text-amber-700">
                 Choose carefully.
@@ -153,9 +153,9 @@ export default function VibePage() {
 
             <div className="grid gap-2.5 sm:grid-cols-3">
               {[
-                "1 BOOST per day",
-                "Can't be bought.",
-                "Can't be taken back.",
+                "1 daily BOOST",
+                "Non-purchasable.",
+                "Can't be undone.",
               ].map((text) => (
                 <div
                   key={text}
