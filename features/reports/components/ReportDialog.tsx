@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { lockDocumentScroll } from "@/shared/lib/scroll-lock";
 
 type ReportReason = {
   value: string;
@@ -34,9 +35,10 @@ export default function ReportDialog<TReason extends string>({
   onSubmit,
 }: ReportDialogProps<TReason>) {
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    return lockDocumentScroll();
+  }, []);
 
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         onClose();
@@ -45,7 +47,6 @@ export default function ReportDialog<TReason extends string>({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose]);

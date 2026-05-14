@@ -6,6 +6,7 @@ import { loginAction, signupAction, type AuthState } from "@/app/login/actions";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import FormError from "@/shared/components/ui/FormError";
 import { trackEvent } from "@/shared/lib/analytics";
+import { lockDocumentScroll } from "@/shared/lib/scroll-lock";
 
 const initialState: AuthState = {
   error: null,
@@ -48,8 +49,11 @@ export default function LoginModal() {
   useEffect(() => {
     if (!isOpen) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    return lockDocumentScroll();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") closeLogin();
@@ -57,7 +61,6 @@ export default function LoginModal() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, closeLogin]);

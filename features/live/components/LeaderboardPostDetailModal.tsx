@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import PostCard from "@/features/posts/components/PostCard";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
+import { lockDocumentScroll } from "@/shared/lib/scroll-lock";
 import type { FeedPost, ReactionCounts, ReactionType } from "@/shared/types/feed";
 import {
   applyOptimisticPostBoost,
@@ -87,12 +88,7 @@ export default function LeaderboardPostDetailModal({
   useEffect(() => {
     if (!post) return;
 
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
+    return lockDocumentScroll();
   }, [post]);
 
   if (typeof document === "undefined" || !post || !modalPost) {

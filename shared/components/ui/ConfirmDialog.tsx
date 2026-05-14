@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { lockDocumentScroll } from "@/shared/lib/scroll-lock";
 
 type ConfirmDialogProps = {
   title: string;
@@ -25,9 +26,10 @@ export default function ConfirmDialog({
   onConfirm,
 }: ConfirmDialogProps) {
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    return lockDocumentScroll();
+  }, []);
 
+  useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape" && !loading) {
         onCancel();
@@ -36,7 +38,6 @@ export default function ConfirmDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [loading, onCancel]);
