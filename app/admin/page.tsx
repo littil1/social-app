@@ -808,40 +808,40 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 overflow-x-hidden px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:gap-5 lg:px-8 lg:pt-8">
-        <section className="overflow-hidden rounded-[32px] border border-amber-100 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_34%),linear-gradient(135deg,#fffdf8,#ffffff)] p-5 shadow-sm sm:rounded-[36px] sm:p-6">
-          <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <main className="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-3 overflow-x-hidden px-4 pb-36 pt-3 sm:px-6 sm:pt-4 lg:gap-3 lg:px-8 lg:pt-4">
+        <section className="overflow-hidden rounded-3xl border border-neutral-200 bg-[#fffdf8] px-4 py-3 shadow-sm sm:px-5 sm:py-4">
+          <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400">
                 Admin
               </p>
-              <h1 className="mt-2 text-3xl font-black tracking-tight text-neutral-950 sm:text-4xl">
+              <h1 className="mt-1 text-2xl font-black tracking-tight text-neutral-950 sm:text-3xl">
                 Control Panel
               </h1>
-              <p className="mt-2 max-w-3xl break-words text-sm font-medium text-neutral-600">
+              <p className="mt-1 max-w-3xl break-words text-xs font-medium text-neutral-500 sm:text-sm">
                 A clear surface for moderation, user diagnostics, and badge
                 management using the existing server helpers.
               </p>
             </div>
-            <div className="grid min-w-0 shrink-0 grid-cols-3 gap-2 rounded-[26px] border border-amber-100 bg-white/70 p-2 text-center shadow-sm">
-              <div className="px-3 py-2">
-                <p className="text-lg font-black tabular-nums text-neutral-950">
+            <div className="grid min-w-0 shrink-0 grid-cols-3 gap-1.5 rounded-2xl border border-neutral-200 bg-white/80 p-1.5 text-center shadow-sm">
+              <div className="px-3 py-1.5">
+                <p className="text-base font-black tabular-nums text-neutral-950">
                   {users.length}
                 </p>
                 <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">
                   Users
                 </p>
               </div>
-              <div className="border-l border-amber-100 px-3 py-2">
-                <p className="text-lg font-black tabular-nums text-neutral-950">
+              <div className="border-l border-neutral-100 px-3 py-1.5">
+                <p className="text-base font-black tabular-nums text-red-700">
                   {openModerationItemsCount}
                 </p>
                 <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">
                   Open
                 </p>
               </div>
-              <div className="border-l border-amber-100 px-3 py-2">
-                <p className="text-lg font-black tabular-nums text-neutral-950">
+              <div className="border-l border-neutral-100 px-3 py-1.5">
+                <p className="text-base font-black tabular-nums text-neutral-950">
                   {archivedModerationItemsCount}
                 </p>
                 <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">

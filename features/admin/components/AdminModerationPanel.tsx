@@ -66,9 +66,9 @@ const FILTERS: Array<{ value: QueueFilter; label: string }> = [
 ];
 
 const STATUS_STYLES: Record<ModerationStatus, string> = {
-  clean: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  reported: "border-amber-200 bg-amber-50 text-amber-700",
-  blurred: "border-red-200 bg-red-50 text-red-700",
+  clean: "border-emerald-200/80 bg-emerald-50/80 text-emerald-700",
+  reported: "border-amber-200/80 bg-amber-50/80 text-amber-700",
+  blurred: "border-red-200/80 bg-red-50/80 text-red-700",
   removed: "border-neutral-200 bg-neutral-100 text-neutral-600",
 };
 
@@ -355,10 +355,10 @@ export default function AdminModerationPanel({ initialItems }: Props) {
           setSelectedKey(item.key);
           setFeedback(null);
         }}
-        className={`motion-card w-full min-w-0 rounded-2xl border p-4 text-left transition ${
+        className={`motion-card w-full min-w-0 rounded-xl border px-3 py-2.5 text-left transition ${
           selectedItem?.key === item.key
-            ? "border-emerald-200 bg-emerald-950/90 text-white"
-            : "border-neutral-200 bg-white hover:border-amber-200 hover:bg-amber-50/30"
+            ? "border-neutral-900 bg-neutral-900 text-white shadow-sm"
+            : "border-neutral-200 bg-white hover:border-neutral-300 hover:bg-neutral-50"
         }`}
       >
         <div className="flex min-w-0 items-start justify-between gap-3">
@@ -377,13 +377,13 @@ export default function AdminModerationPanel({ initialItems }: Props) {
                 {item.moderation_status}
               </span>
             </div>
-            <p className="mt-2 line-clamp-2 break-words text-sm font-bold [overflow-wrap:anywhere]">
+            <p className="mt-1.5 line-clamp-2 break-words text-sm font-bold leading-5 [overflow-wrap:anywhere]">
               {item.moderation_status === "removed"
                 ? "Removed by moderation."
                 : item.content || "Content is no longer available."}
             </p>
             <p
-              className={`mt-2 text-xs ${
+              className={`mt-1.5 text-xs ${
                 selectedItem?.key === item.key ? "text-white/70" : "text-neutral-500"
               }`}
             >
@@ -392,7 +392,7 @@ export default function AdminModerationPanel({ initialItems }: Props) {
             </p>
           </div>
           {isNeedsReview(item) && (
-            <span className="shrink-0 rounded-full bg-red-500 px-2 py-1 text-[10px] font-black text-white">
+            <span className="shrink-0 rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black text-white">
               OPEN
             </span>
           )}
@@ -409,7 +409,7 @@ export default function AdminModerationPanel({ initialItems }: Props) {
 
     return (
       <div className="min-w-0 space-y-4">
-        <section className="rounded-3xl border border-neutral-200 bg-white p-5">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-neutral-500">
               {item.target_type}
@@ -424,13 +424,13 @@ export default function AdminModerationPanel({ initialItems }: Props) {
             </span>
           </div>
 
-          <p className="mt-4 whitespace-pre-wrap break-words text-sm font-medium text-neutral-900 [overflow-wrap:anywhere]">
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-neutral-900 [overflow-wrap:anywhere]">
             {item.moderation_status === "removed"
               ? "Removed by moderation."
               : item.content || "Content is no longer available."}
           </p>
 
-          <div className="mt-4 grid gap-2 text-xs text-neutral-600 sm:grid-cols-2">
+          <div className="mt-3 grid gap-1.5 text-xs text-neutral-600 sm:grid-cols-2">
             <p>
               Author:{" "}
               <span className="font-bold text-neutral-950">
@@ -443,11 +443,11 @@ export default function AdminModerationPanel({ initialItems }: Props) {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-neutral-200 bg-neutral-50 p-5">
+        <section className="rounded-2xl border border-neutral-200 bg-neutral-50/70 p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
             AI
           </p>
-          <div className="mt-3 grid gap-2 text-sm text-neutral-700">
+          <div className="mt-2 grid gap-1.5 text-sm text-neutral-700">
             <p>
               Checked:{" "}
               <span className="font-bold text-neutral-950">
@@ -465,7 +465,7 @@ export default function AdminModerationPanel({ initialItems }: Props) {
             <p>{item.moderation_ai_summary ?? "No AI check stored."}</p>
           </div>
           {topScores.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {topScores.map(([category, score]) => (
                 <span
                   key={category}
@@ -478,12 +478,12 @@ export default function AdminModerationPanel({ initialItems }: Props) {
           )}
         </section>
 
-        <section className="rounded-3xl border border-neutral-200 bg-white p-5">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
             Decision
           </p>
           {item.moderation_reviewed_at && (
-            <p className="mt-2 text-sm text-neutral-600">
+            <p className="mt-1.5 text-xs text-neutral-600">
               Reviewed {formatDateTime(item.moderation_reviewed_at)}
               {item.moderation_reviewed_by_username
                 ? ` by @${item.moderation_reviewed_by_username}`
@@ -500,7 +500,7 @@ export default function AdminModerationPanel({ initialItems }: Props) {
             }
             rows={3}
             placeholder="Internal admin note"
-            className="mt-4 w-full min-w-0 rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm font-medium outline-none placeholder:text-neutral-500"
+            className="mt-3 w-full min-w-0 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm font-medium outline-none placeholder:text-neutral-500"
           />
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -538,11 +538,11 @@ export default function AdminModerationPanel({ initialItems }: Props) {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-neutral-200 bg-white p-5">
+        <section className="rounded-2xl border border-neutral-200 bg-white p-4">
           <p className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
             Timeline
           </p>
-          <div className="mt-4 space-y-3">
+          <div className="mt-3 max-h-[34vh] space-y-2.5 overflow-y-auto pr-1">
             {timeline.map((event, index) => (
               <div
                 key={`${event.title}-${event.at}-${index}`}
@@ -551,10 +551,10 @@ export default function AdminModerationPanel({ initialItems }: Props) {
                 <p className="text-xs font-black text-neutral-950">
                   {event.title}
                 </p>
-                <p className="mt-1 break-words text-xs text-neutral-600 [overflow-wrap:anywhere]">
+                <p className="mt-0.5 break-words text-xs text-neutral-600 [overflow-wrap:anywhere]">
                   {event.body}
                 </p>
-                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-400">
+                <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-neutral-400">
                   {formatDateTime(event.at)}
                 </p>
               </div>
@@ -566,9 +566,9 @@ export default function AdminModerationPanel({ initialItems }: Props) {
   }
 
   return (
-    <section className="grid w-full min-w-0 gap-5 overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6">
-      <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className="grid w-full min-w-0 gap-3 overflow-hidden lg:h-[calc(100vh-12rem)] lg:grid-cols-[minmax(320px,0.82fr)_minmax(0,1.18fr)]">
+      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-[#fffdf8] p-4 shadow-sm">
+        <div className="flex shrink-0 flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
               Moderation
@@ -591,7 +591,7 @@ export default function AdminModerationPanel({ initialItems }: Props) {
           <p className="mt-4 text-sm font-bold text-neutral-600">{feedback}</p>
         )}
 
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-3 flex shrink-0 flex-wrap gap-1.5">
           {FILTERS.map((filter) => {
             const active = activeFilter === filter.value;
             return (
@@ -602,7 +602,7 @@ export default function AdminModerationPanel({ initialItems }: Props) {
                   setActiveFilter(filter.value);
                   setSelectedKey(null);
                 }}
-                className={`motion-button rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] transition ${
+                className={`motion-button rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] transition ${
                   active
                     ? "border-neutral-950 bg-neutral-950 text-white"
                     : "border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50"
@@ -614,7 +614,7 @@ export default function AdminModerationPanel({ initialItems }: Props) {
           })}
         </div>
 
-        <div className="mt-5 grid gap-2.5">
+        <div className="mt-3 grid min-h-0 gap-2 overflow-y-auto pr-1 lg:flex-1">
           {visibleItems.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-5 text-sm text-neutral-500">
               No items for this filter.
@@ -625,15 +625,15 @@ export default function AdminModerationPanel({ initialItems }: Props) {
         </div>
       </section>
 
-      <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+      <section className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-[#fffdf8] p-4 shadow-sm">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
           Detail
         </p>
-        <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
+        <h2 className="mt-1 text-2xl font-black tracking-tight text-neutral-950">
           Case Details
         </h2>
 
-        <div className="mt-5">
+        <div className="mt-3 min-h-0 overflow-y-auto pr-1 lg:flex-1">
           {selectedItem ? (
             renderDetail(selectedItem)
           ) : (
