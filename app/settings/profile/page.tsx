@@ -28,30 +28,15 @@ export default async function ProfileSettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      <main className="mx-auto max-w-2xl px-4 pb-32 pt-6 sm:px-6 sm:pt-10 lg:pt-12">
-        <section className="relative mb-6 overflow-hidden rounded-[32px] bg-neutral-950 px-5 py-8 text-white shadow-[0_34px_90px_-34px_rgba(0,0,0,0.55)] sm:mb-8 sm:rounded-[40px] sm:px-8 sm:py-10 lg:px-12">
-          <div className="pointer-events-none absolute inset-0">
-            <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_50%)]" />
-            <div className="absolute left-0 bottom-0 h-full w-full bg-[radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.05),transparent_40%)]" />
-          </div>
-
-          <div className="relative">
-            <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
-              Identity Management
-            </span>
-            <h1 className="mt-5 text-4xl font-black tracking-tighter sm:mt-6 sm:text-5xl">
-              Refine your <span className="text-glow-neutral text-neutral-400">Presence.</span>
+      <main className="mx-auto max-w-xl px-4 pb-32 pt-4 sm:px-6 sm:pt-6 lg:pt-8">
+        <div className="rounded-[28px] border border-neutral-100 bg-white p-4 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-6">
+          <div className="mb-4 border-b border-neutral-100 pb-3 sm:mb-5 sm:pb-4">
+            <h1 className="text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
+              Profile settings
             </h1>
-            <p className="mt-4 max-w-md text-sm font-medium leading-relaxed text-neutral-400">
-              Your identity is your legacy in the Arena. Update your bio, choose your avatar, and stay recognizable among Legends.
+            <p className="mt-1 text-xs font-medium text-neutral-500 sm:text-sm">
+              Update avatar, username, and bio.
             </p>
-          </div>
-        </section>
-
-        <div className="rounded-[32px] border border-neutral-100 bg-white p-5 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-8 lg:p-10">
-          <div className="mb-6 border-b border-neutral-100 pb-5 sm:mb-8 sm:pb-6">
-            <h2 className="text-xl font-black tracking-tight text-neutral-950">Profile Essence</h2>
-            <p className="mt-1 text-sm font-medium text-neutral-500">How the community perceives your contributions.</p>
           </div>
 
           <ProfileForm
@@ -61,27 +46,18 @@ export default async function ProfileSettingsPage() {
           />
         </div>
 
-        <section className="mt-6 rounded-[32px] border border-dashed border-neutral-200 bg-white/70 p-6 text-center shadow-sm sm:mt-8 sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-neutral-400">
-            Professional Tip
-          </p>
-          <p className="mt-2 text-sm font-medium text-neutral-500">
-            Strong contributors with a clear bio often see higher engagement on their thoughts.
-          </p>
-        </section>
-
-        <section className="mt-6 rounded-[32px] border border-red-100 bg-red-50/50 p-6 shadow-sm sm:mt-8 sm:p-8">
+        <section className="mt-4 rounded-[28px] border border-red-100 bg-red-50/50 p-4 shadow-sm sm:mt-5 sm:p-5">
           <p className="text-xs font-black uppercase tracking-widest text-red-500">
             Danger Zone
           </p>
-          <h2 className="mt-2 text-xl font-black tracking-tight text-neutral-950">
+          <h2 className="mt-1.5 text-lg font-black tracking-tight text-neutral-950 sm:text-xl">
             Delete account
           </h2>
-          <p className="mt-2 text-sm font-medium leading-6 text-neutral-600">
+          <p className="mt-1.5 text-sm font-medium leading-6 text-neutral-600">
             This permanently removes your account and personal profile data.
             Hall of Fame snapshots are kept as historical records and anonymized.
           </p>
-          <div className="mt-5">
+          <div className="mt-4">
             <DeleteAccountForm />
           </div>
         </section>

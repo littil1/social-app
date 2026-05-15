@@ -117,17 +117,12 @@ function HallOfFameFrozenPostCardContent({
   styles: ReturnType<typeof getCardStyles>;
   variant: "featured" | "archive";
 }) {
-  const [showComments, setShowComments] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return (
-      window.sessionStorage.getItem(getCommentsStorageKey(post.id)) === "true"
-    );
-  });
+  const [showComments, setShowComments] = useState(false);
   const [localCommentsCount, setLocalCommentsCount] = useState(
     post.comments_count
   );
   const commentsContainerRef = useRef<HTMLDivElement | null>(null);
-  const shouldScrollToCommentsRef = useRef(showComments);
+  const shouldScrollToCommentsRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -191,13 +186,18 @@ function HallOfFameFrozenPostCardContent({
           <div className="min-w-0">
             {post.author_username ? (
               <div className="flex items-center gap-2">
-                <Link
-                  href={`/u/${encodeURIComponent(post.author_username)}`}
-                  className="truncate text-2xl font-black tracking-tight text-gray-950 transition hover:opacity-75 sm:text-3xl"
-                >
-                  @{post.author_username}
-                </Link>
-                <LegendBadgeMarker className="text-lg sm:text-xl" />
+                <span className="relative inline-flex min-w-0 max-w-full items-baseline pr-[0.7em] sm:pr-[0.75em]">
+                  <Link
+                    href={`/u/${encodeURIComponent(post.author_username)}`}
+                    className="truncate text-2xl font-black tracking-tight text-gray-950 transition hover:opacity-75 sm:text-3xl"
+                  >
+                    @{post.author_username}
+                  </Link>
+                  <LegendBadgeMarker
+                    variant="nameOverlayLarge"
+                    className="text-[0.98em] sm:text-[1.02em]"
+                  />
+                </span>
               </div>
             ) : (
               <h3 className="text-2xl font-black tracking-tight text-gray-950 sm:text-3xl">

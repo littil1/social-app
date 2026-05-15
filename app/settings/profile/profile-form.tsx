@@ -179,19 +179,19 @@ export default function ProfileForm({
   }
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form action={formAction} className="space-y-6">
       <input
         type="hidden"
         name="remove_avatar"
         value={removeAvatar ? "on" : ""}
       />
       {/* Avatar Section */}
-      <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+      <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-4">
         <div ref={avatarMenuRef} className="relative">
           <button
             type="button"
             onClick={() => setShowAvatarMenu((prev) => !prev)}
-            className="group relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-[24px] border-2 border-neutral-100 bg-neutral-50 text-2xl font-black text-neutral-400 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-neutral-950 sm:h-28 sm:w-28"
+            className="group relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-[20px] border-2 border-neutral-100 bg-neutral-50 text-xl font-black text-neutral-400 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-neutral-950 sm:h-24 sm:w-24"
             aria-label="Open profile picture options"
           >
             {previewUrl ? (
@@ -236,14 +236,7 @@ export default function ProfileForm({
 
         <div className="flex flex-col gap-1">
           <p className="text-xs font-black uppercase tracking-widest text-neutral-950">Avatar</p>
-          <p className="text-xs font-medium text-neutral-500">JPG, PNG or WebP. Max 4MB.</p>
-          <button
-            type="button"
-            onClick={handleChangePicture}
-            className="mt-2 text-xs font-bold text-neutral-950 underline underline-offset-4"
-          >
-            Upload new image
-          </button>
+          <p className="text-xs font-medium text-neutral-500">JPG, PNG, WebP - max 4MB.</p>
         </div>
 
         <input
@@ -258,13 +251,13 @@ export default function ProfileForm({
       </div>
 
       {/* Form Fields */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="space-y-2">
           <label
             htmlFor="username"
             className="text-xs font-black uppercase tracking-widest text-neutral-500"
           >
-            Unique Username
+            Name
           </label>
 
           <input
@@ -275,7 +268,7 @@ export default function ProfileForm({
             onChange={(e) => setUsername(e.target.value)}
             required
             placeholder="e.g. champion_01"
-            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
+            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
           />
 
           <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-tight">
@@ -288,24 +281,20 @@ export default function ProfileForm({
             htmlFor="bio"
             className="text-xs font-black uppercase tracking-widest text-neutral-500"
           >
-            Short Bio
+            Bio
           </label>
 
           <textarea
             id="bio"
             name="bio"
-            rows={4}
+            rows={2}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             maxLength={200}
-            placeholder="Tell the community about your journey..."
-            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-4 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
+            placeholder="Tell us about you..."
+            className="w-full rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3.5 font-medium outline-none transition placeholder:text-neutral-500 focus:border-neutral-950 focus:bg-white"
           />
-
           <div className="flex justify-between">
-            <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-tight">
-              A brief introduction.
-            </p>
             <p className={`text-[10px] font-bold ${bio.length > 180 ? 'text-amber-600' : 'text-neutral-500'}`}>
               {bio.length} / 200
             </p>
@@ -314,7 +303,7 @@ export default function ProfileForm({
       </div>
 
       {/* Feedback Messages */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {clientError && (
           <FormError message={clientError} />
         )}
@@ -334,7 +323,7 @@ export default function ProfileForm({
       <button
         type="submit"
         disabled={isPending || !!clientError}
-        className="relative w-full overflow-hidden rounded-2xl bg-neutral-950 py-4 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
+        className="relative w-full overflow-hidden rounded-2xl bg-neutral-950 py-3.5 text-sm font-bold text-white shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
       >
         {isPending ? "Syncing Profile..." : "Save Changes"}
       </button>

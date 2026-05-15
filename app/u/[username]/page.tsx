@@ -296,47 +296,71 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
             <div className="absolute bottom-0 left-0 h-full w-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_40%)]" />
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
-            {isOwnProfile && (
-              <div className="absolute inset-y-0 right-4 z-10 flex items-center sm:right-6">
-                <Link
-                  href="/settings/profile"
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white px-5 py-2.5 text-sm font-bold text-neutral-950 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)] transition-all hover:scale-105 hover:bg-neutral-100 active:scale-95"
-                >
-                  Edit Profile
-                </Link>
-              </div>
-            )}
           </div>
 
           <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
             <div className="relative -mt-20 mb-6 flex flex-col gap-5 sm:-mt-24 sm:flex-row sm:items-end sm:justify-between">
-              <div className="relative inline-block w-fit">
-                <div className="absolute inset-0 rounded-[36px] bg-amber-400/25 blur-2xl" />
-                <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-[34px] border-[7px] border-white bg-neutral-100 text-5xl font-black text-neutral-400 shadow-[0_22px_52px_-28px_rgba(15,23,42,0.7)] ring-1 ring-amber-100/70 sm:h-40 sm:w-40 sm:rounded-[38px]">
-                  {typedProfile.avatar_url ? (
-                    <Image
-                      src={typedProfile.avatar_url}
-                      alt={`${typedProfile.username} avatar`}
-                      width={160}
-                      height={160}
-                      sizes="(min-width: 640px) 160px, 128px"
-                      priority
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    typedProfile.username.charAt(0).toUpperCase()
+              {isOwnProfile ? (
+                <Link
+                  href="/settings/profile"
+                  aria-label="Edit your profile image"
+                  className="relative inline-block w-fit cursor-pointer rounded-[38px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
+                >
+                  <div className="absolute inset-0 rounded-[36px] bg-amber-400/25 blur-2xl" />
+                  <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-[34px] border-[7px] border-white bg-neutral-100 text-5xl font-black text-neutral-400 shadow-[0_22px_52px_-28px_rgba(15,23,42,0.7)] ring-1 ring-amber-100/70 sm:h-40 sm:w-40 sm:rounded-[38px]">
+                    {typedProfile.avatar_url ? (
+                      <Image
+                        src={typedProfile.avatar_url}
+                        alt={`${typedProfile.username} avatar`}
+                        width={160}
+                        height={160}
+                        sizes="(min-width: 640px) 160px, 128px"
+                        priority
+                        unoptimized
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      typedProfile.username.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  {hasLegendBadge && (
+                    <span
+                      className="pointer-events-none absolute right-0 top-0 z-20 select-none text-[4rem] leading-none drop-shadow-[0_6px_9px_rgba(15,23,42,0.34)] -translate-y-[75%] translate-x-[40%] rotate-[25deg] sm:text-[5rem]"
+                      aria-hidden="true"
+                    >
+                      {"\u{1F451}"}
+                    </span>
+                  )}
+                </Link>
+              ) : (
+                <div className="relative inline-block w-fit">
+                  <div className="absolute inset-0 rounded-[36px] bg-amber-400/25 blur-2xl" />
+                  <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-[34px] border-[7px] border-white bg-neutral-100 text-5xl font-black text-neutral-400 shadow-[0_22px_52px_-28px_rgba(15,23,42,0.7)] ring-1 ring-amber-100/70 sm:h-40 sm:w-40 sm:rounded-[38px]">
+                    {typedProfile.avatar_url ? (
+                      <Image
+                        src={typedProfile.avatar_url}
+                        alt={`${typedProfile.username} avatar`}
+                        width={160}
+                        height={160}
+                        sizes="(min-width: 640px) 160px, 128px"
+                        priority
+                        unoptimized
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      typedProfile.username.charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  {hasLegendBadge && (
+                    <span
+                      className="pointer-events-none absolute right-0 top-0 z-20 select-none text-[4rem] leading-none drop-shadow-[0_6px_9px_rgba(15,23,42,0.34)] -translate-y-[75%] translate-x-[40%] rotate-[25deg] sm:text-[5rem]"
+                      aria-hidden="true"
+                    >
+                      {"\u{1F451}"}
+                    </span>
                   )}
                 </div>
-                {hasLegendBadge && (
-                  <span
-                    className="pointer-events-none absolute right-0 top-0 z-20 select-none text-[4rem] leading-none drop-shadow-[0_6px_9px_rgba(15,23,42,0.34)] -translate-y-[75%] translate-x-[40%] rotate-[25deg] sm:text-[5rem]"
-                    aria-hidden="true"
-                  >
-                    {"\u{1F451}"}
-                  </span>
-                )}
-              </div>
+              )}
 
               {!isOwnProfile && user ? (
                 <div className="origin-bottom-left sm:mb-2 sm:origin-bottom-right sm:scale-105">
@@ -353,12 +377,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2.5">
-                  <h1 className="break-words text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
-                    <span className="mr-0.5 align-[0.08em] text-[0.62em] font-extrabold text-neutral-500">
-                      @
-                    </span>
-                    <span>{typedProfile.username}</span>
-                  </h1>
+                  {isOwnProfile ? (
+                    <Link
+                      href="/settings/profile"
+                      aria-label="Edit your profile"
+                      className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
+                    >
+                      <h1 className="break-words text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
+                        <span className="mr-0.5 align-[0.08em] text-[0.62em] font-extrabold text-neutral-500">
+                          @
+                        </span>
+                        <span>{typedProfile.username}</span>
+                      </h1>
+                    </Link>
+                  ) : (
+                    <h1 className="break-words text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
+                      <span className="mr-0.5 align-[0.08em] text-[0.62em] font-extrabold text-neutral-500">
+                        @
+                      </span>
+                      <span>{typedProfile.username}</span>
+                    </h1>
+                  )}
                 </div>
 
                 <p className="mt-3 max-w-2xl text-[15px] font-medium leading-6 text-neutral-600">

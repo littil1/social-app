@@ -299,14 +299,20 @@ export default function FeedbackCommentsSection({
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href={`/u/${node.username}`}
-              className="text-sm font-black text-neutral-900 hover:underline"
-            >
-              @{node.username ?? "anonymous"}
-            </Link>
-
-            {isLegend && <LegendBadgeMarker />}
+            <span className="relative inline-flex min-w-0 max-w-full items-baseline pr-[1.2em]">
+              <Link
+                href={`/u/${node.username}`}
+                className="truncate text-sm font-black text-neutral-900 hover:underline"
+              >
+                @{node.username ?? "anonymous"}
+              </Link>
+              {isLegend && (
+                <LegendBadgeMarker
+                  variant="nameOverlay"
+                  className="text-[0.8em]"
+                />
+              )}
+            </span>
           </div>
         </div>
 

@@ -262,19 +262,25 @@ const CommentItem = memo(function CommentItem({
             <div className="mb-2">
               <div className="flex flex-wrap items-center gap-2 pr-12">
                 {node.author_username ? (
-                  <Link
-                    href={`/u/${encodeURIComponent(node.author_username)}`}
-                    className="truncate text-sm font-black text-neutral-950 hover:underline"
-                  >
-                    @{node.author_username}
-                  </Link>
+                  <span className="relative inline-flex min-w-0 max-w-full items-baseline pr-[1.2em]">
+                    <Link
+                      href={`/u/${encodeURIComponent(node.author_username)}`}
+                      className="truncate text-sm font-black text-neutral-950 hover:underline"
+                    >
+                      @{node.author_username}
+                    </Link>
+                    {hasLegendBadge && (
+                      <LegendBadgeMarker
+                        variant="nameOverlay"
+                        className="text-[0.82em]"
+                      />
+                    )}
+                  </span>
                 ) : (
                   <span className="truncate text-sm font-black text-neutral-950">
                     @anonymous
                   </span>
                 )}
-                {hasLegendBadge && <LegendBadgeMarker className="text-sm" />}
-
               </div>
 
               <p className="text-[10px] font-bold uppercase tracking-tighter text-neutral-400">
