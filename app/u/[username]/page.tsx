@@ -14,7 +14,6 @@ import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import UserProfileContent from "@/features/profile/components/UserProfileContent";
 import ProfileBadgesSection from "@/features/profile/components/ProfileBadgesSection";
 import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
-import { getIdeaCountByUserId } from "@/features/input/lib/feedback-data";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +44,10 @@ type PostReactionRow = {
 type PostBoostRow = {
   post_id: number;
   user_id: string;
+};
+
+type DailyWinnerRow = {
+  post_id: number;
 };
 
 type ProfileRow = {
@@ -150,13 +153,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     postIds.length > 0
       ? supabase.from("post_boosts").select("post_id, user_id").in("post_id", postIds)
       : Promise.resolve({ data: [], error: null });
+  const dailyWinnersPromise =
+    postIds.length > 0
+      ? supabase
+          .from("daily_post_winners")
+          .select("post_id")
+          .in("post_id", postIds)
+      : Promise.resolve({ data: [], error: null });
   const followStatusPromise = isFollowingUser(
     supabase,
     user?.id ?? null,
     typedProfile.id
   );
   const followCountsPromise = getFollowCounts(supabase, typedProfile.id);
-  const ideaCountPromise = getIdeaCountByUserId(supabase, typedProfile.id);
   const isOwnProfile = user?.id === typedProfile.id;
   const profileBadgesPromise = getComputedUserBadges(supabase, typedProfile.id, {
     includeProgress: isOwnProfile,
@@ -166,17 +175,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     commentCountMap,
     { data: reactionsData, error: reactionsError },
     { data: boostsData, error: boostsError },
+    { data: dailyWinnersData, error: dailyWinnersError },
     isFollowing,
     { followersCount, followingCount },
-    ideaCount,
     profileBadges,
   ] = await Promise.all([
     commentCountPromise,
     reactionsPromise,
     boostsPromise,
+    dailyWinnersPromise,
     followStatusPromise,
     followCountsPromise,
-    ideaCountPromise,
     profileBadgesPromise,
   ]);
 
@@ -187,6 +196,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   if (boostsError) {
     throw new Error(boostsError.message);
   }
+
+  if (dailyWinnersError) {
+    throw new Error(dailyWinnersError.message);
+  }
+
+  const dailyWinnerPostIds = new Set(
+    ((dailyWinnersData ?? []) as DailyWinnerRow[]).map((row) => row.post_id)
+  );
 
   if (postIds.length > 0) {
     for (const boost of (boostsData ?? []) as PostBoostRow[]) {
@@ -247,6 +264,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       can_delete: !!user && (post.user_id === user.id || viewerIsAdmin),
       author_username: typedProfile.username,
       author_avatar_url: typedProfile.avatar_url ?? null,
+      is_daily_winner: dailyWinnerPostIds.has(post.id),
     };
   });
 
@@ -269,8 +287,6 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     { label: "ECHO", value: echoScore },
     { label: "Followers", value: followersCount, href: `/u/${username}/followers` },
     { label: "Following", value: followingCount, href: `/u/${username}/following` },
-    { label: "Posts", value: posts.length },
-    { label: "Ideas", value: ideaCount },
   ];
 
   return (
@@ -281,6 +297,16 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.15),transparent_50%)]" />
             <div className="absolute bottom-0 left-0 h-full w-full bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.05),transparent_40%)]" />
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
+            {isOwnProfile && (
+              <div className="absolute inset-y-0 right-4 z-10 flex items-center sm:right-6">
+                <Link
+                  href="/settings/profile"
+                  className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white px-5 py-2.5 text-sm font-bold text-neutral-950 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)] transition-all hover:scale-105 hover:bg-neutral-100 active:scale-95"
+                >
+                  Edit Profile
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
@@ -305,35 +331,26 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
 
-              <div className="sm:mb-2">
-                {isOwnProfile ? (
-                  <Link
-                    href="/settings/profile"
-                    className="inline-flex items-center justify-center rounded-2xl border border-neutral-200 bg-white px-6 py-3 text-sm font-bold text-neutral-950 shadow-sm transition-all hover:scale-105 hover:bg-neutral-50 active:scale-95"
-                  >
-                    Edit Profile
-                  </Link>
-                ) : user ? (
-                  <div className="origin-bottom-left sm:origin-bottom-right sm:scale-105">
-                    <FollowButton
-                      isFollowing={isFollowing}
-                      targetUserId={typedProfile.id}
-                      targetUsername={typedProfile.username}
-                      path={`/u/${typedProfile.username}`}
-                    />
-                  </div>
-                ) : null}
-              </div>
+              {!isOwnProfile && user ? (
+                <div className="origin-bottom-left sm:mb-2 sm:origin-bottom-right sm:scale-105">
+                  <FollowButton
+                    isFollowing={isFollowing}
+                    targetUserId={typedProfile.id}
+                    targetUsername={typedProfile.username}
+                    path={`/u/${typedProfile.username}`}
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <h1 className="break-words text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
                     @{typedProfile.username}
                   </h1>
                   {hasLegendBadge && (
-                    <LegendBadgeMarker className="text-xl sm:text-2xl" />
+                    <LegendBadgeMarker className="self-center text-3xl leading-none sm:text-4xl" />
                   )}
                 </div>
 
@@ -354,26 +371,26 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
 
               <div className="w-full max-w-full rounded-[28px] border border-neutral-100 bg-neutral-50/80 p-2 shadow-inner lg:w-[560px]">
-                <div className="overflow-x-auto rounded-[22px]">
-                  <div className="grid min-w-[500px] grid-cols-5 divide-x divide-neutral-200/70 overflow-hidden rounded-[22px] bg-white/80 sm:min-w-0">
-                  {heroStats.map((stat) => (
-                    <Link
-                      key={stat.label}
-                      href={stat.href ?? `/u/${username}`}
-                      className={`min-w-[96px] px-3 py-3 text-center sm:min-w-0 sm:px-4 ${
-                        stat.href
-                          ? "transition hover:bg-amber-50/70"
-                          : "pointer-events-none"
-                      }`}
-                    >
-                      <p className="text-base font-black leading-none tabular-nums text-neutral-950 sm:text-lg">
-                        {formatStatValue(stat.value)}
-                      </p>
-                      <p className="mt-1 whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.06em] text-neutral-500 sm:text-[10px] sm:tracking-[0.1em] lg:text-[11px] lg:tracking-[0.08em]">
-                        {stat.label}
-                      </p>
-                    </Link>
-                  ))}
+                <div className="overflow-x-auto overscroll-x-contain rounded-[22px]">
+                  <div className="grid w-max min-w-full grid-flow-col auto-cols-[minmax(88px,1fr)] divide-x divide-neutral-200/70 overflow-hidden rounded-[22px] bg-white/80 sm:w-full sm:grid-cols-3 sm:grid-flow-row sm:auto-cols-fr">
+                    {heroStats.map((stat) => (
+                      <Link
+                        key={stat.label}
+                        href={stat.href ?? `/u/${username}`}
+                        className={`px-2.5 py-3 text-center sm:px-4 ${
+                          stat.href
+                            ? "transition hover:bg-amber-50/70"
+                            : "pointer-events-none"
+                        }`}
+                      >
+                        <p className="text-base font-black leading-none tabular-nums text-neutral-950 sm:text-lg">
+                          {formatStatValue(stat.value)}
+                        </p>
+                        <p className="mt-1 whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.08em] text-neutral-500 sm:text-[10px] sm:tracking-[0.1em] lg:text-[11px] lg:tracking-[0.08em]">
+                          {stat.label}
+                        </p>
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -389,7 +406,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           />
         </div>
 
-        <section className="mx-auto mt-10 max-w-2xl border-t border-neutral-200/70 pt-8">
+        <section className="mt-10 border-t border-neutral-200/70 pt-8">
           <div className="mb-5 px-1">
             <p className="text-[10px] font-black uppercase tracking-[0.24em] text-neutral-400">
               RECENT POSTS

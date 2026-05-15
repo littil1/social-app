@@ -28,6 +28,7 @@ export type FeedPost = {
   author_username: string | null;
   author_avatar_url: string | null;
   relevance_score?: number;
+  is_daily_winner?: boolean;
 };
 
 export type FeedResponse = {

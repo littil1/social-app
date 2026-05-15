@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import UserMenu from "@/shared/components/layout/UserMenu";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import { createClient } from "@/lib/supabase/browser";
@@ -22,6 +22,10 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
   const pathname = usePathname();
   const { openLogin } = useAuthModal();
   const [user, setUser] = useState<NavBarUser | null>(initialUser);
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
+  const accumulatedDeltaRef = useRef(0);
+  const tickingRef = useRef(false);
 
   useEffect(() => {
     setUser(initialUser);
@@ -101,6 +105,72 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const TOP_VISIBLE_THRESHOLD = 16;
+    const DIRECTION_DELTA_THRESHOLD = 18;
+
+    lastScrollYRef.current = window.scrollY;
+
+    function hasBlockingOverlay() {
+      if (document.body.style.overflow === "hidden") return true;
+      return Boolean(
+        document.querySelector(
+          '[role="dialog"][aria-modal="true"], [data-state="open"][role="dialog"]'
+        )
+      );
+    }
+
+    function updateVisibility() {
+      tickingRef.current = false;
+
+      const currentY = window.scrollY;
+      const previousY = lastScrollYRef.current;
+      const delta = currentY - previousY;
+      lastScrollYRef.current = currentY;
+
+      if (currentY <= TOP_VISIBLE_THRESHOLD) {
+        accumulatedDeltaRef.current = 0;
+        setIsNavVisible(true);
+        return;
+      }
+
+      if (hasBlockingOverlay()) {
+        accumulatedDeltaRef.current = 0;
+        setIsNavVisible(true);
+        return;
+      }
+
+      if (Math.abs(delta) < 2) return;
+
+      accumulatedDeltaRef.current += delta;
+
+      if (accumulatedDeltaRef.current >= DIRECTION_DELTA_THRESHOLD) {
+        setIsNavVisible(false);
+        accumulatedDeltaRef.current = 0;
+        return;
+      }
+
+      if (accumulatedDeltaRef.current <= -DIRECTION_DELTA_THRESHOLD) {
+        setIsNavVisible(true);
+        accumulatedDeltaRef.current = 0;
+      }
+    }
+
+    function onScroll() {
+      if (tickingRef.current) return;
+      tickingRef.current = true;
+      window.requestAnimationFrame(updateVisibility);
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
   const navItems = [
     { name: "LIVE", href: "/live", icon: "🔥" },
     { name: "LEGENDS", href: "/legends", icon: "👑" },
@@ -133,7 +203,13 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
   }
 
   return (
-    <nav className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-5 left-1/2 z-[60] w-full max-w-[calc(100vw-1.25rem)] -translate-x-1/2 px-2 transition-all duration-500 sm:bottom-7 sm:max-w-fit sm:px-4">
+    <nav
+      className={`animate-in fade-in slide-in-from-bottom-4 fixed bottom-5 left-1/2 z-[60] w-full max-w-[calc(100vw-1.25rem)] -translate-x-1/2 px-2 transition-all duration-300 ease-out sm:bottom-7 sm:max-w-fit sm:px-4 ${
+        isNavVisible
+          ? "translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-6 opacity-0 sm:translate-y-7"
+      }`}
+    >
       <div className="flex min-h-[4.5rem] w-full items-center gap-1 rounded-full border border-white/10 bg-neutral-950/80 p-2 shadow-[0_18px_42px_-28px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl sm:h-14 sm:min-h-0 sm:w-auto sm:gap-1.5 sm:p-1.5">
         <div className="flex min-w-0 flex-1 items-center justify-between sm:flex-none sm:gap-1.5">
           {navItems.map((item) => (

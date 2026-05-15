@@ -119,9 +119,15 @@ function getMonthLabel(value: string) {
 }
 
 function getInspiredByLabel(username: string | null | undefined) {
-  if (!username) return "the community";
-  if (username === "deleted user") return "deleted user";
-  return `@${username}`;
+  const normalized = username?.trim();
+  if (!normalized) return "the community";
+  if (normalized.toLowerCase() === "deleted user") return "deleted user";
+  return `@${normalized}`;
+}
+
+function hasInspiredByProfile(username: string | null | undefined) {
+  const normalized = username?.trim();
+  return Boolean(normalized && normalized.toLowerCase() !== "deleted user");
 }
 
 async function getPublishedRoadAchievements(): Promise<RoadItem[]> {
@@ -255,19 +261,23 @@ export default async function InputRoadPage() {
                           <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-neutral-400">
                             <span>
                               Inspired by{" "}
-                              {getInspiredByLabel(
+                              {hasInspiredByProfile(
                                 item.sourceUserUsernameSnapshot
+                              ) ? (
+                                <Link
+                                  href={`/u/${item.sourceUserUsernameSnapshot!.trim()}`}
+                                  className="text-amber-700 transition hover:text-amber-800"
+                                >
+                                  {getInspiredByLabel(
+                                    item.sourceUserUsernameSnapshot
+                                  )}
+                                </Link>
+                              ) : (
+                                getInspiredByLabel(
+                                  item.sourceUserUsernameSnapshot
+                                )
                               )}
                             </span>
-                            {item.sourceFeatureRequestId && (
-                              <Link
-                                href={`/input#input-idea-${item.sourceFeatureRequestId}`}
-                                data-analytics-event="road_original_idea_clicked"
-                                className="text-amber-700 transition hover:text-amber-800"
-                              >
-                                View original idea
-                              </Link>
-                            )}
                           </div>
                         )}
                       </div>
@@ -290,7 +300,7 @@ export default async function InputRoadPage() {
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
-              href="/input"
+              href="/input#submit-idea"
               data-analytics-event="road_cta_clicked"
               data-analytics-target="input"
               className="rounded-full bg-neutral-950 px-7 py-3.5 text-sm font-black text-white shadow-lg transition hover:scale-105"

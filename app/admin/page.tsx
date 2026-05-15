@@ -134,10 +134,6 @@ function getInitialTab(value: string | undefined): AdminTabId {
   return "moderation";
 }
 
-function isAdminTab(value: string | undefined): value is AdminTabId {
-  return value === "moderation" || value === "users" || value === "badges";
-}
-
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   const supabase = await createClient();
   const {
@@ -178,7 +174,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const params = await searchParams;
   const initialTab = getInitialTab(params.tab);
-  const hasWorkspace = isAdminTab(params.tab);
   const selectedCaseKey =
     typeof params.case === "string" ? params.case.trim() : "";
   const searchQuery = typeof params.q === "string" ? params.q.trim() : "";
@@ -818,77 +813,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     </section>
   );
 
-  const overviewCards = [
-    {
-      href: "/admin?tab=moderation",
-      label: "Moderation",
-      value: openModerationItemsCount,
-      detail: `${archivedModerationItemsCount} archived`,
-    },
-    {
-      href: "/admin?tab=users",
-      label: "Users",
-      value: users.length,
-      detail: "Search and badges",
-    },
-    {
-      href: "/admin?tab=badges",
-      label: "Badges",
-      value: badgeDefinitions.length,
-      detail: "Definitions",
-    },
-  ];
-
-  if (!hasWorkspace) {
-    return (
-      <main className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-3 overflow-x-hidden px-4 pb-36 pt-3 sm:px-6 sm:pt-4 lg:px-8">
-        <section className="rounded-3xl border border-neutral-200 bg-[#fffdf8] px-4 py-4 shadow-sm sm:px-5">
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400">
-            Admin
-          </p>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-neutral-950 sm:text-3xl">
-                Control Panel
-              </h1>
-              <p className="mt-1 text-sm font-medium text-neutral-500">
-                Pick a workspace.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-black text-red-700">
-                {openModerationItemsCount} open
-              </span>
-              <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-black text-neutral-600">
-                {users.length} users
-              </span>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-3 sm:grid-cols-3">
-          {overviewCards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="motion-card rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-neutral-300 hover:bg-neutral-50"
-            >
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-neutral-400">
-                {card.label}
-              </p>
-              <p className="mt-3 text-3xl font-black text-neutral-950">
-                {card.value}
-              </p>
-              <p className="mt-1 text-sm font-medium text-neutral-500">
-                {card.detail}
-              </p>
-            </Link>
-          ))}
-        </section>
-      </main>
-    );
-  }
-
   const showCompactHeader = initialTab !== "moderation";
 
   return (
@@ -938,22 +862,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </section>
         )}
 
-        {initialTab === "moderation" ? (
-          moderationTab
-        ) : (
-          <AdminTabs
-            initialTab={initialTab}
-            tabs={[
-              {
-                id: "moderation",
-                label: `Moderation (${openModerationItemsCount})`,
-                content: moderationTab,
-              },
-              { id: "users", label: "Users", content: usersTab },
-              { id: "badges", label: "Badges", content: badgesTab },
-            ]}
-          />
-        )}
+        <AdminTabs
+          initialTab={initialTab}
+          tabs={[
+            {
+              id: "moderation",
+              label: `Moderation (${openModerationItemsCount})`,
+              content: moderationTab,
+            },
+            { id: "users", label: "Users", content: usersTab },
+            { id: "badges", label: "Badges", content: badgesTab },
+          ]}
+        />
     </main>
   );
 }

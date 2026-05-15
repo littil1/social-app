@@ -34,12 +34,16 @@ function FeedbackCard({
   const [roadEditorOpen, setRoadEditorOpen] = useState(false);
   const likeFormRef = useRef<HTMLFormElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLElement | null>(null);
   const commentsContainerRef = useRef<HTMLDivElement | null>(null);
   const shouldScrollToCommentsRef = useRef(false);
+  const highlightTimeoutRef = useRef<number | null>(null);
+  const [isHashTarget, setIsHashTarget] = useState(false);
 
   const isOwnRequest = currentUserId === item.user_id;
   const canManage = isOwnRequest || currentUserIsAdmin;
   const isImplemented = item.status === "implemented";
+  const cardId = `input-idea-${item.id}`;
 
   // Close the menu when clicking outside it.
   useEffect(() => {
@@ -83,8 +87,49 @@ function FeedbackCard({
     scheduleScrollIntoViewIfNeeded(commentsContainerRef.current);
   }, [showComments]);
 
+  const triggerHashFocus = useCallback(() => {
+    if (window.location.hash !== `#${cardId}`) return;
+
+    setIsHashTarget(true);
+    window.requestAnimationFrame(() => {
+      cardRef.current?.focus({ preventScroll: true });
+    });
+
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setIsHashTarget(false);
+    }, 2200);
+  }, [cardId]);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      triggerHashFocus();
+    });
+    window.addEventListener("hashchange", triggerHashFocus);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("hashchange", triggerHashFocus);
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
+  }, [triggerHashFocus]);
+
   return (
-    <article id={`input-idea-${item.id}`} className="motion-card soft-enter relative rounded-[32px] border border-neutral-100 bg-white p-5 shadow-[0_20px_60px_-48px_rgba(15,23,42,0.5)] transition-all hover:-translate-y-0.5 hover:border-amber-100 hover:shadow-[0_28px_70px_-50px_rgba(15,23,42,0.58)] sm:p-6">
+    <article
+      ref={cardRef}
+      id={cardId}
+      tabIndex={-1}
+      className={`motion-card soft-enter relative scroll-mt-24 rounded-[32px] border border-neutral-200/70 bg-[linear-gradient(165deg,#ffffff_0%,#fcfbf9_100%)] p-5 shadow-[0_18px_52px_-38px_rgba(15,23,42,0.3)] outline-none transition-all hover:-translate-y-0.5 hover:shadow-[0_24px_62px_-36px_rgba(15,23,42,0.36)] sm:scroll-mt-28 sm:p-6 ${
+        isHashTarget
+          ? "border-amber-300 ring-2 ring-amber-200/80 shadow-[0_0_0_5px_rgba(252,211,77,0.2),0_28px_70px_-50px_rgba(15,23,42,0.58)]"
+          : ""
+      }`}
+    >
       
       {/* HEADER: Profile & Actions */}
       <div className="mb-5 flex items-center justify-between gap-3 sm:mb-6">
@@ -115,9 +160,9 @@ function FeedbackCard({
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           {/* Status Badge */}
           {isImplemented ? (
-            <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-600">Deployed</span>
+            <span className="rounded-full border border-emerald-200 bg-emerald-50/70 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-emerald-700">Deployed</span>
           ) : (
-            <span className="rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-600">Open</span>
+            <span className="rounded-full border border-amber-200 bg-amber-50/70 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-700">Open</span>
           )}
 
           {/* ADMIN/OWNER MENU */}
@@ -172,7 +217,7 @@ function FeedbackCard({
       </div>
 
       {/* CONTENT AREA */}
-      <div className="mb-5 rounded-[24px] border border-neutral-100/80 bg-neutral-50/45 p-4 sm:mb-6 sm:p-5">
+      <div className="mb-5 rounded-[24px] bg-[#f8f6f3] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] sm:mb-6 sm:p-5">
         <h3 className="text-xl font-black tracking-tight text-neutral-950 sm:text-2xl">
           {item.title}
         </h3>
@@ -182,7 +227,7 @@ function FeedbackCard({
         {item.roadAchievement?.is_published && (
           <Link
             href={`/input/road#road-achievement-${item.roadAchievement.id}`}
-            className="mt-4 inline-flex rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-700 transition hover:bg-amber-100"
+            className="mt-4 inline-flex rounded-full border border-amber-200 bg-amber-50/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.16em] text-amber-700 transition hover:bg-amber-100/80"
           >
             Now on the Road
           </Link>
@@ -197,7 +242,7 @@ function FeedbackCard({
       )}
 
       {/* ACTIONS */}
-      <div className="flex flex-wrap items-center gap-2 rounded-[24px] border border-neutral-100 bg-white/70 p-1.5 sm:gap-2">
+      <div className="flex flex-wrap items-center gap-2 rounded-[24px] bg-neutral-100/80 p-1.5 ring-1 ring-neutral-200/70 sm:gap-2">
         <form ref={likeFormRef} action={toggleFeatureRequestLike}>
           <input type="hidden" name="request_id" value={item.id} />
           <button
@@ -207,8 +252,8 @@ function FeedbackCard({
             aria-label={`${item.likedByViewer ? "Remove support from" : "Support"} idea, ${item.likeCount} supporters`}
             className={`motion-reaction inline-flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
               item.likedByViewer 
-                ? "bg-neutral-950 text-white shadow-lg" 
-                : "bg-neutral-50 text-neutral-500 hover:bg-neutral-100"
+                ? "bg-neutral-950 text-white shadow-[0_8px_20px_-14px_rgba(15,23,42,0.9)]" 
+                : "bg-white text-neutral-600 shadow-sm hover:bg-neutral-50"
             }`}
           >
             <span>{item.likedByViewer ? "❤️" : "🤍"}</span>
@@ -225,7 +270,7 @@ function FeedbackCard({
           onClick={handleToggleComments}
           aria-label={`${showComments ? "Hide" : "Show"} idea comments, ${item.commentCount} comments`}
             className={`motion-button inline-flex items-center gap-2 whitespace-nowrap rounded-full border px-3 py-2 text-sm font-bold transition-all sm:px-4 ${
-            showComments ? "border-neutral-200 bg-neutral-200 text-neutral-900" : "border-neutral-200/70 bg-white text-neutral-500 shadow-sm hover:border-amber-200 hover:bg-amber-50/60 hover:text-neutral-900"
+            showComments ? "border-neutral-300 bg-neutral-200 text-neutral-900" : "border-neutral-200 bg-white text-neutral-500 shadow-sm hover:bg-neutral-50 hover:text-neutral-900"
           }`}
         >
           <span>💬</span>

@@ -7,7 +7,7 @@ export default function LegendBadgeMarker({
 }: LegendBadgeMarkerProps) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center text-base leading-none ${className}`}
+      className={`relative inline-flex shrink-0 items-center justify-center align-middle text-base leading-none ${className}`}
       aria-hidden="true"
     >
       👑

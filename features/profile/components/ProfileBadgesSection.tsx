@@ -74,6 +74,19 @@ const FAMILY_TEXT: Record<ShowcaseFamily, string> = {
   know_everything: "Reached the end of the archive.",
 };
 
+const FAMILY_CENTER_EMOJI: Record<ShowcaseFamily, string> = {
+  legend: "👑",
+  podium: "🏆",
+  impact: "⚡",
+  spark: "✨",
+  creator: "✍️",
+  influence: "📣",
+  contributor: "🛠️",
+  supporter: "🤝",
+  connector: "🔗",
+  know_everything: "🧠",
+};
+
 const FAMILY_PRESTIGE: Record<ShowcaseFamily, PrestigeGroup> = {
   legend: "high",
   podium: "starter",
@@ -189,15 +202,34 @@ const PRESTIGE_FRAME_CLASSES: Record<PrestigeGroup, string> = {
 };
 
 const PRESTIGE_ORNAMENT_CLASSES: Record<PrestigeGroup, string> = {
-  high: "h-32 w-32",
-  medium: "h-[7.25rem] w-[7.25rem]",
-  starter: "h-28 w-28",
+  high: "h-36 w-36",
+  medium: "h-[8rem] w-[8rem]",
+  starter: "h-[7.5rem] w-[7.5rem]",
 };
 
-const PRESTIGE_ICON_CLASSES: Record<PrestigeGroup, string> = {
-  high: "text-5xl drop-shadow-[0_3px_12px_rgba(255,255,255,0.45)]",
-  medium: "text-4xl drop-shadow-[0_2px_8px_rgba(255,255,255,0.3)]",
-  starter: "text-3xl drop-shadow-[0_2px_6px_rgba(255,255,255,0.22)]",
+const PRESTIGE_MEDALLION_CLASSES: Record<PrestigeGroup, string> = {
+  high: "h-24 w-24",
+  medium: "h-[5.5rem] w-[5.5rem]",
+  starter: "h-20 w-20",
+};
+
+const PRESTIGE_EMOJI_CLASSES: Record<PrestigeGroup, string> = {
+  high: "text-[2.2rem]",
+  medium: "text-[2rem]",
+  starter: "text-[1.8rem]",
+};
+
+const FAMILY_EMOJI_ADJUST_CLASSES: Record<ShowcaseFamily, string> = {
+  legend: "text-[1.08em]",
+  podium: "",
+  impact: "",
+  spark: "",
+  creator: "",
+  influence: "",
+  contributor: "",
+  supporter: "",
+  connector: "",
+  know_everything: "",
 };
 
 const PRESTIGE_DETAIL_CLASSES: Record<PrestigeGroup, string> = {
@@ -269,6 +301,7 @@ function BadgeCard({
   const motionClass = getTierMotion(badge.tier);
   const prestige = FAMILY_PRESTIGE[badge.family];
   const palette = TIER_PALETTES[badge.tier];
+  const centerEmoji = FAMILY_CENTER_EMOJI[badge.family] ?? badge.icon;
 
   return (
     <button
@@ -322,41 +355,36 @@ function BadgeCard({
           )}
           <CrownSpikes tier={badge.tier} palette={palette} />
           <div
-            className="absolute inset-[15%] z-30 rounded-full border shadow-[0_18px_42px_-18px_rgba(0,0,0,0.95)]"
-            style={{
-              background: palette.frame,
-              borderColor: palette.ring,
-              boxShadow: `inset 0 2px 8px rgba(255,255,255,0.35), inset 0 -10px 18px rgba(0,0,0,0.28), 0 0 0 1px ${palette.ring}, 0 18px 42px -18px rgba(0,0,0,0.95), 0 0 34px ${palette.glow}`,
-            }}
-          />
-          <div
-            className="absolute inset-[22%] z-40 rounded-full border bg-neutral-950/85 shadow-[inset_0_0_26px_rgba(255,255,255,0.12)]"
-            style={{ borderColor: palette.ring }}
-          />
-          <div
-            className="absolute inset-[28%] z-50 rounded-full border"
-            style={{
-              background: palette.core,
-              borderColor: palette.ring,
-            }}
-          />
-          <div
-            className={`absolute inset-[36%] z-[60] rounded-full bg-gradient-to-br ${FAMILY_ACCENTS[badge.family]} ${
-              prestige === "high"
-                ? "opacity-35"
-                : prestige === "medium"
-                  ? "opacity-24"
-                  : "opacity-16"
-            }`}
-          />
-          <div className="absolute inset-[25%] z-[60] rounded-full border border-white/20" />
-          <div className="absolute inset-x-8 top-[26%] z-[60] h-3 rounded-full bg-white/30 blur-sm" />
-          <div className="absolute left-1/2 top-[22%] z-[60] h-2 w-10 -translate-x-1/2 rounded-full bg-white/35 blur-[1px]" />
-          <span
-            className={`absolute inset-0 z-[70] flex items-center justify-center ${PRESTIGE_ICON_CLASSES[prestige]}`}
+            className={`absolute left-1/2 top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 ${PRESTIGE_MEDALLION_CLASSES[prestige]} rounded-full`}
           >
-            {badge.icon}
-          </span>
+            <div
+              className="absolute inset-0 rounded-full border shadow-[0_18px_42px_-18px_rgba(0,0,0,0.95)]"
+              style={{
+                background: palette.frame,
+                borderColor: palette.ring,
+                boxShadow: `inset 0 2px 8px rgba(255,255,255,0.35), inset 0 -10px 18px rgba(0,0,0,0.28), 0 0 0 1px ${palette.ring}, 0 18px 42px -18px rgba(0,0,0,0.95), 0 0 30px ${palette.glow}`,
+              }}
+            />
+            <div
+              className="absolute inset-[11%] rounded-full border"
+              style={{
+                background: palette.core,
+                borderColor: palette.ring,
+                boxShadow:
+                  "inset 0 8px 14px rgba(255,255,255,0.16), inset 0 -10px 14px rgba(0,0,0,0.38)",
+              }}
+            />
+            <div
+              className="absolute inset-[24%] rounded-full border border-white/45 bg-[radial-gradient(circle_at_35%_30%,rgba(255,255,255,0.74),rgba(255,255,255,0.14)_52%,rgba(0,0,0,0.34)_100%)] shadow-[inset_0_8px_12px_rgba(255,255,255,0.16),inset_0_-10px_14px_rgba(0,0,0,0.4),0_4px_12px_rgba(0,0,0,0.38)]"
+            />
+            <span className="absolute inset-[24%] grid place-items-center rounded-full">
+              <span
+                className={`leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)] ${PRESTIGE_EMOJI_CLASSES[prestige]} ${FAMILY_EMOJI_ADJUST_CLASSES[badge.family]}`}
+              >
+                {centerEmoji}
+              </span>
+            </span>
+          </div>
         </div>
 
         <div className="relative w-full text-center">
@@ -439,7 +467,7 @@ export default function ProfileBadgesSection({
         </div>
       </div>
 
-      <div className="-mx-4 overflow-x-auto px-5 pb-3 pt-2 [scrollbar-width:none] sm:px-4 [&::-webkit-scrollbar]:hidden">
+      <div className="w-full overflow-x-auto px-1 pb-3 pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex snap-x snap-mandatory gap-5 sm:gap-4">
           {showcaseBadges.map((badge) => (
             <BadgeCard

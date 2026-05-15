@@ -179,6 +179,7 @@ function PostCardComponent({
 
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const rankStyles = getRankStyles(dailyRank);
+  const isLegendWinner = post.is_daily_winner === true;
   const isBlurred = post.moderation_status === "blurred" && !showBlurredContent;
   const isRemoved = post.moderation_status === "removed";
 
@@ -352,7 +353,11 @@ function PostCardComponent({
 
   return (
     <article
-      className={`motion-card soft-enter group relative overflow-hidden rounded-[30px] border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:rounded-[32px] sm:p-6 ${rankStyles.articleClass}`}
+      className={`motion-card soft-enter group relative overflow-hidden rounded-[30px] border p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md sm:rounded-[32px] sm:p-6 ${rankStyles.articleClass} ${
+        isLegendWinner
+          ? "border-amber-300 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.16),transparent_46%),linear-gradient(180deg,rgba(255,251,235,0.72),rgba(255,255,255,0.98)_44%)] shadow-[0_16px_44px_-24px_rgba(217,119,6,0.62)] ring-1 ring-amber-200/80"
+          : ""
+      }`}
     >
       {dailyRank && (
         <div
@@ -366,6 +371,11 @@ function PostCardComponent({
               className={`rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest ${rankStyles.badgeClass}`}
             >
               {rankStyles.badgeText}
+            </span>
+          )}
+          {isLegendWinner && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-widest text-amber-800">
+              👑 LEGEND
             </span>
           )}
           <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-400">

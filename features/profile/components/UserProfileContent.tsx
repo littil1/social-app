@@ -79,7 +79,7 @@ export default function UserProfileContent({
   }, []);
 
   return (
-    <section className="space-y-4">
+    <section className="w-full space-y-4">
       {posts
         .filter((post) => post.moderation_status !== "removed")
         .map((post) => (
