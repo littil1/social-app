@@ -49,7 +49,6 @@ export default function UserMenu({
 
   return (
     <div className="relative flex items-center gap-2" ref={wrapperRef}>
-      {/* Create Post Button - Als eigenständiger Punkt */}
       <button
         type="button"
         onClick={() => window.dispatchEvent(new CustomEvent("open-create-post"))}
@@ -58,13 +57,12 @@ export default function UserMenu({
         <span className="text-xl font-bold">＋</span>
       </button>
 
-      {/* Profile Trigger */}
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border-2 transition-all sm:h-12 sm:w-12 ${
-          open 
-            ? "border-white bg-white shadow-xl" 
+          open
+            ? "border-white bg-white shadow-xl"
             : "border-white/10 bg-neutral-800 hover:border-white/40"
         }`}
       >
@@ -85,25 +83,28 @@ export default function UserMenu({
         )}
       </button>
 
-      {/* Dropdown Menu - Öffnet nach OBEN */}
       {open && (
-        <div className="absolute bottom-full right-0 z-50 mb-4 w-56 overflow-hidden rounded-[24px] border border-neutral-200 bg-white p-2 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2">
-          <div className="px-4 py-3 border-b border-neutral-50 mb-1">
-             <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Signed in as</p>
-             <p className="truncate text-sm font-bold text-neutral-950">@{username}</p>
+        <div className="absolute bottom-full right-0 z-50 mb-2 w-40 overflow-hidden rounded-[20px] border border-neutral-200 bg-white p-1.5 shadow-[0_16px_38px_rgba(0,0,0,0.14)] backdrop-blur-xl animate-in fade-in slide-in-from-bottom-2">
+          <div className="mb-1 border-b border-neutral-100 px-3.5 py-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+              Signed in as
+            </p>
+            <p className="truncate text-sm font-bold text-neutral-950">
+              @{username}
+            </p>
           </div>
 
           <Link
             href={`/u/${username}`}
-            className="block rounded-xl px-4 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950"
+            className="block rounded-lg px-3.5 py-2 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-800"
             onClick={() => setOpen(false)}
           >
-            View Profile
+            Profile
           </Link>
 
           <Link
             href="/settings/profile"
-            className="block rounded-xl px-4 py-3 text-sm font-bold text-neutral-600 hover:bg-neutral-50 hover:text-neutral-950"
+            className="block rounded-lg px-3.5 py-2 text-sm font-semibold text-neutral-500 transition hover:bg-neutral-50 hover:text-neutral-800"
             onClick={() => setOpen(false)}
           >
             Settings
@@ -112,11 +113,11 @@ export default function UserMenu({
           {isAdmin && (
             <Link
               href="/admin"
-              className="block rounded-xl px-4 py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50"
+              className="block rounded-lg px-3.5 py-2 text-sm font-bold text-emerald-600 transition hover:bg-emerald-50"
               onClick={() => setOpen(false)}
             >
               {adminPendingCount > 0
-                ? `Admin Panel · ${adminPendingCount}`
+                ? `Admin Panel (${adminPendingCount})`
                 : "Admin Panel"}
             </Link>
           )}
@@ -126,7 +127,7 @@ export default function UserMenu({
           <form action={logout} onSubmit={() => resetAnalyticsUser()}>
             <button
               type="submit"
-              className="block w-full rounded-xl px-4 py-3 text-left text-sm font-bold text-red-500 hover:bg-red-50"
+              className="block w-full rounded-lg px-3.5 py-2 text-left text-sm font-bold text-red-500 transition hover:bg-red-50"
             >
               Logout
             </button>

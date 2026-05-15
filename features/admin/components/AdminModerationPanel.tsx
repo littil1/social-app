@@ -14,7 +14,6 @@ type QueueFilter =
   | "removed"
   | "posts"
   | "comments";
-type TimelineKind = "content" | "report" | "ai" | "auto" | "admin" | "report-review";
 
 export type AdminModerationReport = {
   id: string;
@@ -52,15 +51,6 @@ export type AdminModerationQueueItem = {
   reports: AdminModerationReport[];
 };
 
-type TimelineEvent = {
-  id: string;
-  kind: TimelineKind;
-  at: string;
-  title: string;
-  summary: string;
-  report?: AdminModerationReport;
-};
-
 type Props = {
   initialItems: AdminModerationQueueItem[];
   selectedCaseKey?: string | null;
@@ -78,9 +68,9 @@ const FILTERS: Array<{ value: QueueFilter; label: string }> = [
 
 const STATUS_STYLES: Record<ModerationStatus, string> = {
   clean: "border-emerald-200/80 bg-emerald-50/70 text-emerald-700",
-  reported: "border-amber-200/80 bg-amber-50/70 text-amber-700",
-  blurred: "border-red-200/80 bg-red-50/70 text-red-700",
-  removed: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  reported: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  blurred: "border-amber-200/80 bg-amber-50/70 text-amber-700",
+  removed: "border-red-200/80 bg-red-50/70 text-red-700",
 };
 
 function formatDateTime(value: string) {
@@ -126,17 +116,6 @@ function getLatestReport(item: AdminModerationQueueItem) {
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     )[0] ?? null
   );
-}
-
-function getReportStatusSummary(item: AdminModerationQueueItem) {
-  const counts = item.reports.reduce<Record<string, number>>((acc, report) => {
-    acc[report.status] = (acc[report.status] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  return Object.entries(counts)
-    .map(([status, count]) => `${status} ${count}`)
-    .join(", ");
 }
 
 function getPriority(item: AdminModerationQueueItem) {
@@ -188,106 +167,38 @@ function filterItems(items: AdminModerationQueueItem[], filter: QueueFilter) {
   });
 }
 
-function createTimeline(item: AdminModerationQueueItem): TimelineEvent[] {
-  const events: TimelineEvent[] = [
-    {
-      id: "content",
-      kind: "content",
-      at: item.created_at,
-      title: "Content created",
-      summary: item.author_username ? `@${item.author_username}` : "Author unknown",
-    },
-  ];
-
-  for (const report of item.reports) {
-    events.push({
-      id: `report:${report.id}`,
-      kind: "report",
-      at: report.created_at,
-      title: "Report submitted",
-      summary: `${report.reason} by @${report.reporter_username ?? "unknown"}`,
-      report,
-    });
-
-    if (report.reviewed_at) {
-      events.push({
-        id: `report-review:${report.id}`,
-        kind: "report-review",
-        at: report.reviewed_at,
-        title: `Report ${report.status}`,
-        summary: report.reviewed_by_username
-          ? `by @${report.reviewed_by_username}`
-          : "Reviewed",
-        report,
-      });
-    }
-  }
-
-  if (item.moderation_ai_checked_at) {
-    const flagged = getFlagged(item.moderation_ai_categories);
-    events.push({
-      id: "ai",
-      kind: "ai",
-      at: item.moderation_ai_checked_at,
-      title: "AI check completed",
-      summary: `Flagged: ${flagged === null ? "-" : flagged ? "yes" : "no"}`,
-    });
-  }
-
-  if (item.report_count > 0) {
-    events.push({
-      id: "auto",
-      kind: "auto",
-      at: item.latest_reported_at ?? item.created_at,
-      title: "Auto status evaluated",
-      summary:
-        item.moderation_status === "blurred"
-          ? "Threshold or emergency brake"
-          : `Status: ${item.moderation_status}`,
-    });
-  }
-
-  if (item.moderation_reviewed_at) {
-    events.push({
-      id: "admin",
-      kind: "admin",
-      at: item.moderation_reviewed_at,
-      title: "Admin decision",
-      summary: `${item.moderation_status}${
-        item.moderation_reviewed_by_username
-          ? ` by @${item.moderation_reviewed_by_username}`
-          : ""
-      }`,
-    });
-  }
-
-  return events.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-}
-
-function getDefaultTimelineEventId(item: AdminModerationQueueItem) {
-  const timeline = createTimeline(item);
-
-  if (!isNeedsReview(item)) {
-    return (
-      timeline.find((event) => event.kind === "admin")?.id ??
-      timeline.find((event) => event.kind === "report-review")?.id ??
-      timeline[0]?.id ??
-      null
-    );
-  }
-
-  return (
-    timeline.find((event) => event.kind === "report")?.id ??
-    timeline.find((event) => event.kind === "ai")?.id ??
-    timeline[0]?.id ??
-    null
-  );
-}
-
 function getActionStatusLabel(status: "clean" | "blurred" | "removed") {
   if (status === "clean") return "Keep visible";
   if (status === "blurred") return "Blur";
   return "Remove";
+}
+
+function getDecisionPill(item: AdminModerationQueueItem) {
+  if (item.moderation_status === "clean") {
+    return {
+      label: "CLEAN",
+      className: "border-emerald-200/80 bg-emerald-50/70 text-emerald-700",
+    };
+  }
+
+  if (item.moderation_status === "blurred") {
+    return {
+      label: "BLURRED",
+      className: "border-amber-200/80 bg-amber-50/70 text-amber-700",
+    };
+  }
+
+  if (item.moderation_status === "removed") {
+    return {
+      label: "REMOVED",
+      className: "border-red-200/80 bg-red-50/70 text-red-700",
+    };
+  }
+
+  return {
+    label: "PENDING",
+    className: "border-neutral-200 bg-neutral-100 text-neutral-600",
+  };
 }
 
 export default function AdminModerationPanel({
@@ -296,11 +207,8 @@ export default function AdminModerationPanel({
 }: Props) {
   const [items, setItems] = useState(initialItems);
   const [activeFilter, setActiveFilter] = useState<QueueFilter>("needs-review");
-  const [selectedEventByItem, setSelectedEventByItem] = useState<
-    Record<string, string>
-  >({});
   const [expandedBadgeByItem, setExpandedBadgeByItem] = useState<
-    Record<string, "ai" | "reports" | "decision" | null>
+    Record<string, "ai" | "reports" | "decision" | "note" | null>
   >({});
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
@@ -310,7 +218,6 @@ export default function AdminModerationPanel({
     () => items.filter(isNeedsReview).length,
     [items]
   );
-  const archivedCount = items.length - needsReviewCount;
   const visibleItems = useMemo(
     () => sortItems(filterItems(items, activeFilter), activeFilter),
     [activeFilter, items]
@@ -375,7 +282,6 @@ export default function AdminModerationPanel({
             : currentItem
         )
       );
-      setSelectedEventByItem((current) => ({ ...current, [item.key]: "admin" }));
       setFeedback(`${getActionStatusLabel(status)} saved`);
     } catch (error) {
       console.error(error);
@@ -500,7 +406,7 @@ export default function AdminModerationPanel({
 
   function toggleBadge(
     item: AdminModerationQueueItem,
-    badge: "ai" | "reports" | "decision"
+    badge: "ai" | "reports" | "decision" | "note"
   ) {
     setExpandedBadgeByItem((current) => ({
       ...current,
@@ -581,163 +487,67 @@ export default function AdminModerationPanel({
       );
     }
 
-    return (
-      <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3">
-        <p className="text-xs font-black text-neutral-950">Decision</p>
-        <p className="mt-1 text-sm text-neutral-700">
-          Status: <span className="font-bold">{item.moderation_status}</span>
-        </p>
-        <p className="mt-1 text-xs text-neutral-500">
-          {item.moderation_reviewed_at
-            ? `${formatDateTime(item.moderation_reviewed_at)}${
-                item.moderation_reviewed_by_username
-                  ? ` by @${item.moderation_reviewed_by_username}`
-                  : ""
-              }`
-            : getReportStatusSummary(item) || "No decision stored."}
-        </p>
-        {item.moderation_reason && (
-          <p className="mt-2 text-sm text-neutral-700">
-            {item.moderation_reason}
-          </p>
-        )}
-      </div>
-    );
-  }
+    if (expanded === "note") {
+      const noteValue = noteDraft[item.key] ?? item.moderation_reason ?? "";
 
-  function renderEventDetail(item: AdminModerationQueueItem, event: TimelineEvent) {
-    const flagged = getFlagged(item.moderation_ai_categories);
-
-    if (event.kind === "ai") {
-      const topScores = getTopScores(item.moderation_ai_scores, 3);
       return (
-        <div className="rounded-xl border border-neutral-200 bg-neutral-50/80 p-3">
-          <p className="text-xs font-black text-neutral-950">AI check</p>
-          <p className="mt-1 text-sm text-neutral-700">
-            Flagged: <span className="font-bold">{flagged === null ? "-" : flagged ? "yes" : "no"}</span>
+        <div className="mt-3 rounded-xl border border-neutral-200 bg-neutral-50/80 p-3">
+          <p className="text-xs font-black text-neutral-950">Internal admin note</p>
+          <p className="mt-1 text-xs text-neutral-500">
+            {item.moderation_reviewed_at
+              ? `Last saved ${formatDateTime(item.moderation_reviewed_at)}`
+              : "No saved decision note yet."}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">{formatDateTime(event.at)}</p>
-          {item.moderation_ai_summary && (
-            <p className="mt-2 text-sm text-neutral-700">{item.moderation_ai_summary}</p>
-          )}
-          {topScores.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {topScores.map(([category, score]) => (
-                <span
-                  key={category}
-                  className="rounded-full border border-neutral-200 bg-white px-2 py-1 text-[10px] font-bold text-neutral-600"
-                >
-                  {category}: {(score * 100).toFixed(1)}%
-                </span>
-              ))}
-            </div>
-          )}
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-700 [overflow-wrap:anywhere]">
+            {noteValue || "No note yet."}
+          </p>
         </div>
       );
     }
 
-    if (event.kind === "report" && event.report) {
-      return (
-        <div className="rounded-xl border border-neutral-200 bg-white p-3">
-          <p className="text-xs font-black text-neutral-950">Report</p>
-          <div className="mt-2 grid gap-1 text-sm text-neutral-700">
-            <p>Reason: <span className="font-bold">{event.report.reason}</span></p>
-            <p>Reporter: @{event.report.reporter_username ?? "unknown"}</p>
-            <p>Status: {event.report.status}</p>
-            <p className="text-xs text-neutral-500">{formatDateTime(event.at)}</p>
-          </div>
-          {event.report.details && (
-            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-neutral-700 [overflow-wrap:anywhere]">
-              {event.report.details}
-            </p>
-          )}
-        </div>
-      );
-    }
-
-    if (event.kind === "admin") {
-      return renderDecisionEditor(item);
-    }
-
-    if (event.kind === "report-review" && event.report) {
-      return (
-        <div className="rounded-xl border border-neutral-200 bg-white p-3">
-          <p className="text-xs font-black text-neutral-950">Report archived</p>
-          <p className="mt-2 text-sm text-neutral-700">
-            {event.report.status}
-            {event.report.reviewed_by_username
-              ? ` by @${event.report.reviewed_by_username}`
-              : ""}
-          </p>
-          <p className="mt-1 text-xs text-neutral-500">{formatDateTime(event.at)}</p>
-          {event.report.admin_note && (
-            <p className="mt-2 text-sm text-neutral-700">{event.report.admin_note}</p>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="rounded-xl border border-neutral-200 bg-white p-3">
-        <p className="text-xs font-black text-neutral-950">{event.title}</p>
-        <p className="mt-2 text-sm text-neutral-700">{event.summary}</p>
-        <p className="mt-1 text-xs text-neutral-500">{formatDateTime(event.at)}</p>
-      </div>
-    );
+    return null;
   }
 
   function renderDetail(item: AdminModerationQueueItem) {
+    const decisionPill = getDecisionPill(item);
     const flagged = getFlagged(item.moderation_ai_categories);
     const latestReport = getLatestReport(item);
-    const timeline = createTimeline(item);
-    const selectedEventId =
-      selectedEventByItem[item.key] ?? getDefaultTimelineEventId(item);
-    const selectedEvent =
-      timeline.find((event) => event.id === selectedEventId) ?? timeline[0] ?? null;
     const showSummaryDecision = isNeedsReview(item);
-    const showEventDecision = !isNeedsReview(item) && selectedEvent?.kind === "admin";
+    const decisionEditorOpen =
+      showSummaryDecision || expandedBadgeByItem[item.key] === "decision";
 
     return (
       <div className="min-w-0 space-y-3">
         <section className="rounded-xl border border-neutral-200 bg-white p-3">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">
-              {item.target_type}
-            </span>
-            <span
-              className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${STATUS_STYLES[item.moderation_status]}`}
+            <button
+              type="button"
+              onClick={() => toggleBadge(item, "decision")}
+              className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] transition hover:bg-white ${decisionPill.className}`}
             >
-              {item.moderation_status}
-            </span>
+              {decisionPill.label}
+            </button>
             <button
               type="button"
               onClick={() => toggleBadge(item, "reports")}
               className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-600 transition hover:bg-neutral-50"
             >
-              {item.report_count} reports
+              {item.report_count} {item.report_count === 1 ? "REPORT" : "REPORTS"}
             </button>
             <button
               type="button"
               onClick={() => toggleBadge(item, "ai")}
               className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-600 transition hover:bg-neutral-50"
             >
-              AI {flagged === null ? "-" : flagged ? "flagged" : "clear"}
+              AI {flagged === null ? "-" : flagged ? "FLAGGED" : "CLEAN"}
             </button>
             <button
               type="button"
-              onClick={() => toggleBadge(item, "decision")}
+              onClick={() => toggleBadge(item, "note")}
               className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-600 transition hover:bg-neutral-50"
             >
-              Decision {item.moderation_status}
+              NOTE
             </button>
-            {item.post_id && (
-              <Link
-                href={`/posts/${item.post_id}`}
-                className="rounded-full border border-neutral-200 bg-white px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-neutral-600 transition hover:bg-neutral-50"
-              >
-                Context
-              </Link>
-            )}
           </div>
 
           <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words text-sm font-medium leading-6 text-neutral-900 [overflow-wrap:anywhere]">
@@ -752,64 +562,7 @@ export default function AdminModerationPanel({
           {renderExpandedBadge(item)}
         </section>
 
-        {!showSummaryDecision && !showEventDecision && (
-          <section className="rounded-xl border border-neutral-200 bg-neutral-50/70 p-3">
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-neutral-400">
-              Decision summary
-            </p>
-            <p className="mt-1.5 text-sm text-neutral-700">
-              {item.moderation_reviewed_at
-                ? `${item.moderation_status} · ${formatDateTime(item.moderation_reviewed_at)}`
-                : `${item.moderation_status} · ${getReportStatusSummary(item) || "No report status"}`}
-            </p>
-            {item.moderation_reason && (
-              <p className="mt-1 text-xs text-neutral-500">{item.moderation_reason}</p>
-            )}
-          </section>
-        )}
-
-        {showSummaryDecision && renderDecisionEditor(item)}
-
-        {selectedEvent &&
-          (showSummaryDecision && selectedEvent.kind === "admin"
-            ? null
-            : showEventDecision
-              ? renderDecisionEditor(item)
-              : renderEventDetail(item, selectedEvent))}
-
-        <section className="rounded-xl border border-neutral-200 bg-white p-3">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-neutral-400">
-            Timeline
-          </p>
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 lg:flex-col lg:overflow-x-visible lg:pb-0">
-            {timeline.map((event) => {
-              const active = selectedEvent?.id === event.id;
-              return (
-                <button
-                  key={event.id}
-                  type="button"
-                  onClick={() =>
-                    setSelectedEventByItem((current) => ({
-                      ...current,
-                      [item.key]: event.id,
-                    }))
-                  }
-                  className={`min-w-[190px] rounded-xl border px-3 py-2 text-left transition lg:min-w-0 ${
-                    active
-                      ? "border-neutral-400 bg-neutral-100"
-                      : "border-neutral-200 bg-white hover:bg-neutral-50"
-                  }`}
-                >
-                  <p className="text-xs font-black text-neutral-950">{event.title}</p>
-                  <p className="mt-0.5 line-clamp-1 text-xs text-neutral-500">
-                    {event.summary}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
+        {decisionEditorOpen && renderDecisionEditor(item)}
       </div>
     );
   }
@@ -854,9 +607,6 @@ export default function AdminModerationPanel({
           <div className="flex gap-2">
             <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-black text-red-700">
               {needsReviewCount} open
-            </span>
-            <span className="rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-black text-neutral-500">
-              {archivedCount} archived
             </span>
           </div>
         </div>
