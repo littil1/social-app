@@ -50,53 +50,45 @@ type CrownConfig = {
 
 const FAMILY_ACCENTS: Record<ShowcaseFamily, string> = {
   legend: "from-amber-200 via-yellow-400 to-orange-500",
-  podium: "from-slate-200 via-zinc-300 to-slate-600",
-  impact: "from-sky-200 via-cyan-300 to-blue-500",
-  spark: "from-fuchsia-200 via-pink-300 to-rose-500",
-  creator: "from-orange-200 via-red-300 to-rose-500",
-  influence: "from-lime-200 via-emerald-300 to-cyan-500",
-  contributor: "from-emerald-200 via-green-300 to-teal-500",
-  supporter: "from-violet-200 via-purple-300 to-indigo-500",
-  connector: "from-indigo-200 via-blue-300 to-sky-500",
+  contributor: "from-sky-200 via-cyan-300 to-blue-500",
+  builder: "from-emerald-200 via-green-300 to-teal-500",
+  top_reactor: "from-violet-200 via-purple-300 to-indigo-500",
+  most_reacted: "from-orange-200 via-amber-300 to-yellow-500",
+  top_commentator: "from-fuchsia-200 via-pink-300 to-rose-500",
+  most_discussed: "from-indigo-200 via-blue-300 to-sky-500",
   know_everything: "from-violet-200 via-fuchsia-300 to-rose-500",
 };
 
 const FAMILY_TEXT: Record<ShowcaseFamily, string> = {
   legend: "Daily Hall of Fame wins.",
-  podium: "Top daily leaderboard finishes.",
-  impact: "Reactions earned from the community.",
-  spark: "Discussions sparked by posts and ideas.",
-  creator: "Posts created and contributions published.",
-  influence: "Followers earned from the community.",
-  contributor: "Accepted product ideas and contributions.",
-  supporter: "Reactions and comments given to others.",
-  connector: "Users followed and connections started.",
+  contributor: "Ideas submitted and contribution progress.",
+  builder: "Ideas shipped into the product.",
+  top_reactor: "Reactions given across posts and feedback.",
+  most_reacted: "Reactions earned from the community.",
+  top_commentator: "Comments written across the platform.",
+  most_discussed: "Discussions sparked by your content.",
   know_everything: "Reached the end of the archive.",
 };
 
 const FAMILY_CENTER_EMOJI: Record<ShowcaseFamily, string> = {
   legend: "👑",
-  podium: "🏆",
-  impact: "⚡",
-  spark: "✨",
-  creator: "✍️",
-  influence: "📣",
-  contributor: "🛠️",
-  supporter: "🤝",
-  connector: "🔗",
+  contributor: "💡",
+  builder: "🧩",
+  top_reactor: "👆",
+  most_reacted: "✨",
+  top_commentator: "💬",
+  most_discussed: "🗨️",
   know_everything: "🧠",
 };
 
 const FAMILY_PRESTIGE: Record<ShowcaseFamily, PrestigeGroup> = {
   legend: "high",
-  podium: "starter",
-  impact: "high",
-  spark: "high",
-  creator: "medium",
-  influence: "medium",
-  contributor: "starter",
-  supporter: "starter",
-  connector: "starter",
+  builder: "high",
+  contributor: "medium",
+  most_reacted: "medium",
+  most_discussed: "medium",
+  top_reactor: "starter",
+  top_commentator: "starter",
   know_everything: "starter",
 };
 
@@ -221,14 +213,12 @@ const PRESTIGE_EMOJI_CLASSES: Record<PrestigeGroup, string> = {
 
 const FAMILY_EMOJI_ADJUST_CLASSES: Record<ShowcaseFamily, string> = {
   legend: "text-[1.08em]",
-  podium: "",
-  impact: "",
-  spark: "",
-  creator: "",
-  influence: "",
   contributor: "",
-  supporter: "",
-  connector: "",
+  builder: "",
+  top_reactor: "",
+  most_reacted: "",
+  top_commentator: "",
+  most_discussed: "",
   know_everything: "",
 };
 
@@ -301,7 +291,7 @@ function BadgeCard({
   const motionClass = getTierMotion(badge.tier);
   const prestige = FAMILY_PRESTIGE[badge.family];
   const palette = TIER_PALETTES[badge.tier];
-  const centerEmoji = FAMILY_CENTER_EMOJI[badge.family] ?? badge.icon;
+  const centerEmoji = badge.icon || FAMILY_CENTER_EMOJI[badge.family];
 
   return (
     <button

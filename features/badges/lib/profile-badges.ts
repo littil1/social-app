@@ -22,7 +22,7 @@ export const PROFILE_BADGES = [
   {
     key: KNOW_EVERYTHING_BADGE_KEY,
     label: "I want to know everything",
-    emoji: "\u221E",
+    emoji: "∞",
     className: "border-violet-200 bg-violet-50 text-violet-800",
   },
 ] as const;
@@ -135,7 +135,7 @@ export function mapBadgeToDisplay(
     threshold: badge.threshold,
     label: badge.short_label,
     description: badge.description ?? badge.name,
-    icon: badge.family === "legend" ? LEGEND_BADGE_ICON : badge.icon ?? "🏅",
+    icon: badge.icon?.trim() || "🏅",
     colorToken,
     className: getBadgeClassName(colorToken, badge.level),
     sortOrder: badge.sort_order,

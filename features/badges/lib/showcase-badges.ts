@@ -1,18 +1,9 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/shared/types/database";
-import { LEGEND_BADGE_ICON } from "@/features/badges/lib/profile-badges";
+import { ALL_BADGE_FAMILIES, type BadgeFamily } from "@/features/badges/lib";
 
-export type BadgeFamily =
-  | "legend"
-  | "podium"
-  | "impact"
-  | "spark"
-  | "creator"
-  | "influence"
-  | "contributor"
-  | "supporter"
-  | "connector";
+export type { BadgeFamily };
 
 export type BadgeTier = 1 | 2 | 3 | 4 | 5;
 
@@ -34,514 +25,93 @@ export type ComputedUserBadge = {
   };
 };
 
-type BadgeFamilyDefinition = {
-  family: BadgeFamily;
-  label: string;
-  icon: string;
-  sortPriority: number;
-  thresholds: [number, number, number, number, number];
-  totalLabel: (current: number) => string;
-  progressLabel: (current: number, next: number | null) => string;
-};
+type BadgeDefinitionRow = Pick<
+  Database["public"]["Tables"]["badges"]["Row"],
+  | "id"
+  | "key"
+  | "family"
+  | "level"
+  | "threshold"
+  | "name"
+  | "short_label"
+  | "icon"
+  | "color_token"
+  | "sort_order"
+>;
 
-type CountResult = {
-  count: number | null;
-  error: { message: string } | null;
-};
+type UserBadgeRow = Pick<
+  Database["public"]["Tables"]["user_badges"]["Row"],
+  "badge_id" | "family" | "progress_value"
+>;
 
-type IdResult = {
-  data: Array<{ id: number }> | null;
-  error: { message: string } | null;
-};
+const BADGE_FAMILY_SET = new Set<string>(ALL_BADGE_FAMILIES);
 
-type UserBadgeCounts = Record<BadgeFamily, number>;
-
-export const BADGE_FAMILY_ORDER: BadgeFamily[] = [
-  "legend",
-  "podium",
-  "impact",
-  "spark",
-  "creator",
-  "influence",
-  "contributor",
-  "supporter",
-  "connector",
-];
-
+export const BADGE_FAMILY_ORDER: BadgeFamily[] = [...ALL_BADGE_FAMILIES];
 export const PROFILE_BADGE_SHOWCASE_FAMILIES: BadgeFamily[] = [
-  "legend",
-  "impact",
-  "spark",
-  "creator",
-  "influence",
-  "contributor",
-  "supporter",
-  "connector",
+  ...ALL_BADGE_FAMILIES,
 ];
 
 const PROFILE_BADGE_PRESTIGE_PRIORITY: Record<BadgeFamily, number> = {
   legend: 1,
-  impact: 1,
-  spark: 1,
-  creator: 2,
-  influence: 2,
-  contributor: 3,
-  supporter: 3,
-  connector: 3,
-  podium: 4,
+  builder: 1,
+  contributor: 2,
+  most_reacted: 2,
+  most_discussed: 2,
+  top_reactor: 3,
+  top_commentator: 3,
 };
 
-export const BADGE_FAMILY_DEFINITIONS: Record<
-  BadgeFamily,
-  BadgeFamilyDefinition
-> = {
-  legend: {
-    family: "legend",
-    label: "Legend",
-    icon: LEGEND_BADGE_ICON,
-    sortPriority: 10,
-    thresholds: [1, 3, 5, 10, 25],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "legendary win" : "legendary wins"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} daily wins`
-        : `${current} / ${next} daily wins to next tier`,
-  },
-  podium: {
-    family: "podium",
-    label: "Podium",
-    icon: "\u25C6",
-    sortPriority: 20,
-    thresholds: [1, 5, 10, 25, 50],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "Top 3 finish" : "Top 3 finishes"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} Top 3 finishes`
-        : `${current} / ${next} Top 3 finishes to next tier`,
-  },
-  impact: {
-    family: "impact",
-    label: "Impact",
-    icon: "\u2726",
-    sortPriority: 20,
-    thresholds: [10, 50, 100, 250, 500],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "reaction received" : "reactions received"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} reactions received`
-        : `${current} / ${next} reactions received to next tier`,
-  },
-  spark: {
-    family: "spark",
-    label: "Spark",
-    icon: "\u2739",
-    sortPriority: 30,
-    thresholds: [10, 50, 100, 250, 500],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "comment sparked" : "comments sparked"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} comments generated`
-        : `${current} / ${next} comments generated to next tier`,
-  },
-  creator: {
-    family: "creator",
-    label: "Creator",
-    icon: "\u25A3",
-    sortPriority: 40,
-    thresholds: [1, 10, 50, 100, 250],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "post created" : "posts created"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} posts created`
-        : `${current} / ${next} posts created to next tier`,
-  },
-  influence: {
-    family: "influence",
-    label: "Influence",
-    icon: "\u25CE",
-    sortPriority: 50,
-    thresholds: [1, 10, 50, 100, 250],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "follower" : "followers"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} followers`
-        : `${current} / ${next} followers to next tier`,
-  },
-  contributor: {
-    family: "contributor",
-    label: "Contributor",
-    icon: "\u25C7",
-    sortPriority: 60,
-    thresholds: [1, 3, 5, 10, 25],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "implemented idea" : "implemented ideas"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} accepted contributions`
-        : `${current} / ${next} accepted contributions to next tier`,
-  },
-  supporter: {
-    family: "supporter",
-    label: "Supporter",
-    icon: "\u2727",
-    sortPriority: 70,
-    thresholds: [10, 50, 100, 250, 500],
-    totalLabel: (current) =>
-      `Total: ${current} reactions/comments given`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} reactions/comments given`
-        : `${current} / ${next} reactions/comments given to next tier`,
-  },
-  connector: {
-    family: "connector",
-    label: "Connector",
-    icon: "\u221E",
-    sortPriority: 80,
-    thresholds: [1, 10, 50, 100, 250],
-    totalLabel: (current) =>
-      `Total: ${current} ${current === 1 ? "user followed" : "users followed"}`,
-    progressLabel: (current, next) =>
-      next === null
-        ? `${current} users followed`
-        : `${current} / ${next} users followed to next tier`,
-  },
+const FAMILY_FALLBACK_LABEL: Record<BadgeFamily, string> = {
+  legend: "Legend",
+  contributor: "Contributor",
+  builder: "Builder",
+  top_reactor: "Top Reactor",
+  most_reacted: "Most Reacted",
+  top_commentator: "Top Commentator",
+  most_discussed: "Most Discussed",
 };
 
-async function getExactCount(query: PromiseLike<CountResult>) {
-  const { count, error } = await query;
-
-  if (error) {
-    console.error("[badge-showcase] Count error:", error.message);
-    return 0;
-  }
-
-  return count ?? 0;
+function clampBadgeTier(level: number): BadgeTier {
+  if (level <= 1) return 1;
+  if (level >= 5) return 5;
+  return level as BadgeTier;
 }
 
-async function getNumberIds(query: PromiseLike<IdResult>) {
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("[badge-showcase] ID query error:", error.message);
-    return [];
-  }
-
-  return (data ?? []).map((row) => row.id).filter(Number.isFinite);
+function isBadgeFamily(value: string): value is BadgeFamily {
+  return BADGE_FAMILY_SET.has(value);
 }
 
-function getTierForProgress(
-  current: number,
-  thresholds: BadgeFamilyDefinition["thresholds"]
-) {
-  let tier: BadgeTier | null = null;
+function getProgressLabel(current: number, next: number | null) {
+  if (next === null) {
+    return `${current} total (max tier)`;
+  }
 
-  thresholds.forEach((threshold, index) => {
-    if (current >= threshold) {
-      tier = (index + 1) as BadgeTier;
-    }
-  });
-
-  return tier;
+  return `${current} / ${next} to next tier`;
 }
 
 function getNextThreshold(
   current: number,
-  thresholds: BadgeFamilyDefinition["thresholds"]
+  familyDefinitions: BadgeDefinitionRow[]
 ) {
-  return thresholds.find((threshold) => threshold > current) ?? null;
-}
-
-async function getLegendCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
-) {
-  return getExactCount(
-    supabase
-      .from("daily_post_winners")
-      .select("*", { count: "exact", head: true })
-      .eq("author_id", userId)
-      .eq("rank_position", 1)
-  );
-}
-
-async function getImpactCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
-) {
-  const [postIds, commentIds, feedbackCommentIds] = await Promise.all([
-    getNumberIds(supabase.from("posts").select("id").eq("user_id", userId)),
-    getNumberIds(
-      supabase
-        .from("comments")
-        .select("id")
-        .eq("user_id", userId)
-        .is("deleted_at", null)
-    ),
-    getNumberIds(
-      supabase
-        .from("feature_request_comments")
-        .select("id")
-        .eq("user_id", userId)
-    ),
-  ]);
-
-  const [postReactions, commentReactions, feedbackCommentReactions] =
-    await Promise.all([
-      postIds.length > 0
-        ? getExactCount(
-            supabase
-              .from("post_reactions")
-              .select("*", { count: "exact", head: true })
-              .in("post_id", postIds)
-          )
-        : 0,
-      commentIds.length > 0
-        ? getExactCount(
-            supabase
-              .from("comment_reactions")
-              .select("*", { count: "exact", head: true })
-              .in("comment_id", commentIds)
-          )
-        : 0,
-      feedbackCommentIds.length > 0
-        ? getExactCount(
-            supabase
-              .from("feature_request_comment_reactions")
-              .select("*", { count: "exact", head: true })
-              .in("comment_id", feedbackCommentIds)
-          )
-        : 0,
-    ]);
-
-  return postReactions + commentReactions + feedbackCommentReactions;
-}
-
-async function getCreatorCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
-) {
-  return getExactCount(
-    supabase
-      .from("posts")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-  );
-}
-
-async function getSparkCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
-) {
-  const [postIds, requestIds] = await Promise.all([
-    getNumberIds(supabase.from("posts").select("id").eq("user_id", userId)),
-    getNumberIds(
-      supabase
-        .from("feature_requests")
-        .select("id")
-        .eq("user_id", userId)
-    ),
-  ]);
-
-  const [postComments, feedbackComments] = await Promise.all([
-    postIds.length > 0
-      ? getExactCount(
-          supabase
-            .from("comments")
-            .select("*", { count: "exact", head: true })
-            .in("post_id", postIds)
-            .is("deleted_at", null)
-        )
-      : 0,
-    requestIds.length > 0
-      ? getExactCount(
-          supabase
-            .from("feature_request_comments")
-            .select("*", { count: "exact", head: true })
-            .in("feature_request_id", requestIds)
-        )
-      : 0,
-  ]);
-
-  return postComments + feedbackComments;
-}
-
-async function getContributorCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
-) {
-  return getExactCount(
-    supabase
-      .from("feature_requests")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("status", "implemented")
-  );
-}
-
-async function getInfluenceCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
-) {
-  return getExactCount(
-    supabase
-      .from("follows")
-      .select("*", { count: "exact", head: true })
-      .eq("following_id", userId)
-  );
-}
-
-async function getSupporterCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
-) {
-  const [
-    postReactionsGiven,
-    commentReactionsGiven,
-    feedbackCommentReactionsGiven,
-    postCommentsGiven,
-    feedbackCommentsGiven,
-  ] = await Promise.all([
-    getExactCount(
-      supabase
-        .from("post_reactions")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-    ),
-    getExactCount(
-      supabase
-        .from("comment_reactions")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-    ),
-    getExactCount(
-      supabase
-        .from("feature_request_comment_reactions")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-    ),
-    getExactCount(
-      supabase
-        .from("comments")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .is("deleted_at", null)
-    ),
-    getExactCount(
-      supabase
-        .from("feature_request_comments")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-    ),
-  ]);
-
   return (
-    postReactionsGiven +
-    commentReactionsGiven +
-    feedbackCommentReactionsGiven +
-    postCommentsGiven +
-    feedbackCommentsGiven
+    familyDefinitions
+      .map((definition) => definition.threshold)
+      .filter((threshold, index, thresholds) => {
+        return thresholds.indexOf(threshold) === index && threshold > current;
+      })
+      .sort((a, b) => a - b)[0] ?? null
   );
 }
 
-async function getConnectorCount(
-  supabase: SupabaseClient<Database>,
-  userId: string
+function compareBadgePriority(
+  next: ComputedUserBadge,
+  current: ComputedUserBadge
 ) {
-  return getExactCount(
-    supabase
-      .from("follows")
-      .select("*", { count: "exact", head: true })
-      .eq("follower_id", userId)
-  );
-}
+  if (next.tier !== current.tier) {
+    return next.tier - current.tier;
+  }
 
-export async function getUserBadgeCounts(
-  supabase: SupabaseClient<Database>,
-  userId: string
-): Promise<UserBadgeCounts> {
-  const [
-    legend,
-    impact,
-    spark,
-    creator,
-    influence,
-    contributor,
-    supporter,
-    connector,
-  ] = await Promise.all([
-    getLegendCount(supabase, userId),
-    getImpactCount(supabase, userId),
-    getSparkCount(supabase, userId),
-    getCreatorCount(supabase, userId),
-    getInfluenceCount(supabase, userId),
-    getContributorCount(supabase, userId),
-    getSupporterCount(supabase, userId),
-    getConnectorCount(supabase, userId),
-  ]);
-
-  return {
-    legend,
-    podium: 0,
-    impact,
-    spark,
-    creator,
-    influence,
-    contributor,
-    supporter,
-    connector,
-  };
-}
-
-export function computeUserBadgesFromCounts(
-  counts: UserBadgeCounts,
-  options: { includeProgress: boolean }
-): ComputedUserBadge[] {
-  return PROFILE_BADGE_SHOWCASE_FAMILIES.flatMap((family) => {
-    const definition = BADGE_FAMILY_DEFINITIONS[family];
-    const current = counts[family] ?? 0;
-    const tier = getTierForProgress(current, definition.thresholds);
-
-    if (!tier) {
-      return [];
-    }
-
-    const next = getNextThreshold(current, definition.thresholds);
-
-    return [
-      {
-        family,
-        tier,
-        label: definition.label,
-        icon: definition.icon,
-        sortPriority: definition.sortPriority,
-        total: {
-          count: current,
-          label: definition.totalLabel(current),
-        },
-        progress: options.includeProgress
-          ? {
-              current,
-              next,
-              isMaxLevel: next === null,
-              label: definition.progressLabel(current, next),
-            }
-          : undefined,
-      },
-    ];
-  }).sort(
-    (a, b) =>
-      PROFILE_BADGE_PRESTIGE_PRIORITY[a.family] -
-        PROFILE_BADGE_PRESTIGE_PRIORITY[b.family] ||
-      b.tier - a.tier ||
-      a.sortPriority - b.sortPriority
-  );
+  return current.sortPriority - next.sortPriority;
 }
 
 export async function getComputedUserBadges(
@@ -549,7 +119,100 @@ export async function getComputedUserBadges(
   userId: string,
   options: { includeProgress: boolean }
 ) {
-  const counts = await getUserBadgeCounts(supabase, userId);
+  const [{ data: badgeDefinitionsData, error: badgeDefinitionsError }, { data: userBadgesData, error: userBadgesError }] =
+    await Promise.all([
+      supabase
+        .from("badges")
+        .select(
+          "id, key, family, level, threshold, name, short_label, icon, color_token, sort_order"
+        )
+        .eq("is_active", true)
+        .in("family", [...ALL_BADGE_FAMILIES]),
+      supabase
+        .from("user_badges")
+        .select("badge_id, family, progress_value")
+        .eq("user_id", userId)
+        .in("family", [...ALL_BADGE_FAMILIES]),
+    ]);
 
-  return computeUserBadgesFromCounts(counts, options);
+  if (badgeDefinitionsError) {
+    throw new Error(badgeDefinitionsError.message);
+  }
+
+  if (userBadgesError) {
+    throw new Error(userBadgesError.message);
+  }
+
+  const badgeDefinitions = (badgeDefinitionsData ?? []) as BadgeDefinitionRow[];
+  const userBadges = (userBadgesData ?? []) as UserBadgeRow[];
+  const definitionById = new Map<number, BadgeDefinitionRow>();
+  const definitionsByFamily = new Map<BadgeFamily, BadgeDefinitionRow[]>();
+
+  for (const definition of badgeDefinitions) {
+    if (!isBadgeFamily(definition.family)) continue;
+
+    definitionById.set(definition.id, definition);
+    const current = definitionsByFamily.get(definition.family) ?? [];
+    current.push(definition);
+    definitionsByFamily.set(definition.family, current);
+  }
+
+  for (const [family, definitions] of definitionsByFamily.entries()) {
+    definitions.sort(
+      (a, b) => a.threshold - b.threshold || a.sort_order - b.sort_order
+    );
+    definitionsByFamily.set(family, definitions);
+  }
+
+  const highestByFamily = new Map<BadgeFamily, ComputedUserBadge>();
+
+  for (const userBadge of userBadges) {
+    if (!isBadgeFamily(userBadge.family)) continue;
+
+    const definition = definitionById.get(userBadge.badge_id);
+    if (!definition) continue;
+
+    const familyDefinitions = definitionsByFamily.get(userBadge.family) ?? [];
+    const currentValue = Math.max(
+      userBadge.progress_value ?? definition.threshold,
+      0
+    );
+    const nextThreshold = getNextThreshold(currentValue, familyDefinitions);
+
+    const computedBadge: ComputedUserBadge = {
+      family: userBadge.family,
+      tier: clampBadgeTier(definition.level),
+      label:
+        definition.short_label?.trim() ||
+        definition.name?.trim() ||
+        FAMILY_FALLBACK_LABEL[userBadge.family],
+      icon: definition.icon?.trim() || "🏅",
+      sortPriority: definition.sort_order,
+      total: {
+        count: currentValue,
+        label: `Total: ${currentValue}`,
+      },
+      progress: options.includeProgress
+        ? {
+            current: currentValue,
+            next: nextThreshold,
+            isMaxLevel: nextThreshold === null,
+            label: getProgressLabel(currentValue, nextThreshold),
+          }
+        : undefined,
+    };
+
+    const existing = highestByFamily.get(userBadge.family);
+    if (!existing || compareBadgePriority(computedBadge, existing) > 0) {
+      highestByFamily.set(userBadge.family, computedBadge);
+    }
+  }
+
+  return [...highestByFamily.values()].sort(
+    (a, b) =>
+      PROFILE_BADGE_PRESTIGE_PRIORITY[a.family] -
+        PROFILE_BADGE_PRESTIGE_PRIORITY[b.family] ||
+      b.tier - a.tier ||
+      a.sortPriority - b.sortPriority
+  );
 }
