@@ -135,17 +135,11 @@ export default async function InputPage() {
 
           <div className="rounded-[32px] border border-neutral-100 bg-white p-6 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.42)] sm:p-8">
             <h2 className="text-2xl font-black tracking-tight text-neutral-950">Submit your idea</h2>
-            {user ? (
-              <InputIdeaForm
-                action={addFeatureRequest}
-                username={viewerProfile?.username ?? "user"}
-              />
-            ) : (
-              <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-neutral-300 px-4 py-10 text-center sm:py-12">
-                <p className="text-neutral-500 font-medium">Log in to help us build.</p>
-                <Link href="/login" className="mt-4 rounded-xl bg-neutral-950 px-8 py-3 text-sm font-bold text-white">Login</Link>
-              </div>
-            )}
+            <InputIdeaForm
+              action={addFeatureRequest}
+              username={viewerProfile?.username ?? "guest"}
+              isLoggedIn={!!user}
+            />
           </div>
         </section>
 

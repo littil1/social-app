@@ -30,6 +30,8 @@ type LoginModalSource =
   | "comment"
   | "reaction"
   | "boost"
+  | "report"
+  | "input"
   | "manual"
   | "unknown";
 
@@ -207,7 +209,9 @@ export default function AuthModalProvider({
             window.sessionStorage.removeItem("app_signup_confirmation_pending");
             trackLoginCompleted(sessionUser.id, pendingLoginSourceRef.current);
           }
-          router.refresh();
+          if (!pendingActionRef.current && !resumeInProgressRef.current) {
+            router.refresh();
+          }
         }
       }
     );
@@ -262,7 +266,6 @@ export default function AuthModalProvider({
     pendingLoginSourceRef.current = null;
 
     setIsOpen(false);
-    router.refresh();
 
     void supabase.auth
       .getUser()
@@ -289,6 +292,7 @@ export default function AuthModalProvider({
 
         if (!pendingAction) {
           resumeInProgressRef.current = false;
+          router.refresh();
           return;
         }
 
@@ -305,6 +309,7 @@ export default function AuthModalProvider({
             })
             .finally(() => {
               resumeInProgressRef.current = false;
+              router.refresh();
             });
         }, 150);
       })

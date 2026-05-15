@@ -71,19 +71,19 @@ export default function CreatePostForm({
     textarea.style.height = `${nextHeight}px`;
   }, [content]);
 
-  async function submitPost(skipLoginCheck = false) {
-    if (!skipLoginCheck && !effectiveIsLoggedIn) {
-      onClose?.();
+  async function submitPostWithContent(contentToSubmit: string, skipLoginCheck = false) {
+    const textToSubmit = contentToSubmit.trim();
 
+    if (!skipLoginCheck && !effectiveIsLoggedIn) {
       requireLoginAndResume(() => {
-        void submitPost(true);
+        void submitPostWithContent(textToSubmit, true);
       }, window.location.pathname, "create_post");
 
       return;
     }
 
-    if (!canSubmit || loading) {
-      if (trimmed.length < 2) {
+    if (loading || textToSubmit.length < 2) {
+      if (textToSubmit.length < 2) {
         setError("Write something before posting.");
         trackEvent("post_submit_failed", {
           source,
@@ -102,7 +102,7 @@ export default function CreatePostForm({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ content: trimmed }),
+        body: JSON.stringify({ content: textToSubmit }),
       });
 
       if (res.status === 401 || res.status === 403) {
@@ -117,7 +117,7 @@ export default function CreatePostForm({
         onClose?.();
 
         requireLoginAndResume(() => {
-          void submitPost(true);
+          void submitPostWithContent(textToSubmit, true);
         }, window.location.pathname, "create_post");
 
         return;
@@ -133,7 +133,7 @@ export default function CreatePostForm({
       onPostCreated(newPost);
       trackEvent("post_submitted", {
         source,
-        content_length: trimmed.length,
+        content_length: textToSubmit.length,
       });
       setContent("");
       onClose?.();
@@ -163,7 +163,7 @@ export default function CreatePostForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    await submitPost();
+    await submitPostWithContent(content);
   }
 
   return (

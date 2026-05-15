@@ -1,14 +1,46 @@
 "use client";
 
 import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import { trackEvent } from "@/shared/lib/analytics";
 
 type InputIdeaFormProps = {
   action: (formData: FormData) => void | Promise<void>;
   username: string;
+  isLoggedIn?: boolean;
 };
 
-export default function InputIdeaForm({ action, username }: InputIdeaFormProps) {
+function cloneIdeaFormData(formData: FormData) {
+  const snapshot = new FormData();
+  snapshot.set("title", String(formData.get("title") ?? ""));
+  snapshot.set("description", String(formData.get("description") ?? ""));
+  return snapshot;
+}
+
+export default function InputIdeaForm({
+  action,
+  username,
+  isLoggedIn = true,
+}: InputIdeaFormProps) {
+  const router = useRouter();
+  const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
+  const [submittingAfterLogin, setSubmittingAfterLogin] = useState(false);
+  const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
+
+  async function submitSnapshotAfterLogin(snapshot: FormData) {
+    if (submittingAfterLogin) return;
+
+    setSubmittingAfterLogin(true);
+    try {
+      await action(snapshot);
+      router.refresh();
+    } finally {
+      setSubmittingAfterLogin(false);
+    }
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const formData = new FormData(event.currentTarget);
     const title = String(formData.get("title") ?? "");
@@ -16,6 +48,18 @@ export default function InputIdeaForm({ action, username }: InputIdeaFormProps) 
 
     if (!title.trim() || !description.trim()) {
       trackEvent("input_idea_submit_failed", { reason: "validation" });
+      return;
+    }
+
+    if (!effectiveIsLoggedIn) {
+      event.preventDefault();
+      const snapshot = cloneIdeaFormData(formData);
+
+      requireLoginAndResume(
+        () => void submitSnapshotAfterLogin(snapshot),
+        "/input",
+        "input"
+      );
       return;
     }
 
@@ -52,9 +96,10 @@ export default function InputIdeaForm({ action, username }: InputIdeaFormProps) 
         </p>
         <button
           type="submit"
+          disabled={submittingAfterLogin}
           className="w-full rounded-full bg-neutral-950 px-6 py-2.5 text-sm font-bold text-white shadow-lg transition hover:scale-105 sm:w-auto"
         >
-          Submit idea
+          {submittingAfterLogin ? "Submitting..." : "Submit idea"}
         </button>
       </div>
     </form>

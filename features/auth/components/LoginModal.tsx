@@ -135,7 +135,7 @@ export default function LoginModal() {
       role="dialog"
       aria-modal="true"
       data-modal-open="true"
-      className="soft-enter fixed inset-0 z-[110] flex items-end justify-center overflow-y-auto bg-neutral-950/50 px-3 pb-4 pt-10 backdrop-blur-md sm:items-center sm:p-6"
+      className="soft-enter fixed inset-0 z-[310] flex items-end justify-center overflow-y-auto bg-neutral-950/50 px-3 pb-4 pt-10 backdrop-blur-md sm:items-center sm:p-6"
       onClick={closeLogin}
     >
       <div

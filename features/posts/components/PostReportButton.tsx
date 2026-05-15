@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ReportDialog from "@/features/reports/components/ReportDialog";
+import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import FormError from "@/shared/components/ui/FormError";
 import { classifyAnalyticsError, trackEvent } from "@/shared/lib/analytics";
 
@@ -20,6 +21,7 @@ type PostReportButtonProps = {
 };
 
 export default function PostReportButton({ postId }: PostReportButtonProps) {
+  const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
   const [open, setOpen] = useState(false);
   const [reason, setReason] =
     useState<(typeof REPORT_REASONS)[number]["value"]>("spam");
@@ -31,8 +33,24 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
     message: string;
   } | null>(null);
 
-  async function handleSubmit() {
+  async function handleSubmit(
+    skipLoginCheck = false,
+    reasonToSubmit = reason,
+    detailsToSubmit = details
+  ) {
     if (submitting || hasReported) return;
+
+    if (!skipLoginCheck && authReady && !isAuthenticated) {
+      requireLoginAndResume(
+        () => {
+          setOpen(true);
+          void handleSubmit(true, reasonToSubmit, detailsToSubmit);
+        },
+        window.location.pathname,
+        "report"
+      );
+      return;
+    }
 
     setSubmitting(true);
     setFeedback(null);
@@ -44,12 +62,27 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          reason,
-          details,
+          reason: reasonToSubmit,
+          details: detailsToSubmit,
         }),
       });
 
       if (!response.ok) {
+        if (
+          (response.status === 401 || response.status === 403) &&
+          !skipLoginCheck
+        ) {
+          requireLoginAndResume(
+            () => {
+              setOpen(true);
+              void handleSubmit(true, reasonToSubmit, detailsToSubmit);
+            },
+            window.location.pathname,
+            "report"
+          );
+          return;
+        }
+
         if (response.status === 409) {
           setHasReported(true);
           setOpen(false);
@@ -59,7 +92,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
           });
           trackEvent("report_submitted", {
             target_type: "post",
-            reason_category: reason,
+            reason_category: reasonToSubmit,
           });
           return;
         }
@@ -82,7 +115,7 @@ export default function PostReportButton({ postId }: PostReportButtonProps) {
       });
       trackEvent("report_submitted", {
         target_type: "post",
-        reason_category: reason,
+        reason_category: reasonToSubmit,
       });
     } catch (error) {
       console.error(error);

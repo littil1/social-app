@@ -56,7 +56,7 @@ export default function ReportDialog<TReason extends string>({
       role="dialog"
       aria-modal="true"
       data-modal-open="true"
-      className="fixed inset-0 z-[120] flex items-end justify-center overflow-y-auto bg-neutral-950/50 px-3 pb-4 pt-10 backdrop-blur-sm sm:items-center sm:p-6"
+      className="fixed inset-0 z-[320] flex items-end justify-center overflow-y-auto bg-neutral-950/50 px-3 pb-4 pt-10 backdrop-blur-sm sm:items-center sm:p-6"
       onClick={onClose}
     >
       <div

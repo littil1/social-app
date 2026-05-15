@@ -66,7 +66,7 @@ export default function PostBoostButton({
       ? "🚀 Daily BOOST available"
       : "🚀 Daily BOOST used";
 
-  async function submitBoost() {
+  async function submitBoost(skipLoginCheck = false) {
     if (loading || localHasBoosted) return;
 
     const source = getAnalyticsSource(window.location.pathname);
@@ -79,9 +79,9 @@ export default function PostBoostButton({
           : "already_used",
     });
 
-    if (!effectiveIsLoggedIn) {
+    if (!skipLoginCheck && !effectiveIsLoggedIn) {
       requireLoginAndResume(
-        () => void submitBoost(),
+        () => void submitBoost(true),
         window.location.pathname,
         "boost"
       );
@@ -104,8 +104,12 @@ export default function PostBoostButton({
       });
 
       if (response.status === 401 || response.status === 403) {
+        if (skipLoginCheck) {
+          throw new Error("Couldn't BOOST this post. Try again.");
+        }
+
         requireLoginAndResume(
-          () => void submitBoost(),
+          () => void submitBoost(true),
           window.location.pathname,
           "boost"
         );
