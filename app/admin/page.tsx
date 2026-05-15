@@ -4,6 +4,9 @@ import AdminRecomputeButton from "@/features/admin/components/AdminRecomputeButt
 import AdminReportsPanel, {
   type ModerationReport,
 } from "@/features/admin/components/AdminReportsPanel";
+import AdminPostModerationPanel, {
+  type AdminModerationItem,
+} from "@/features/admin/components/AdminPostModerationPanel";
 import AdminTabs from "@/features/admin/components/AdminTabs";
 import { createClient } from "@/lib/supabase/server";
 import { getUserBadges } from "@/features/badges/lib/getUserBadges";
@@ -11,7 +14,7 @@ import type { UserBadgeDisplay } from "@/features/badges/lib/profile-badges";
 
 export const dynamic = "force-dynamic";
 
-type AdminTabId = "reports" | "users" | "badges";
+type AdminTabId = "reports" | "post-moderation" | "users" | "badges";
 
 type AdminPageProps = {
   searchParams: Promise<{
@@ -77,12 +80,30 @@ type CommentReportRow = {
 type PostPreviewRow = {
   id: number;
   content: string | null;
+  user_id: string | null;
+  created_at: string;
+  moderation_status: "clean" | "reported" | "blurred" | "removed";
+  moderation_reason: string | null;
+  moderation_report_count: number;
+  moderation_ai_summary: string | null;
+  moderation_ai_categories: unknown;
+  moderation_ai_scores: Record<string, number> | null;
+  moderation_ai_checked_at: string | null;
 };
 
 type CommentPreviewRow = {
   id: number;
   content: string | null;
   post_id: number;
+  user_id: string;
+  created_at: string;
+  moderation_status: "clean" | "reported" | "blurred" | "removed";
+  moderation_reason: string | null;
+  moderation_report_count: number;
+  moderation_ai_summary: string | null;
+  moderation_ai_categories: unknown;
+  moderation_ai_scores: Record<string, number> | null;
+  moderation_ai_checked_at: string | null;
 };
 
 function formatDateTime(value: string) {
@@ -101,7 +122,12 @@ function isMissingCommentReportsTableError(message: string) {
 }
 
 function getInitialTab(value: string | undefined): AdminTabId {
-  if (value === "reports" || value === "badges" || value === "users") {
+  if (
+    value === "reports" ||
+    value === "post-moderation" ||
+    value === "badges" ||
+    value === "users"
+  ) {
     return value;
   }
 
@@ -264,7 +290,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const reportedCommentIds = Array.from(
     new Set(commentReports.map((report) => report.comment_id))
   );
-  const moderationUserIds = Array.from(
+  const reportUserIds = Array.from(
     new Set(
       [
         ...postReports.flatMap((report) => [
@@ -287,7 +313,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     const { data: reportedPostsData, error: reportedPostsError } =
       await supabase
         .from("posts")
-        .select("id, content")
+        .select("id, content, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
         .in("id", reportedPostIds);
 
     if (reportedPostsError) {
@@ -302,13 +328,27 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
   }
 
+  const { data: moderatedPostsData, error: moderatedPostsError } = await supabase
+    .from("posts")
+    .select("id, content, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
+    .in("moderation_status", ["reported", "blurred", "removed"])
+    .limit(100);
+
+  if (moderatedPostsError) {
+    throw new Error(moderatedPostsError.message);
+  }
+
+  for (const post of (moderatedPostsData ?? []) as PostPreviewRow[]) {
+    reportedPostsMap.set(post.id, post);
+  }
+
   let reportedCommentsMap = new Map<number, CommentPreviewRow>();
 
   if (reportedCommentIds.length > 0) {
     const { data: reportedCommentsData, error: reportedCommentsError } =
       await supabase
         .from("comments")
-        .select("id, content, post_id")
+        .select("id, content, post_id, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
         .in("id", reportedCommentIds);
 
     if (reportedCommentsError) {
@@ -322,6 +362,33 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       ])
     );
   }
+
+  const { data: moderatedCommentsData, error: moderatedCommentsError } =
+    await supabase
+      .from("comments")
+      .select("id, content, post_id, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
+      .in("moderation_status", ["reported", "blurred", "removed"])
+      .limit(100);
+
+  if (moderatedCommentsError) {
+    throw new Error(moderatedCommentsError.message);
+  }
+
+  for (const comment of (moderatedCommentsData ?? []) as CommentPreviewRow[]) {
+    reportedCommentsMap.set(comment.id, comment);
+  }
+
+  const moderationUserIds = Array.from(
+    new Set(
+      [
+        ...reportUserIds,
+        ...Array.from(reportedPostsMap.values()).map((post) => post.user_id),
+        ...Array.from(reportedCommentsMap.values()).map(
+          (comment) => comment.user_id
+        ),
+      ].filter((value): value is string => typeof value === "string")
+    )
+  );
 
   let moderationProfilesMap = new Map<string, { username: string }>();
 
@@ -375,6 +442,84 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       created_at: report.created_at,
       updated_at: report.updated_at,
     })),
+  ];
+
+  const postReportsByPostId = new Map<number, PostReportRow[]>();
+  for (const report of postReports) {
+    postReportsByPostId.set(report.post_id, [
+      ...(postReportsByPostId.get(report.post_id) ?? []),
+      report,
+    ]);
+  }
+
+  const commentReportsByCommentId = new Map<number, CommentReportRow[]>();
+  for (const report of commentReports) {
+    commentReportsByCommentId.set(report.comment_id, [
+      ...(commentReportsByCommentId.get(report.comment_id) ?? []),
+      report,
+    ]);
+  }
+
+  const postModerationItems: AdminModerationItem[] = [
+    ...Array.from(reportedPostsMap.values())
+      .filter((post) => post.moderation_status !== "clean")
+      .map((post) => {
+        const reports = postReportsByPostId.get(post.id) ?? [];
+        const latestReport = [...reports].sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )[0];
+
+        return {
+          key: `post:${post.id}`,
+          target_type: "post" as const,
+          target_id: post.id,
+          post_id: post.id,
+          content: post.content?.trim() ?? "",
+          author_username: post.user_id
+            ? moderationProfilesMap.get(post.user_id)?.username ?? null
+            : null,
+          created_at: post.created_at,
+          report_count: post.moderation_report_count,
+          latest_report_reason: latestReport?.reason ?? null,
+          report_statuses: reports.map((report) => report.status),
+          moderation_status: post.moderation_status,
+          moderation_reason: post.moderation_reason,
+          moderation_ai_summary: post.moderation_ai_summary,
+          moderation_ai_categories: post.moderation_ai_categories,
+          moderation_ai_scores: post.moderation_ai_scores,
+          moderation_ai_checked_at: post.moderation_ai_checked_at,
+        };
+      }),
+    ...Array.from(reportedCommentsMap.values())
+      .filter((comment) => comment.moderation_status !== "clean")
+      .map((comment) => {
+        const reports = commentReportsByCommentId.get(comment.id) ?? [];
+        const latestReport = [...reports].sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )[0];
+
+        return {
+          key: `comment:${comment.id}`,
+          target_type: "comment" as const,
+          target_id: comment.id,
+          post_id: comment.post_id,
+          content: comment.content?.trim() ?? "",
+          author_username:
+            moderationProfilesMap.get(comment.user_id)?.username ?? null,
+          created_at: comment.created_at,
+          report_count: comment.moderation_report_count,
+          latest_report_reason: latestReport?.reason ?? null,
+          report_statuses: reports.map((report) => report.status),
+          moderation_status: comment.moderation_status,
+          moderation_reason: comment.moderation_reason,
+          moderation_ai_summary: comment.moderation_ai_summary,
+          moderation_ai_categories: comment.moderation_ai_categories,
+          moderation_ai_scores: comment.moderation_ai_scores,
+          moderation_ai_checked_at: comment.moderation_ai_checked_at,
+        };
+      }),
   ];
 
   const usersTab = (
@@ -606,6 +751,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     />
   );
 
+  const postModerationTab = (
+    <AdminPostModerationPanel initialItems={postModerationItems} />
+  );
+
   const badgesTab = (
     <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
@@ -688,6 +837,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           initialTab={initialTab}
           tabs={[
             { id: "reports", label: "Reports", content: reportsTab },
+            {
+              id: "post-moderation",
+              label: `Post Moderation (${postModerationItems.filter((item) => item.moderation_status === "reported" || item.moderation_status === "blurred").length})`,
+              content: postModerationTab,
+            },
             { id: "users", label: "Users", content: usersTab },
             { id: "badges", label: "Badges", content: badgesTab },
           ]}

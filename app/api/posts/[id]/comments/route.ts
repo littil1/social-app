@@ -29,7 +29,13 @@ type CommentReactionRow =
 
 type CommentListRow = Pick<
   CommentRow,
-  "id" | "content" | "created_at" | "user_id" | "parent_id" | "deleted_at"
+  | "id"
+  | "content"
+  | "created_at"
+  | "user_id"
+  | "parent_id"
+  | "deleted_at"
+  | "moderation_status"
 >;
 
 type CommentReactionListRow = Pick<
@@ -121,7 +127,7 @@ export async function GET(_: NextRequest, context: RouteContext) {
 
     const { data, error } = await supabase
       .from("comments")
-      .select("id, content, created_at, user_id, parent_id, deleted_at")
+      .select("id, content, created_at, user_id, parent_id, deleted_at, moderation_status")
       .eq("post_id", postId)
       .order("created_at", { ascending: true });
 
@@ -208,6 +214,9 @@ export async function GET(_: NextRequest, context: RouteContext) {
       return normalizeDeletedComment({
         id: comment.id,
         content: isDeleted ? "" : comment.content,
+        moderation_status:
+          (comment.moderation_status as FeedComment["moderation_status"]) ??
+          "clean",
         created_at: comment.created_at,
         deleted_at: comment.deleted_at ?? null,
         is_deleted: isDeleted,
@@ -366,6 +375,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const response: FeedComment = {
       id: insertedComment.id,
       content: insertedComment.content,
+      moderation_status: "clean",
       created_at: insertedComment.created_at,
       deleted_at: insertedComment.deleted_at ?? null,
       is_deleted: false,

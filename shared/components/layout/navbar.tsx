@@ -11,6 +11,7 @@ type NavBarUser = {
   username: string;
   avatar_url: string | null;
   is_admin: boolean;
+  moderation_count?: number;
 };
 
 type NavBarProps = {
@@ -60,6 +61,30 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
         avatar_url: profile.avatar_url ?? null,
         is_admin: !!profile.is_admin,
       });
+
+      if (profile.is_admin) {
+        const response = await fetch("/api/admin/moderation/count", {
+          cache: "no-store",
+        }).catch(() => null);
+
+        if (!isActive || !response?.ok) {
+          return;
+        }
+
+        const payload = (await response.json().catch(() => null)) as {
+          count?: number;
+        } | null;
+
+        setUser((current) =>
+          current
+            ? {
+                ...current,
+                moderation_count:
+                  typeof payload?.count === "number" ? payload.count : 0,
+              }
+            : current
+        );
+      }
     }
 
     void loadNavbarUser();
@@ -144,6 +169,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
                 username={user.username}
                 avatarUrl={user.avatar_url}
                 isAdmin={user.is_admin}
+                moderationCount={user.moderation_count ?? 0}
               />
             </div>
           ) : (

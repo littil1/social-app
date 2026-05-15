@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-type AdminTabId = "reports" | "users" | "badges";
+type AdminTabId = "reports" | "post-moderation" | "users" | "badges";
 
 type AdminTabsProps = {
   initialTab?: AdminTabId;

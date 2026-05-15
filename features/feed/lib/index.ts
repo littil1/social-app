@@ -26,6 +26,9 @@ const OLDER_FEED_CANDIDATE_POOL_MULTIPLIER = 8;
 
 type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 type FeedPostRow = Pick<PostRow, "id" | "content" | "created_at" | "user_id">;
+type ModeratedFeedPostRow = FeedPostRow & {
+  moderation_status: FeedPost["moderation_status"];
+};
 type PostReactionCountRow = {
   post_id: number;
   reaction: ReactionType;
@@ -46,12 +49,13 @@ type FeedUserContext = {
   viewerIsAdmin: boolean;
 };
 
-const FEED_POST_SELECT = "id, content, created_at, user_id";
+const FEED_POST_SELECT = "id, content, created_at, user_id, moderation_status";
 
 function stripCandidateScores(post: FeedCandidatePost) {
   return {
     id: post.id,
     content: post.content,
+    moderation_status: post.moderation_status,
     created_at: post.created_at,
     comments_count: post.comments_count,
     reactions_count: post.reactions_count,
@@ -261,7 +265,7 @@ async function loadViewerBoostedPostId(
 }
 
 function toFeedCandidatePost(
-  post: FeedPostRow,
+  post: ModeratedFeedPostRow,
   userId: string | null,
   viewerIsAdmin: boolean,
   reactionCountsMap: Map<number, ReactionCounts>,
@@ -285,6 +289,7 @@ function toFeedCandidatePost(
   return {
     id: post.id,
     content: post.content ?? "",
+    moderation_status: post.moderation_status ?? "clean",
     created_at: post.created_at,
     comments_count: commentsCount,
     reactions_count: reactionsTotal,
@@ -377,8 +382,8 @@ async function loadFeedCandidates(
     throw new Error(olderPostsError.message);
   }
 
-  const todaysPosts = (todaysPostsData ?? []) as FeedPostRow[];
-  const olderPosts = (olderPostsData ?? []) as FeedPostRow[];
+  const todaysPosts = (todaysPostsData ?? []) as ModeratedFeedPostRow[];
+  const olderPosts = (olderPostsData ?? []) as ModeratedFeedPostRow[];
   const allCandidates = [...todaysPosts, ...olderPosts];
 
   if (allCandidates.length === 0) {
@@ -427,7 +432,7 @@ async function loadTodayFeedCandidates(
     throw new Error(todaysPostsError.message);
   }
 
-  const todaysPosts = (todaysPostsData ?? []) as FeedPostRow[];
+  const todaysPosts = (todaysPostsData ?? []) as ModeratedFeedPostRow[];
 
   if (todaysPosts.length === 0) {
     return {
@@ -480,7 +485,7 @@ async function loadOlderFeedCandidates(
     throw new Error(olderPostsError.message);
   }
 
-  const olderPosts = (olderPostsData ?? []) as FeedPostRow[];
+  const olderPosts = (olderPostsData ?? []) as ModeratedFeedPostRow[];
 
   if (olderPosts.length === 0) {
     return {

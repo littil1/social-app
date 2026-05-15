@@ -178,6 +178,7 @@ function createOptimisticComment(
       fire: 0,
     },
     viewer_reaction: null,
+    moderation_status: "clean",
     can_delete: true,
     author_username: null,
     author_avatar_url: null,
@@ -206,6 +207,10 @@ const CommentItem = memo(function CommentItem({
     node.author_badges?.some(
       (badge) => badge.family === "legend" || badge.key.startsWith("legend_")
     ) ?? false;
+  const [showBlurredContent, setShowBlurredContent] = useState(false);
+  const isRemoved = node.moderation_status === "removed";
+  const isBlurred =
+    node.moderation_status === "blurred" && !showBlurredContent;
 
   return (
     <div
@@ -219,7 +224,7 @@ const CommentItem = memo(function CommentItem({
       }}
     >
       <div className="motion-card soft-enter relative rounded-2xl border border-neutral-100 bg-white p-4 shadow-sm transition-all hover:border-neutral-200 sm:p-5">
-        {node.can_delete && (
+        {node.can_delete && !isRemoved && (
           <button
             type="button"
             onClick={() => void onDeleteComment(node.id)}
@@ -230,7 +235,7 @@ const CommentItem = memo(function CommentItem({
           </button>
         )}
 
-        {isLoggedIn && !node.can_delete && !node.is_deleted && (
+        {isLoggedIn && !node.can_delete && !node.is_deleted && !isRemoved && (
           <div className="absolute right-4 top-4">
             <CommentReportButton commentId={node.id} />
           </div>
@@ -277,7 +282,24 @@ const CommentItem = memo(function CommentItem({
               </p>
             </div>
 
-            {node.is_deleted ? (
+            {isRemoved ? (
+              <p className="whitespace-pre-wrap break-words text-[15px] font-medium italic leading-relaxed text-neutral-400">
+                Removed by moderation.
+              </p>
+            ) : isBlurred ? (
+              <div className="space-y-3">
+                <p className="break-words text-sm font-bold text-neutral-600 [overflow-wrap:anywhere]">
+                  This content was reported and is under review.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowBlurredContent(true)}
+                  className="motion-button rounded-full border border-neutral-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-neutral-950 shadow-sm"
+                >
+                  Show anyway
+                </button>
+              </div>
+            ) : node.is_deleted ? (
               <p className="whitespace-pre-wrap break-words text-[15px] font-medium italic leading-relaxed text-neutral-400">
                 Comment deleted.
               </p>
@@ -287,7 +309,7 @@ const CommentItem = memo(function CommentItem({
               </p>
             )}
 
-            {!node.is_deleted && (
+            {!node.is_deleted && !isRemoved && (
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
                 <div className="flex min-w-0 items-center gap-1.5 overflow-hidden sm:gap-2">
                   {REACTIONS.map((reaction) => {
@@ -337,7 +359,7 @@ const CommentItem = memo(function CommentItem({
               </div>
             )}
 
-            {!node.is_deleted && replyParentId === node.id && (
+            {!node.is_deleted && !isRemoved && replyParentId === node.id && (
               <form
                 onSubmit={async (event) => {
                   event.preventDefault();

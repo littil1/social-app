@@ -30,6 +30,7 @@ type PostRow = {
   created_at: string;
   user_id: string | null;
   comments_count: number | null;
+  moderation_status: FeedPost["moderation_status"];
 };
 
 type PostReactionRow = {
@@ -115,7 +116,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   const { data: postsData, error: postsError } = await supabase
     .from("posts")
-    .select("id, content, created_at, user_id, comments_count")
+    .select("id, content, created_at, user_id, comments_count, moderation_status")
     .eq("user_id", typedProfile.id)
     .lt("created_at", getCurrentZurichDayStartIso(new Date()))
     .order("created_at", { ascending: false });
@@ -221,6 +222,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     return {
       id: post.id,
       content: post.content ?? "",
+      moderation_status: post.moderation_status ?? "clean",
       created_at: post.created_at,
       comments_count: commentCountMap.get(post.id) ?? 0,
       boost_count: boostCount,

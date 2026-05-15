@@ -5,6 +5,8 @@ import {
   getActorRateLimitKey,
   RATE_LIMIT_MESSAGE,
 } from "@/lib/rate-limit";
+import { analyzeReportedContent } from "@/features/moderation/lib/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const { data: post, error: postError } = await supabase
       .from("posts")
-      .select("id, user_id")
+      .select("id, user_id, content")
       .eq("id", postId)
       .maybeSingle();
 
@@ -124,6 +126,44 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return new NextResponse("Could not submit the report. Try again.", {
         status: 500,
       });
+    }
+
+    const moderationResult = await analyzeReportedContent({
+      type: "post",
+      id: postId,
+      text: post.content ?? "",
+    });
+
+    if (moderationResult) {
+      try {
+        const adminSupabase = createAdminClient();
+        const updatePayload: Record<string, unknown> = {
+          moderation_ai_summary: moderationResult.summary,
+          moderation_ai_categories: {
+            flagged: moderationResult.flagged,
+            categories: moderationResult.categories,
+          },
+          moderation_ai_scores: moderationResult.scores,
+          moderation_ai_checked_at: moderationResult.checkedAt,
+        };
+
+        if (moderationResult.emergencyStatus) {
+          updatePayload.moderation_status = moderationResult.emergencyStatus;
+          updatePayload.moderation_reason =
+            "AI emergency brake: high-confidence reported content risk.";
+        }
+
+        const { error: moderationUpdateError } = await adminSupabase
+          .from("posts")
+          .update(updatePayload)
+          .eq("id", postId);
+
+        if (moderationUpdateError) {
+          console.error(moderationUpdateError);
+        }
+      } catch (error) {
+        console.error("Could not store post moderation AI result.", error);
+      }
     }
 
     return NextResponse.json({ success: true });

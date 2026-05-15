@@ -92,6 +92,7 @@ export async function POST(request: NextRequest) {
     const response: FeedPost = {
       id: insertedPost.id,
       content: insertedPost.content ?? "",
+      moderation_status: "clean",
       created_at: insertedPost.created_at,
       reactions_count: 0,
       boost_count: 0,

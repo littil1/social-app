@@ -10,6 +10,7 @@ export type ReactionCounts = {
 export type FeedPost = {
   id: number;
   content: string;
+  moderation_status: "clean" | "reported" | "blurred" | "removed";
   created_at: string;
   comments_count: number;
   reactions_count: number;
@@ -50,6 +51,7 @@ export type FeedCommentBadge = {
 export type FeedComment = {
   id: number;
   content: string;
+  moderation_status: "clean" | "reported" | "blurred" | "removed";
   created_at: string;
   deleted_at: string | null;
   is_deleted: boolean;

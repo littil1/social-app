@@ -163,6 +163,7 @@ function PostCardComponent({
   const [isDeleted, setIsDeleted] = useState(false);
   const [reactionError, setReactionError] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(initialShowComments);
+  const [showBlurredContent, setShowBlurredContent] = useState(false);
   const [optimisticReactions, setOptimisticReactions] = useState(() =>
     getReactionStateFromPost(post)
   );
@@ -178,6 +179,8 @@ function PostCardComponent({
 
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
   const rankStyles = getRankStyles(dailyRank);
+  const isBlurred = post.moderation_status === "blurred" && !showBlurredContent;
+  const isRemoved = post.moderation_status === "removed";
 
   useEffect(() => {
     localCommentsCountRef.current = post.comments_count;
@@ -370,7 +373,7 @@ function PostCardComponent({
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {effectiveIsLoggedIn && !post.can_delete && (
+          {effectiveIsLoggedIn && !post.can_delete && !isRemoved && (
             <PostReportButton postId={post.id} />
           )}
           {post.can_delete && (
@@ -394,7 +397,24 @@ function PostCardComponent({
       )}
 
       <div className="mb-5 rounded-[24px] border border-neutral-100/80 bg-neutral-50/45 px-4 py-4 sm:mb-6 sm:px-5 sm:py-5">
-        {detailHref ? (
+        {isRemoved ? (
+          <p className="min-h-[3.25rem] whitespace-pre-wrap break-words text-lg font-medium italic leading-relaxed tracking-tight text-neutral-400 sm:text-xl">
+            Removed by moderation.
+          </p>
+        ) : isBlurred ? (
+          <div className="min-h-[3.25rem] space-y-3">
+            <p className="break-words text-sm font-bold text-neutral-600 [overflow-wrap:anywhere]">
+              This content was reported and is under review.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowBlurredContent(true)}
+              className="motion-button rounded-full border border-neutral-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-neutral-950 shadow-sm"
+            >
+              Show anyway
+            </button>
+          </div>
+        ) : detailHref ? (
           <Link
             href={detailHref}
             className="block transition-opacity hover:opacity-70"
@@ -410,6 +430,7 @@ function PostCardComponent({
         )}
       </div>
 
+      {!isRemoved && (
       <div className="flex flex-wrap items-center gap-1.5 rounded-[24px] border border-neutral-100 bg-white/70 p-1.5 sm:gap-2">
         {REACTIONS.map((reaction) => {
           const isActive =
@@ -451,8 +472,9 @@ function PostCardComponent({
           onBoosted={handleBoosted}
         />
       </div>
+      )}
 
-      {showComments && (
+      {showComments && !isRemoved && (
         <div
           ref={commentsContainerRef}
           className="mt-4 border-t border-neutral-100 pt-4 animate-in fade-in slide-in-from-top-2 duration-300"

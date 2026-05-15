@@ -10,12 +10,14 @@ type UserMenuProps = {
   username: string;
   avatarUrl: string | null;
   isAdmin: boolean;
+  moderationCount?: number;
 };
 
 export default function UserMenu({
   username,
   avatarUrl,
   isAdmin,
+  moderationCount = 0,
 }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -110,10 +112,15 @@ export default function UserMenu({
           {isAdmin && (
             <Link
               href="/admin"
-              className="block rounded-xl px-4 py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50"
+              className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-bold text-emerald-600 hover:bg-emerald-50"
               onClick={() => setOpen(false)}
             >
-              Admin Panel
+              <span>Admin Panel</span>
+              {moderationCount > 0 && (
+                <span className="min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-black text-white">
+                  {moderationCount}
+                </span>
+              )}
             </Link>
           )}
 

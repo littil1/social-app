@@ -20,6 +20,7 @@ type LeaderboardPost = {
   relevance_score: number;
   author_username: string | null;
   author_avatar_url: string | null;
+  moderation_status?: FeedPost["moderation_status"];
   reactions_count: number;
   boost_count: number;
   viewer_has_boosted: boolean;
@@ -43,6 +44,7 @@ function toFeedPost(post: LeaderboardPost): FeedPost {
   return {
     id: post.id,
     content: post.post_content,
+    moderation_status: post.moderation_status ?? "clean",
     created_at: post.post_created_at,
     comments_count: post.comments_count,
     reactions_count: post.reactions_count,

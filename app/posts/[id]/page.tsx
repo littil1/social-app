@@ -23,6 +23,7 @@ type PostRow = {
   created_at: string;
   user_id: string | null;
   comments_count: number | null;
+  moderation_status: FeedPost["moderation_status"];
 };
 
 type ProfileRow = {
@@ -111,7 +112,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   const { data: postData, error: postError } = await supabase
     .from("posts")
-    .select("id, content, created_at, user_id, comments_count")
+    .select("id, content, created_at, user_id, comments_count, moderation_status")
     .eq("id", postId)
     .maybeSingle();
 
@@ -188,6 +189,7 @@ export default async function PostDetailPage({ params }: PageProps) {
   const initialPost: FeedPost = {
     id: post.id,
     content: post.content ?? "",
+    moderation_status: post.moderation_status ?? "clean",
     created_at: post.created_at,
     reactions_count: getReactionsCount(reactionCounts),
     boost_count: boostCount,

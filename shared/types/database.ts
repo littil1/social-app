@@ -146,6 +146,15 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           id: number
+          moderation_ai_categories: Json | null
+          moderation_ai_checked_at: string | null
+          moderation_ai_scores: Json | null
+          moderation_ai_summary: string | null
+          moderation_reason: string | null
+          moderation_report_count: number
+          moderation_reviewed_at: string | null
+          moderation_reviewed_by: string | null
+          moderation_status: string
           parent_id: number | null
           post_id: number
           user_id: string
@@ -155,6 +164,15 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: number
+          moderation_ai_categories?: Json | null
+          moderation_ai_checked_at?: string | null
+          moderation_ai_scores?: Json | null
+          moderation_ai_summary?: string | null
+          moderation_reason?: string | null
+          moderation_report_count?: number
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
           parent_id?: number | null
           post_id: number
           user_id: string
@@ -164,6 +182,15 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           id?: number
+          moderation_ai_categories?: Json | null
+          moderation_ai_checked_at?: string | null
+          moderation_ai_scores?: Json | null
+          moderation_ai_summary?: string | null
+          moderation_reason?: string | null
+          moderation_report_count?: number
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
           parent_id?: number | null
           post_id?: number
           user_id?: string
@@ -788,6 +815,15 @@ export type Database = {
           created_at: string
           id: number
           likes_count: number
+          moderation_ai_categories: Json | null
+          moderation_ai_checked_at: string | null
+          moderation_ai_scores: Json | null
+          moderation_ai_summary: string | null
+          moderation_reason: string | null
+          moderation_report_count: number
+          moderation_reviewed_at: string | null
+          moderation_reviewed_by: string | null
+          moderation_status: string
           user_id: string | null
         }
         Insert: {
@@ -796,6 +832,15 @@ export type Database = {
           created_at?: string
           id?: number
           likes_count?: number
+          moderation_ai_categories?: Json | null
+          moderation_ai_checked_at?: string | null
+          moderation_ai_scores?: Json | null
+          moderation_ai_summary?: string | null
+          moderation_reason?: string | null
+          moderation_report_count?: number
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
           user_id?: string | null
         }
         Update: {
@@ -804,6 +849,15 @@ export type Database = {
           created_at?: string
           id?: number
           likes_count?: number
+          moderation_ai_categories?: Json | null
+          moderation_ai_checked_at?: string | null
+          moderation_ai_scores?: Json | null
+          moderation_ai_summary?: string | null
+          moderation_reason?: string | null
+          moderation_report_count?: number
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
           user_id?: string | null
         }
         Relationships: [
