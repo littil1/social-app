@@ -13,7 +13,6 @@ import { getProfileBadge } from "@/features/badges/lib/profile-badges";
 import type { FeedPost, ReactionType } from "@/shared/types/feed";
 import UserProfileContent from "@/features/profile/components/UserProfileContent";
 import ProfileBadgesSection from "@/features/profile/components/ProfileBadgesSection";
-import LegendBadgeMarker from "@/features/badges/components/LegendBadgeMarker";
 
 export const dynamic = "force-dynamic";
 
@@ -311,7 +310,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
           <div className="relative px-5 pb-6 sm:px-8 sm:pb-8">
             <div className="relative -mt-20 mb-6 flex flex-col gap-5 sm:-mt-24 sm:flex-row sm:items-end sm:justify-between">
-              <div className="relative">
+              <div className="relative inline-block w-fit">
                 <div className="absolute inset-0 rounded-[36px] bg-amber-400/25 blur-2xl" />
                 <div className="relative flex h-32 w-32 items-center justify-center overflow-hidden rounded-[34px] border-[7px] border-white bg-neutral-100 text-5xl font-black text-neutral-400 shadow-[0_22px_52px_-28px_rgba(15,23,42,0.7)] ring-1 ring-amber-100/70 sm:h-40 sm:w-40 sm:rounded-[38px]">
                   {typedProfile.avatar_url ? (
@@ -329,6 +328,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                     typedProfile.username.charAt(0).toUpperCase()
                   )}
                 </div>
+                {hasLegendBadge && (
+                  <span
+                    className="pointer-events-none absolute right-0 top-0 z-20 select-none text-[4rem] leading-none drop-shadow-[0_6px_9px_rgba(15,23,42,0.34)] -translate-y-[75%] translate-x-[40%] rotate-[25deg] sm:text-[5rem]"
+                    aria-hidden="true"
+                  >
+                    {"\u{1F451}"}
+                  </span>
+                )}
               </div>
 
               {!isOwnProfile && user ? (
@@ -345,13 +352,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
             <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:items-start">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <div className="flex flex-wrap items-baseline gap-1.5 sm:gap-2.5">
                   <h1 className="break-words text-4xl font-black tracking-tighter text-neutral-950 sm:text-5xl">
-                    @{typedProfile.username}
+                    <span className="mr-0.5 align-[0.08em] text-[0.62em] font-extrabold text-neutral-500">
+                      @
+                    </span>
+                    <span>{typedProfile.username}</span>
                   </h1>
-                  {hasLegendBadge && (
-                    <LegendBadgeMarker className="self-center text-3xl leading-none sm:text-4xl" />
-                  )}
                 </div>
 
                 <p className="mt-3 max-w-2xl text-[15px] font-medium leading-6 text-neutral-600">

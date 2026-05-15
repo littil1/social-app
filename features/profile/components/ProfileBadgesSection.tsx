@@ -490,9 +490,6 @@ export default function ProfileBadgesSection({
               <p className="mt-2 max-w-xl text-sm font-medium leading-5 text-neutral-600 sm:leading-6">
                 {FAMILY_TEXT[selectedBadge.family]}
               </p>
-              <p className="mt-3 text-xs font-black uppercase tracking-[0.16em] text-neutral-500 sm:tracking-[0.18em]">
-                {selectedBadge.total.label}
-              </p>
             </div>
           </div>
 
