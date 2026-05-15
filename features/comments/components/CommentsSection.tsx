@@ -295,7 +295,7 @@ const CommentItem = memo(function CommentItem({
             ) : isBlurred ? (
               <div className="space-y-3">
                 <p className="break-words text-sm font-bold text-neutral-600 [overflow-wrap:anywhere]">
-                  This content was reported and is under review.
+                  This post was reported and is under review.
                 </p>
                 <button
                   type="button"

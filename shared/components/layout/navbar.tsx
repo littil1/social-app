@@ -11,7 +11,7 @@ type NavBarUser = {
   username: string;
   avatar_url: string | null;
   is_admin: boolean;
-  moderation_count?: number;
+  admin_pending_count?: number;
 };
 
 type NavBarProps = {
@@ -64,27 +64,32 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
         username: profile.username,
         avatar_url: profile.avatar_url ?? null,
         is_admin: !!profile.is_admin,
+        admin_pending_count: 0,
       });
 
       if (profile.is_admin) {
-        const response = await fetch("/api/admin/moderation/count", {
-          cache: "no-store",
-        }).catch(() => null);
+        const [
+          { count: openPostReportsCount },
+          { count: openCommentReportsCount },
+        ] = await Promise.all([
+          supabase
+            .from("post_reports")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "open"),
+          supabase
+            .from("comment_reports")
+            .select("id", { count: "exact", head: true })
+            .eq("status", "open"),
+        ]);
 
-        if (!isActive || !response?.ok) {
-          return;
-        }
-
-        const payload = (await response.json().catch(() => null)) as {
-          count?: number;
-        } | null;
+        if (!isActive) return;
 
         setUser((current) =>
           current
             ? {
                 ...current,
-                moderation_count:
-                  typeof payload?.count === "number" ? payload.count : 0,
+                admin_pending_count:
+                  (openPostReportsCount ?? 0) + (openCommentReportsCount ?? 0),
               }
             : current
         );
@@ -245,7 +250,7 @@ export default function NavBar({ user: initialUser = null }: NavBarProps) {
                 username={user.username}
                 avatarUrl={user.avatar_url}
                 isAdmin={user.is_admin}
-                moderationCount={user.moderation_count ?? 0}
+                adminPendingCount={user.admin_pending_count ?? 0}
               />
             </div>
           ) : (

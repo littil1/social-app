@@ -236,7 +236,7 @@ function LeaderboardPodiumCard({
           {isBlurred ? (
             <div className="space-y-3">
               <p className="break-words text-sm font-bold text-neutral-600 [overflow-wrap:anywhere]">
-                This content was reported and is under review.
+                This post was reported and is under review.
               </p>
               <span
                 role="button"

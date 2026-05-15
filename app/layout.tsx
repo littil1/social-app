@@ -57,6 +57,7 @@ export default async function RootLayout({
   const { data: { user } } = await supabase.auth.getUser();
   
   let profile = null;
+  let adminPendingCount = 0;
   if (user) {
     const { data } = await supabase
       .from("profiles")
@@ -64,6 +65,25 @@ export default async function RootLayout({
       .eq("id", user.id)
       .single();
     profile = data;
+
+    if (profile?.is_admin) {
+      const [
+        { count: openPostReportsCount },
+        { count: openCommentReportsCount },
+      ] = await Promise.all([
+        supabase
+          .from("post_reports")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "open"),
+        supabase
+          .from("comment_reports")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "open"),
+      ]);
+
+      adminPendingCount =
+        (openPostReportsCount ?? 0) + (openCommentReportsCount ?? 0);
+    }
   }
 
   return (
@@ -80,6 +100,7 @@ export default async function RootLayout({
                     username: profile.username,
                     avatar_url: profile.avatar_url ?? null,
                     is_admin: profile.is_admin ?? false,
+                    admin_pending_count: adminPendingCount,
                   }
                 : null
             }
