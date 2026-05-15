@@ -15,7 +15,9 @@ type Props = {
 export default function UserProfileContent({
   initialPosts,
 }: Props) {
-  const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
+  const [posts, setPosts] = useState<FeedPost[]>(() =>
+    initialPosts.filter((post) => post.moderation_status !== "removed")
+  );
 
   const handleReactionUpdated = useCallback(
     (postId: number, nextReaction: ReactionType | null) => {
@@ -78,7 +80,9 @@ export default function UserProfileContent({
 
   return (
     <section className="space-y-4">
-      {posts.map((post) => (
+      {posts
+        .filter((post) => post.moderation_status !== "removed")
+        .map((post) => (
         <PostCard
           key={post.id}
           post={post}

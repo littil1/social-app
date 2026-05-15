@@ -6,7 +6,7 @@ import LeaderboardPodiumCard from "@/features/live/components/LeaderboardPodiumC
 import LeaderboardPostDetailModal from "@/features/live/components/LeaderboardPostDetailModal";
 import { setAutoRefreshPaused } from "@/lib/utils/auto-refresh";
 import { scheduleRefresh } from "@/lib/refresh-batcher";
-import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
+import type { FeedPost, ReactionCounts, ReactionType } from "@/shared/types/feed";
 import {
   applyOptimisticPostBoost,
   applyOptimisticPostReaction,
@@ -21,6 +21,10 @@ type LeaderboardPost = {
   relevance_score: number;
   author_username: string | null;
   author_avatar_url: string | null;
+  moderation_status: FeedPost["moderation_status"];
+  moderation_reason: string | null;
+  moderation_report_count: number;
+  moderation_ai_checked_at: string | null;
   reactions_count: number;
   boost_count: number;
   viewer_has_boosted: boolean;
@@ -65,6 +69,11 @@ export default function LeaderboardPodiumSection({
     let changed = false;
 
     const nextItems = items.map((entry) => {
+      if (entry.post?.moderation_status === "removed") {
+        changed = true;
+        return { ...entry, post: null };
+      }
+
       if (!entry.post || !pendingReactions.has(entry.post.id)) {
         return entry;
       }

@@ -28,6 +28,10 @@ type RankedPost = {
   relevance_score: number;
   author_username: string | null;
   author_avatar_url: string | null;
+  moderation_status: FeedPost["moderation_status"];
+  moderation_reason: string | null;
+  moderation_report_count: number;
+  moderation_ai_checked_at: string | null;
   reactions_count: number;
   boost_count: number;
   viewer_has_boosted: boolean;
@@ -77,6 +81,10 @@ function toRankedPost(post: FeedPost): RankedPost {
     relevance_score: liveScore,
     author_username: post.author_username,
     author_avatar_url: post.author_avatar_url,
+    moderation_status: post.moderation_status,
+    moderation_reason: post.moderation_reason ?? null,
+    moderation_report_count: post.moderation_report_count ?? 0,
+    moderation_ai_checked_at: post.moderation_ai_checked_at ?? null,
     reactions_count: post.reactions_count,
     boost_count: post.boost_count,
     viewer_has_boosted: post.viewer_has_boosted,

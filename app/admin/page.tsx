@@ -1,12 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import AdminRecomputeButton from "@/features/admin/components/AdminRecomputeButton";
-import AdminReportsPanel, {
-  type ModerationReport,
-} from "@/features/admin/components/AdminReportsPanel";
-import AdminPostModerationPanel, {
-  type AdminModerationItem,
-} from "@/features/admin/components/AdminPostModerationPanel";
+import AdminModerationPanel, {
+  type AdminModerationQueueItem,
+} from "@/features/admin/components/AdminModerationPanel";
 import AdminTabs from "@/features/admin/components/AdminTabs";
 import { createClient } from "@/lib/supabase/server";
 import { getUserBadges } from "@/features/badges/lib/getUserBadges";
@@ -14,13 +11,12 @@ import type { UserBadgeDisplay } from "@/features/badges/lib/profile-badges";
 
 export const dynamic = "force-dynamic";
 
-type AdminTabId = "reports" | "post-moderation" | "users" | "badges";
+type AdminTabId = "moderation" | "users" | "badges";
 
 type AdminPageProps = {
   searchParams: Promise<{
     q?: string;
     user?: string;
-    report?: string;
     tab?: string;
   }>;
 };
@@ -89,6 +85,8 @@ type PostPreviewRow = {
   moderation_ai_categories: unknown;
   moderation_ai_scores: Record<string, number> | null;
   moderation_ai_checked_at: string | null;
+  moderation_reviewed_by: string | null;
+  moderation_reviewed_at: string | null;
 };
 
 type CommentPreviewRow = {
@@ -104,6 +102,8 @@ type CommentPreviewRow = {
   moderation_ai_categories: unknown;
   moderation_ai_scores: Record<string, number> | null;
   moderation_ai_checked_at: string | null;
+  moderation_reviewed_by: string | null;
+  moderation_reviewed_at: string | null;
 };
 
 function formatDateTime(value: string) {
@@ -123,15 +123,14 @@ function isMissingCommentReportsTableError(message: string) {
 
 function getInitialTab(value: string | undefined): AdminTabId {
   if (
-    value === "reports" ||
-    value === "post-moderation" ||
+    value === "moderation" ||
     value === "badges" ||
     value === "users"
   ) {
     return value;
   }
 
-  return "reports";
+  return "moderation";
 }
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
@@ -177,8 +176,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const searchQuery = typeof params.q === "string" ? params.q.trim() : "";
   const selectedUserId =
     typeof params.user === "string" ? params.user.trim() : "";
-  const selectedReportId =
-    typeof params.report === "string" ? params.report.trim() : "";
 
   let profileQuery = supabase
     .from("profiles")
@@ -313,7 +310,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     const { data: reportedPostsData, error: reportedPostsError } =
       await supabase
         .from("posts")
-        .select("id, content, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
+        .select("id, content, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at, moderation_reviewed_by, moderation_reviewed_at")
         .in("id", reportedPostIds);
 
     if (reportedPostsError) {
@@ -330,7 +327,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   const { data: moderatedPostsData, error: moderatedPostsError } = await supabase
     .from("posts")
-    .select("id, content, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
+    .select("id, content, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at, moderation_reviewed_by, moderation_reviewed_at")
     .in("moderation_status", ["reported", "blurred", "removed"])
     .limit(100);
 
@@ -348,7 +345,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     const { data: reportedCommentsData, error: reportedCommentsError } =
       await supabase
         .from("comments")
-        .select("id, content, post_id, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
+        .select("id, content, post_id, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at, moderation_reviewed_by, moderation_reviewed_at")
         .in("id", reportedCommentIds);
 
     if (reportedCommentsError) {
@@ -366,7 +363,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   const { data: moderatedCommentsData, error: moderatedCommentsError } =
     await supabase
       .from("comments")
-      .select("id, content, post_id, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at")
+      .select("id, content, post_id, user_id, created_at, moderation_status, moderation_reason, moderation_report_count, moderation_ai_summary, moderation_ai_categories, moderation_ai_scores, moderation_ai_checked_at, moderation_reviewed_by, moderation_reviewed_at")
       .in("moderation_status", ["reported", "blurred", "removed"])
       .limit(100);
 
@@ -382,9 +379,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     new Set(
       [
         ...reportUserIds,
-        ...Array.from(reportedPostsMap.values()).map((post) => post.user_id),
+        ...Array.from(reportedPostsMap.values()).flatMap((post) => [
+          post.user_id,
+          post.moderation_reviewed_by,
+        ]),
         ...Array.from(reportedCommentsMap.values()).map(
           (comment) => comment.user_id
+        ),
+        ...Array.from(reportedCommentsMap.values()).map(
+          (comment) => comment.moderation_reviewed_by
         ),
       ].filter((value): value is string => typeof value === "string")
     )
@@ -409,41 +412,6 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     );
   }
 
-  const moderationReports: ModerationReport[] = [
-    ...postReports.map((report) => ({
-      id: report.id,
-      target_type: "post" as const,
-      target_id: report.post_id,
-      post_id: report.post_id,
-      reporter_user_id: report.reporter_user_id,
-      owner_user_id: report.post_owner_user_id,
-      reason: report.reason,
-      details: report.details,
-      status: report.status,
-      admin_note: report.admin_note,
-      reviewed_by: report.reviewed_by,
-      reviewed_at: report.reviewed_at,
-      created_at: report.created_at,
-      updated_at: report.updated_at,
-    })),
-    ...commentReports.map((report) => ({
-      id: report.id,
-      target_type: "comment" as const,
-      target_id: report.comment_id,
-      post_id: reportedCommentsMap.get(report.comment_id)?.post_id ?? null,
-      reporter_user_id: report.reporter_user_id,
-      owner_user_id: report.comment_owner_user_id,
-      reason: report.reason,
-      details: report.details,
-      status: report.status,
-      admin_note: report.admin_note,
-      reviewed_by: report.reviewed_by,
-      reviewed_at: report.reviewed_at,
-      created_at: report.created_at,
-      updated_at: report.updated_at,
-    })),
-  ];
-
   const postReportsByPostId = new Map<number, PostReportRow[]>();
   for (const report of postReports) {
     postReportsByPostId.set(report.post_id, [
@@ -460,9 +428,44 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     ]);
   }
 
-  const postModerationItems: AdminModerationItem[] = [
+  const mapPostReport = (report: PostReportRow) => ({
+    id: report.id,
+    reporter_user_id: report.reporter_user_id,
+    reporter_username:
+      moderationProfilesMap.get(report.reporter_user_id)?.username ?? null,
+    reason: report.reason,
+    details: report.details,
+    status: report.status,
+    admin_note: report.admin_note,
+    reviewed_by: report.reviewed_by,
+    reviewed_by_username: report.reviewed_by
+      ? moderationProfilesMap.get(report.reviewed_by)?.username ?? null
+      : null,
+    reviewed_at: report.reviewed_at,
+    created_at: report.created_at,
+    updated_at: report.updated_at,
+  });
+
+  const mapCommentReport = (report: CommentReportRow) => ({
+    id: report.id,
+    reporter_user_id: report.reporter_user_id,
+    reporter_username:
+      moderationProfilesMap.get(report.reporter_user_id)?.username ?? null,
+    reason: report.reason,
+    details: report.details,
+    status: report.status,
+    admin_note: report.admin_note,
+    reviewed_by: report.reviewed_by,
+    reviewed_by_username: report.reviewed_by
+      ? moderationProfilesMap.get(report.reviewed_by)?.username ?? null
+      : null,
+    reviewed_at: report.reviewed_at,
+    created_at: report.created_at,
+    updated_at: report.updated_at,
+  });
+
+  const moderationItems: AdminModerationQueueItem[] = [
     ...Array.from(reportedPostsMap.values())
-      .filter((post) => post.moderation_status !== "clean")
       .map((post) => {
         const reports = postReportsByPostId.get(post.id) ?? [];
         const latestReport = [...reports].sort(
@@ -481,18 +484,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             : null,
           created_at: post.created_at,
           report_count: post.moderation_report_count,
-          latest_report_reason: latestReport?.reason ?? null,
-          report_statuses: reports.map((report) => report.status),
+          latest_reported_at: latestReport?.created_at ?? null,
           moderation_status: post.moderation_status,
           moderation_reason: post.moderation_reason,
+          moderation_reviewed_by_username: post.moderation_reviewed_by
+            ? moderationProfilesMap.get(post.moderation_reviewed_by)?.username ??
+              null
+            : null,
+          moderation_reviewed_at: post.moderation_reviewed_at,
           moderation_ai_summary: post.moderation_ai_summary,
           moderation_ai_categories: post.moderation_ai_categories,
           moderation_ai_scores: post.moderation_ai_scores,
           moderation_ai_checked_at: post.moderation_ai_checked_at,
+          reports: reports.map(mapPostReport),
         };
       }),
     ...Array.from(reportedCommentsMap.values())
-      .filter((comment) => comment.moderation_status !== "clean")
       .map((comment) => {
         const reports = commentReportsByCommentId.get(comment.id) ?? [];
         const latestReport = [...reports].sort(
@@ -510,17 +517,38 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             moderationProfilesMap.get(comment.user_id)?.username ?? null,
           created_at: comment.created_at,
           report_count: comment.moderation_report_count,
-          latest_report_reason: latestReport?.reason ?? null,
-          report_statuses: reports.map((report) => report.status),
+          latest_reported_at: latestReport?.created_at ?? null,
           moderation_status: comment.moderation_status,
           moderation_reason: comment.moderation_reason,
+          moderation_reviewed_by_username: comment.moderation_reviewed_by
+            ? moderationProfilesMap.get(comment.moderation_reviewed_by)
+                ?.username ?? null
+            : null,
+          moderation_reviewed_at: comment.moderation_reviewed_at,
           moderation_ai_summary: comment.moderation_ai_summary,
           moderation_ai_categories: comment.moderation_ai_categories,
           moderation_ai_scores: comment.moderation_ai_scores,
           moderation_ai_checked_at: comment.moderation_ai_checked_at,
+          reports: reports.map(mapCommentReport),
         };
       }),
-  ];
+  ].filter(
+    (item) =>
+      item.reports.length > 0 ||
+      item.moderation_status === "reported" ||
+      item.moderation_status === "blurred" ||
+      item.moderation_status === "removed"
+  );
+
+  const openModerationItemsCount = moderationItems.filter(
+    (item) =>
+      item.moderation_status === "reported" ||
+      item.reports.some(
+        (report) => report.status === "open" || report.status === "reviewing"
+      )
+  ).length;
+  const archivedModerationItemsCount =
+    moderationItems.length - openModerationItemsCount;
 
   const usersTab = (
     <section className="grid w-full min-w-0 gap-5 overflow-hidden lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-6">
@@ -722,37 +750,20 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     </section>
   );
 
-  const reportsTab = (
-    <AdminReportsPanel
-      initialReports={moderationReports}
-      initialSelectedReportId={selectedReportId}
-      moderationReady={moderationReady}
-      moderationUnavailableReason={moderationUnavailableReason}
-      targetPreviewsByKey={{
-        ...Object.fromEntries(
-          Array.from(reportedPostsMap.entries()).map(([id, post]) => [
-            `post:${id}`,
-            post.content?.trim() || "Post is no longer available.",
-          ])
-        ),
-        ...Object.fromEntries(
-          Array.from(reportedCommentsMap.entries()).map(([id, comment]) => [
-            `comment:${id}`,
-            comment.content?.trim() || "Comment is no longer available.",
-          ])
-        ),
-      }}
-      usernamesById={Object.fromEntries(
-        Array.from(moderationProfilesMap.entries()).map(([id, profile]) => [
-          id,
-          profile.username,
-        ])
-      )}
-    />
-  );
-
-  const postModerationTab = (
-    <AdminPostModerationPanel initialItems={postModerationItems} />
+  const moderationTab = moderationReady ? (
+    <AdminModerationPanel initialItems={moderationItems} />
+  ) : (
+    <section className="min-w-0 overflow-hidden rounded-[32px] border border-neutral-200 bg-[#fffdf8] p-5 shadow-sm sm:p-6">
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">
+        Moderation
+      </p>
+      <h2 className="mt-2 text-2xl font-black tracking-tight text-neutral-950">
+        Queue unavailable
+      </h2>
+      <div className="mt-6 rounded-2xl border border-dashed border-amber-200 bg-amber-50 px-4 py-5 text-sm text-amber-900">
+        {moderationUnavailableReason}
+      </div>
+    </section>
   );
 
   const badgesTab = (
@@ -812,7 +823,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 management using the existing server helpers.
               </p>
             </div>
-            <div className="grid min-w-0 shrink-0 grid-cols-2 gap-2 rounded-[26px] border border-amber-100 bg-white/70 p-2 text-center shadow-sm">
+            <div className="grid min-w-0 shrink-0 grid-cols-3 gap-2 rounded-[26px] border border-amber-100 bg-white/70 p-2 text-center shadow-sm">
               <div className="px-3 py-2">
                 <p className="text-lg font-black tabular-nums text-neutral-950">
                   {users.length}
@@ -823,10 +834,18 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </div>
               <div className="border-l border-amber-100 px-3 py-2">
                 <p className="text-lg font-black tabular-nums text-neutral-950">
-                  {moderationReports.length}
+                  {openModerationItemsCount}
                 </p>
                 <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">
-                  Reports
+                  Open
+                </p>
+              </div>
+              <div className="border-l border-amber-100 px-3 py-2">
+                <p className="text-lg font-black tabular-nums text-neutral-950">
+                  {archivedModerationItemsCount}
+                </p>
+                <p className="text-[9px] font-black uppercase tracking-[0.14em] text-neutral-500">
+                  Archived
                 </p>
               </div>
             </div>
@@ -836,11 +855,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         <AdminTabs
           initialTab={initialTab}
           tabs={[
-            { id: "reports", label: "Reports", content: reportsTab },
             {
-              id: "post-moderation",
-              label: `Post Moderation (${postModerationItems.filter((item) => item.moderation_status === "reported" || item.moderation_status === "blurred").length})`,
-              content: postModerationTab,
+              id: "moderation",
+              label: `Moderation (${openModerationItemsCount})`,
+              content: moderationTab,
             },
             { id: "users", label: "Users", content: usersTab },
             { id: "badges", label: "Badges", content: badgesTab },

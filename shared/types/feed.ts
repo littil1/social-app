@@ -11,6 +11,9 @@ export type FeedPost = {
   id: number;
   content: string;
   moderation_status: "clean" | "reported" | "blurred" | "removed";
+  moderation_reason?: string | null;
+  moderation_report_count?: number;
+  moderation_ai_checked_at?: string | null;
   created_at: string;
   comments_count: number;
   reactions_count: number;

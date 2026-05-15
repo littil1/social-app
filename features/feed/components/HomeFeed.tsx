@@ -37,6 +37,10 @@ const FEED_SCROLL_STORAGE_KEY = "app-feed-scroll-y";
 function deduplicatePosts(posts: FeedPost[]): FeedPost[] {
   const seen = new Set<number>();
   return posts.filter((post) => {
+    if (post.moderation_status === "removed") {
+      return false;
+    }
+
     if (seen.has(post.id)) {
       return false;
     }
@@ -53,6 +57,10 @@ function getFeedSignature(posts: FeedPost[]) {
         post.id,
         post.created_at,
         post.content,
+        post.moderation_status,
+        post.moderation_reason ?? "",
+        post.moderation_report_count ?? 0,
+        post.moderation_ai_checked_at ?? "",
         post.comments_count,
         post.reactions_count,
         post.viewer_reaction ?? "",
@@ -76,14 +84,9 @@ function areFeedsEqual(currentPosts: FeedPost[], nextPosts: FeedPost[]) {
 }
 
 function mergeVisibleFeed(currentPosts: FeedPost[], nextPosts: FeedPost[]) {
-  if (currentPosts.length <= nextPosts.length) {
-    return nextPosts;
-  }
-
-  const nextPostIds = new Set(nextPosts.map((post) => post.id));
-  const preservedPosts = currentPosts.filter((post) => !nextPostIds.has(post.id));
-
-  return [...nextPosts, ...preservedPosts];
+  return nextPosts.length >= currentPosts.length
+    ? nextPosts
+    : nextPosts.filter((post) => post.moderation_status !== "removed");
 }
 
 function rememberFeedScroll() {

@@ -34,7 +34,10 @@ function getOpenAIClient() {
     return null;
   }
 
-  return new OpenAI({ apiKey });
+  return new OpenAI({
+    apiKey,
+    maxRetries: 0,
+  });
 }
 
 export function getImportantModerationCategories(
@@ -96,6 +99,55 @@ function hasClearPrivateDataRisk(text: string) {
   return hasSsnLike || hasCreditCardLike || (hasEmail && hasPhone);
 }
 
+function getOpenAIErrorDetails(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return {
+      status: null,
+      code: null,
+      type: null,
+      message: "",
+    };
+  }
+
+  const details = error as Record<string, unknown>;
+
+  return {
+    status:
+      typeof details.status === "number"
+        ? details.status
+        : typeof details.statusCode === "number"
+          ? details.statusCode
+          : null,
+    code: typeof details.code === "string" ? details.code : null,
+    type: typeof details.type === "string" ? details.type : null,
+    message: typeof details.message === "string" ? details.message : "",
+  };
+}
+
+function isOpenAIRateLimitError(error: unknown) {
+  const details = getOpenAIErrorDetails(error);
+  const normalized = `${details.code ?? ""} ${details.type ?? ""} ${details.message}`.toLowerCase();
+
+  return (
+    details.status === 429 ||
+    normalized.includes("rate limit") ||
+    normalized.includes("rate_limit") ||
+    normalized.includes("quota") ||
+    normalized.includes("insufficient_quota")
+  );
+}
+
+function createUnavailableModerationResult(summary: string) {
+  return {
+    flagged: false,
+    categories: {},
+    scores: {},
+    summary,
+    checkedAt: new Date().toISOString(),
+    emergencyStatus: null,
+  } satisfies ReportedContentModerationResult;
+}
+
 export async function analyzeReportedContent({
   type,
   id,
@@ -140,7 +192,23 @@ export async function analyzeReportedContent({
       emergencyStatus: mapModerationResultToStatus(result),
     };
   } catch (error) {
-    console.error(`OpenAI moderation failed for ${type}:${id}`, error);
-    return null;
+    const details = getOpenAIErrorDetails(error);
+
+    console.error("OpenAI moderation failed", {
+      targetType: type,
+      targetId: id,
+      status: details.status,
+      code: details.code,
+      errorType: details.type,
+      rateLimited: isOpenAIRateLimitError(error),
+    });
+
+    if (isOpenAIRateLimitError(error)) {
+      return createUnavailableModerationResult(
+        "AI check unavailable: rate limited."
+      );
+    }
+
+    return createUnavailableModerationResult("AI check unavailable.");
   }
 }

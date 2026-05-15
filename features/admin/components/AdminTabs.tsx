@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
-type AdminTabId = "reports" | "post-moderation" | "users" | "badges";
+type AdminTabId = "moderation" | "users" | "badges";
 
 type AdminTabsProps = {
   initialTab?: AdminTabId;
@@ -14,7 +14,7 @@ type AdminTabsProps = {
 };
 
 export default function AdminTabs({
-  initialTab = "reports",
+  initialTab = "moderation",
   tabs,
 }: AdminTabsProps) {
   const [activeTab, setActiveTab] = useState<AdminTabId>(initialTab);

@@ -24,19 +24,48 @@ export async function GET() {
     }
 
     const adminSupabase = createAdminClient();
-    const [{ count: postCount }, { count: commentCount }] = await Promise.all([
+    const [
+      { data: openPostReports },
+      { data: openCommentReports },
+      { data: reportedPosts },
+      { data: reportedComments },
+    ] = await Promise.all([
+      adminSupabase
+        .from("post_reports")
+        .select("post_id")
+        .in("status", ["open", "reviewing"]),
+      adminSupabase
+        .from("comment_reports")
+        .select("comment_id")
+        .in("status", ["open", "reviewing"]),
       adminSupabase
         .from("posts")
-        .select("id", { count: "exact", head: true })
-        .in("moderation_status", ["reported", "blurred"]),
+        .select("id")
+        .eq("moderation_status", "reported"),
       adminSupabase
         .from("comments")
-        .select("id", { count: "exact", head: true })
-        .in("moderation_status", ["reported", "blurred"]),
+        .select("id")
+        .eq("moderation_status", "reported"),
     ]);
 
+    const openPostIds = new Set<number>();
+    for (const report of openPostReports ?? []) {
+      openPostIds.add(report.post_id);
+    }
+    for (const post of reportedPosts ?? []) {
+      openPostIds.add(post.id);
+    }
+
+    const openCommentIds = new Set<number>();
+    for (const report of openCommentReports ?? []) {
+      openCommentIds.add(report.comment_id);
+    }
+    for (const comment of reportedComments ?? []) {
+      openCommentIds.add(comment.id);
+    }
+
     return NextResponse.json({
-      count: (postCount ?? 0) + (commentCount ?? 0),
+      count: openPostIds.size + openCommentIds.size,
     });
   } catch (error) {
     console.error(error);

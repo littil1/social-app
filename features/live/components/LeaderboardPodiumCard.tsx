@@ -3,7 +3,7 @@
 import { memo, useState } from "react";
 import { useAuthModal } from "@/features/auth/components/AuthModalProvider";
 import PostBoostButton from "@/features/posts/components/PostBoostButton";
-import type { ReactionCounts, ReactionType } from "@/shared/types/feed";
+import type { FeedPost, ReactionCounts, ReactionType } from "@/shared/types/feed";
 import type { OptimisticPostReactionMeta } from "@/shared/lib/optimistic-post";
 import FormError from "@/shared/components/ui/FormError";
 
@@ -15,6 +15,10 @@ type LeaderboardPost = {
   relevance_score: number;
   author_username: string | null;
   author_avatar_url: string | null;
+  moderation_status: FeedPost["moderation_status"];
+  moderation_reason: string | null;
+  moderation_report_count: number;
+  moderation_ai_checked_at: string | null;
   reactions_count: number;
   boost_count: number;
   viewer_has_boosted: boolean;
@@ -113,6 +117,7 @@ function LeaderboardPodiumCard({
   const { requireLoginAndResume, isAuthenticated, authReady } = useAuthModal();
   const [reactionLoading, setReactionLoading] = useState(false);
   const [reactionError, setReactionError] = useState<string | null>(null);
+  const [showBlurredContent, setShowBlurredContent] = useState(false);
   const styles = getRankStyles(position);
   const effectiveIsLoggedIn = authReady ? isAuthenticated : isLoggedIn;
 
@@ -142,6 +147,8 @@ function LeaderboardPodiumCard({
   }
 
   const score = getDisplayEchoScore(post.relevance_score);
+  const isBlurred =
+    post.moderation_status === "blurred" && !showBlurredContent;
 
   async function submitReaction(reaction: ReactionType) {
     if (!post || reactionLoading) return;
@@ -223,14 +230,40 @@ function LeaderboardPodiumCard({
 
         <button
           type="button"
-          onClick={onOpenPost}
+          onClick={isBlurred ? undefined : onOpenPost}
           className="motion-button relative mt-5 flex-1 overflow-hidden rounded-[26px] border border-white/80 bg-white/78 p-4 text-left shadow-sm ring-1 ring-white/50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
         >
-          <p
-            className={`[display:-webkit-box] overflow-hidden whitespace-pre-wrap break-words font-semibold tracking-tight text-neutral-950 [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${styles.preview}`}
-          >
-            {post.post_content}
-          </p>
+          {isBlurred ? (
+            <div className="space-y-3">
+              <p className="break-words text-sm font-bold text-neutral-600 [overflow-wrap:anywhere]">
+                This content was reported and is under review.
+              </p>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setShowBlurredContent(true);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setShowBlurredContent(true);
+                  }
+                }}
+                className="motion-button inline-flex rounded-full border border-neutral-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-neutral-950 shadow-sm"
+              >
+                Show anyway
+              </span>
+            </div>
+          ) : (
+            <p
+              className={`[display:-webkit-box] overflow-hidden whitespace-pre-wrap break-words font-semibold tracking-tight text-neutral-950 [-webkit-box-orient:vertical] [-webkit-line-clamp:2] ${styles.preview}`}
+            >
+              {post.post_content}
+            </p>
+          )}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white via-white/80 to-transparent" />
         </button>
 

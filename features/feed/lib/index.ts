@@ -28,6 +28,9 @@ type PostRow = Database["public"]["Tables"]["posts"]["Row"];
 type FeedPostRow = Pick<PostRow, "id" | "content" | "created_at" | "user_id">;
 type ModeratedFeedPostRow = FeedPostRow & {
   moderation_status: FeedPost["moderation_status"];
+  moderation_reason: string | null;
+  moderation_report_count: number;
+  moderation_ai_checked_at: string | null;
 };
 type PostReactionCountRow = {
   post_id: number;
@@ -49,13 +52,17 @@ type FeedUserContext = {
   viewerIsAdmin: boolean;
 };
 
-const FEED_POST_SELECT = "id, content, created_at, user_id, moderation_status";
+const FEED_POST_SELECT =
+  "id, content, created_at, user_id, moderation_status, moderation_reason, moderation_report_count, moderation_ai_checked_at";
 
 function stripCandidateScores(post: FeedCandidatePost) {
   return {
     id: post.id,
     content: post.content,
     moderation_status: post.moderation_status,
+    moderation_reason: post.moderation_reason,
+    moderation_report_count: post.moderation_report_count,
+    moderation_ai_checked_at: post.moderation_ai_checked_at,
     created_at: post.created_at,
     comments_count: post.comments_count,
     reactions_count: post.reactions_count,
@@ -290,6 +297,9 @@ function toFeedCandidatePost(
     id: post.id,
     content: post.content ?? "",
     moderation_status: post.moderation_status ?? "clean",
+    moderation_reason: post.moderation_reason ?? null,
+    moderation_report_count: post.moderation_report_count ?? 0,
+    moderation_ai_checked_at: post.moderation_ai_checked_at ?? null,
     created_at: post.created_at,
     comments_count: commentsCount,
     reactions_count: reactionsTotal,
@@ -365,11 +375,13 @@ async function loadFeedCandidates(
       .from("posts")
       .select(FEED_POST_SELECT)
       .gte("created_at", startIso)
+      .neq("moderation_status", "removed")
       .order("created_at", { ascending: false }),
     supabase
       .from("posts")
       .select(FEED_POST_SELECT)
       .lt("created_at", startIso)
+      .neq("moderation_status", "removed")
       .order("created_at", { ascending: false })
       .range(0, olderCandidatePoolSize - 1),
   ]);
@@ -426,6 +438,7 @@ async function loadTodayFeedCandidates(
     .from("posts")
     .select(FEED_POST_SELECT)
     .gte("created_at", startIso)
+    .neq("moderation_status", "removed")
     .order("created_at", { ascending: false });
 
   if (todaysPostsError) {
@@ -478,6 +491,7 @@ async function loadOlderFeedCandidates(
     .from("posts")
     .select(FEED_POST_SELECT)
     .lt("created_at", startIso)
+    .neq("moderation_status", "removed")
     .order("created_at", { ascending: false })
     .range(0, olderCandidatePoolSize - 1);
 
