@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -16,90 +16,57 @@ export type Database = {
     Tables: {
       badges: {
         Row: {
-          color_token: string | null
+          category: string
+          color_token: string
           created_at: string
           description: string | null
           family: string
           icon: string | null
           id: number
           is_active: boolean
+          is_claimable: boolean
           key: string
           level: number
           name: string
           short_label: string
           sort_order: number
           threshold: number
-          updated_at: string
         }
         Insert: {
-          color_token?: string | null
+          category: string
+          color_token?: string
           created_at?: string
           description?: string | null
           family: string
           icon?: string | null
           id?: number
           is_active?: boolean
+          is_claimable?: boolean
           key: string
-          level: number
+          level?: number
           name: string
           short_label: string
           sort_order?: number
-          threshold: number
-          updated_at?: string
+          threshold?: number
         }
         Update: {
-          color_token?: string | null
+          category?: string
+          color_token?: string
           created_at?: string
           description?: string | null
           family?: string
           icon?: string | null
           id?: number
           is_active?: boolean
+          is_claimable?: boolean
           key?: string
           level?: number
           name?: string
           short_label?: string
           sort_order?: number
           threshold?: number
-          updated_at?: string
         }
         Relationships: []
-      }
-      comment_likes: {
-        Row: {
-          comment_id: number
-          created_at: string
-          id: number
-          user_id: string
-        }
-        Insert: {
-          comment_id: number
-          created_at?: string
-          id?: number
-          user_id: string
-        }
-        Update: {
-          comment_id?: number
-          created_at?: string
-          id?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comment_likes_comment_id_fkey"
-            columns: ["comment_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comment_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       comment_reactions: {
         Row: {
@@ -133,85 +100,6 @@ export type Database = {
           },
           {
             foreignKeyName: "comment_reactions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      comments: {
-        Row: {
-          content: string
-          created_at: string
-          deleted_at: string | null
-          id: number
-          moderation_ai_categories: Json | null
-          moderation_ai_checked_at: string | null
-          moderation_ai_scores: Json | null
-          moderation_ai_summary: string | null
-          moderation_reason: string | null
-          moderation_report_count: number
-          moderation_reviewed_at: string | null
-          moderation_reviewed_by: string | null
-          moderation_status: string
-          parent_id: number | null
-          post_id: number
-          user_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          deleted_at?: string | null
-          id?: number
-          moderation_ai_categories?: Json | null
-          moderation_ai_checked_at?: string | null
-          moderation_ai_scores?: Json | null
-          moderation_ai_summary?: string | null
-          moderation_reason?: string | null
-          moderation_report_count?: number
-          moderation_reviewed_at?: string | null
-          moderation_reviewed_by?: string | null
-          moderation_status?: string
-          parent_id?: number | null
-          post_id: number
-          user_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          deleted_at?: string | null
-          id?: number
-          moderation_ai_categories?: Json | null
-          moderation_ai_checked_at?: string | null
-          moderation_ai_scores?: Json | null
-          moderation_ai_summary?: string | null
-          moderation_reason?: string | null
-          moderation_report_count?: number
-          moderation_reviewed_at?: string | null
-          moderation_reviewed_by?: string | null
-          moderation_status?: string
-          parent_id?: number | null
-          post_id?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comments_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "comments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "comments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -287,6 +175,92 @@ export type Database = {
           {
             foreignKeyName: "comment_reports_reviewed_by_fkey"
             columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      comments: {
+        Row: {
+          content: string
+          created_at: string
+          deleted_at: string | null
+          id: number
+          moderation_ai_categories: Json | null
+          moderation_ai_checked_at: string | null
+          moderation_ai_scores: Json | null
+          moderation_ai_summary: string | null
+          moderation_reason: string | null
+          moderation_report_count: number
+          moderation_reviewed_at: string | null
+          moderation_reviewed_by: string | null
+          moderation_status: string
+          parent_id: number | null
+          post_id: number
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: number
+          moderation_ai_categories?: Json | null
+          moderation_ai_checked_at?: string | null
+          moderation_ai_scores?: Json | null
+          moderation_ai_summary?: string | null
+          moderation_reason?: string | null
+          moderation_report_count?: number
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
+          parent_id?: number | null
+          post_id: number
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          deleted_at?: string | null
+          id?: number
+          moderation_ai_categories?: Json | null
+          moderation_ai_checked_at?: string | null
+          moderation_ai_scores?: Json | null
+          moderation_ai_summary?: string | null
+          moderation_reason?: string | null
+          moderation_report_count?: number
+          moderation_reviewed_at?: string | null
+          moderation_reviewed_by?: string | null
+          moderation_status?: string
+          parent_id?: number | null
+          post_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_moderation_reviewed_by_fkey"
+            columns: ["moderation_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comments_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -520,82 +494,6 @@ export type Database = {
           },
         ]
       }
-      road_achievements: {
-        Row: {
-          created_at: string
-          created_by_admin_id: string | null
-          description: string
-          icon: string | null
-          id: string
-          image_url: string | null
-          implemented_at: string
-          is_published: boolean
-          sort_order: number | null
-          source_feature_request_id: number | null
-          source_user_id: string | null
-          source_user_username_snapshot: string | null
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by_admin_id?: string | null
-          description: string
-          icon?: string | null
-          id?: string
-          image_url?: string | null
-          implemented_at?: string
-          is_published?: boolean
-          sort_order?: number | null
-          source_feature_request_id?: number | null
-          source_user_id?: string | null
-          source_user_username_snapshot?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by_admin_id?: string | null
-          description?: string
-          icon?: string | null
-          id?: string
-          image_url?: string | null
-          implemented_at?: string
-          is_published?: boolean
-          sort_order?: number | null
-          source_feature_request_id?: number | null
-          source_user_id?: string | null
-          source_user_username_snapshot?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "road_achievements_created_by_admin_id_fkey"
-            columns: ["created_by_admin_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "road_achievements_source_feature_request_id_fkey"
-            columns: ["source_feature_request_id"]
-            isOneToOne: false
-            referencedRelation: "feature_requests"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "road_achievements_source_user_id_fkey"
-            columns: ["source_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       follows: {
         Row: {
           created_at: string
@@ -626,104 +524,6 @@ export type Database = {
           {
             foreignKeyName: "follows_following_id_fkey"
             columns: ["following_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      likes: {
-        Row: {
-          created_at: string
-          id: number
-          post_id: number | null
-          user_id: string | null
-          user_key: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-          post_id?: number | null
-          user_id?: string | null
-          user_key?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          post_id?: number | null
-          user_id?: string | null
-          user_key?: string | null
-        }
-        Relationships: []
-      }
-      post_reports: {
-        Row: {
-          admin_note: string | null
-          created_at: string
-          details: string | null
-          id: string
-          post_id: number
-          post_owner_user_id: string | null
-          reason: string
-          reporter_user_id: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          admin_note?: string | null
-          created_at?: string
-          details?: string | null
-          id?: string
-          post_id: number
-          post_owner_user_id?: string | null
-          reason: string
-          reporter_user_id: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          admin_note?: string | null
-          created_at?: string
-          details?: string | null
-          id?: string
-          post_id?: number
-          post_owner_user_id?: string | null
-          reason?: string
-          reporter_user_id?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "post_reports_post_id_fkey"
-            columns: ["post_id"]
-            isOneToOne: false
-            referencedRelation: "posts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_reports_post_owner_user_id_fkey"
-            columns: ["post_owner_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_reports_reporter_user_id_fkey"
-            columns: ["reporter_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "post_reports_reviewed_by_fkey"
-            columns: ["reviewed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -808,6 +608,80 @@ export type Database = {
           },
         ]
       }
+      post_reports: {
+        Row: {
+          admin_note: string | null
+          created_at: string
+          details: string | null
+          id: string
+          post_id: number
+          post_owner_user_id: string | null
+          reason: string
+          reporter_user_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_note?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id: number
+          post_owner_user_id?: string | null
+          reason: string
+          reporter_user_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_note?: string | null
+          created_at?: string
+          details?: string | null
+          id?: string
+          post_id?: number
+          post_owner_user_id?: string | null
+          reason?: string
+          reporter_user_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reports_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reports_post_owner_user_id_fkey"
+            columns: ["post_owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reports_reporter_user_id_fkey"
+            columns: ["reporter_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reports_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       posts: {
         Row: {
           comments_count: number
@@ -862,6 +736,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "posts_moderation_reviewed_by_fkey"
+            columns: ["moderation_reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "posts_user_id_profiles_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -903,41 +784,130 @@ export type Database = {
         }
         Relationships: []
       }
+      road_achievements: {
+        Row: {
+          created_at: string
+          created_by_admin_id: string | null
+          description: string
+          icon: string | null
+          id: string
+          image_url: string | null
+          implemented_at: string
+          is_published: boolean
+          sort_order: number | null
+          source_feature_request_id: number | null
+          source_user_id: string | null
+          source_user_username_snapshot: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_admin_id?: string | null
+          description: string
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          implemented_at?: string
+          is_published?: boolean
+          sort_order?: number | null
+          source_feature_request_id?: number | null
+          source_user_id?: string | null
+          source_user_username_snapshot?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by_admin_id?: string | null
+          description?: string
+          icon?: string | null
+          id?: string
+          image_url?: string | null
+          implemented_at?: string
+          is_published?: boolean
+          sort_order?: number | null
+          source_feature_request_id?: number | null
+          source_user_id?: string | null
+          source_user_username_snapshot?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "road_achievements_created_by_admin_id_fkey"
+            columns: ["created_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "road_achievements_source_feature_request_id_fkey"
+            columns: ["source_feature_request_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "road_achievements_source_user_id_fkey"
+            columns: ["source_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_badges: {
         Row: {
           awarded_at: string
+          awarded_by: string | null
           awarded_via: string
           badge_id: number
-          created_at: string
+          claimed_at: string | null
           family: string
           id: number
+          note: string | null
           progress_value: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           awarded_at?: string
+          awarded_by?: string | null
           awarded_via?: string
           badge_id: number
-          created_at?: string
+          claimed_at?: string | null
           family: string
           id?: number
+          note?: string | null
           progress_value?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           awarded_at?: string
+          awarded_by?: string | null
           awarded_via?: string
           badge_id?: number
-          created_at?: string
+          claimed_at?: string | null
           family?: string
           id?: number
+          note?: string | null
           progress_value?: number | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_badges_awarded_by_fkey"
+            columns: ["awarded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_badges_badge_id_fkey"
             columns: ["badge_id"]
@@ -959,7 +929,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      capture_weekly_post_hall_of_fame: { Args: never; Returns: undefined }
+      run_snapshot_daily_winners: {
+        Args: { target_winner_date?: string }
+        Returns: Json
+      }
     }
     Enums: {
       reaction_type: "like" | "funny" | "wow" | "fire"
@@ -1094,4 +1068,3 @@ export const Constants = {
     },
   },
 } as const
-
